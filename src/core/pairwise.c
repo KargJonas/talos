@@ -9,9 +9,9 @@
     void NAME(float* a, float* b, size_t size) { \
         for (size_t i = 0; i < size; i++) a[i] OP##= b[i]; }
 
-PARIWISE_OP(prw_add, +) // add
-PARIWISE_OP(prw_sub, -) // sub
-PARIWISE_OP(prw_mul, *) // mul
-PARIWISE_OP(prw_div, /) // div
+PARIWISE_OP(add_prw, +) // add
+PARIWISE_OP(sub_prw, -) // sub
+PARIWISE_OP(mul_prw, *) // mul
+PARIWISE_OP(div_prw, /) // div
 
 #endif //CORE_PAIRWISE

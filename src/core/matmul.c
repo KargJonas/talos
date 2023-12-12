@@ -3,7 +3,7 @@
 
 #include <stddef.h>
 
-void mat_mul(
+void mul_mat(
     float* a, size_t nrow_a, size_t ncol_a,
     float* b, size_t nrow_b, size_t ncol_b,
     float* result

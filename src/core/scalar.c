@@ -9,9 +9,9 @@
     void NAME(float* a, float b, size_t size) { \
         for (size_t i = 0; i < size; i++) a[i] OP##= b; }
 
-SCALAR_OP(scl_add, +) // add
-SCALAR_OP(scl_sub, -) // sub
-SCALAR_OP(scl_mul, *) // mul
-SCALAR_OP(scl_div, /) // div
+SCALAR_OP(add_scl, +) // add
+SCALAR_OP(sub_scl, -) // sub
+SCALAR_OP(mul_scl, *) // mul
+SCALAR_OP(div_scl, /) // div
 
 #endif //CORE_SCALAR

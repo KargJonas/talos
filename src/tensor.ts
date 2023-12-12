@@ -49,7 +49,29 @@ export class Tensor {
         return this;
     }
 
-    mul(other: Tensor): Tensor {
+    basic_op(name: string, core_fn_prw: Function, core_fn_scl: Function, other: Tensor | number) {
+        if (other instanceof Tensor) {
+            // todo: should be overridable
+            if (!this.shape.equals(other.shape))
+                throw `Shape mismatch: Tensor.${name}() expects tensors of the same shape.`;
+
+            core_fn_prw(this.get_ptr(), other.get_ptr(), this.data.length);
+        }
+
+        else if (typeof other === 'number') core_fn_scl(this.get_ptr(), other, this.data.length);
+        else throw `Type mismatch: Tensor.${name}() expects a Tensor or number.`;
+        return this;
+    }
+
+    // pairwise/scalar operations
+    add = (other: Tensor | number) => this.basic_op('add', core._add_prw, core._add_scl, other);
+    sub = (other: Tensor | number) => this.basic_op('sub', core._sub_prw, core._sub_scl, other);
+    div = (other: Tensor | number) => this.basic_op('div', core._div_prw, core._div_scl, other);
+    mul = (other: Tensor | number) => this.basic_op('mul', core._mul_prw, core._mul_scl, other);
+    
+    // dot product/standard matmul
+    dot(other: Tensor): Tensor {
+        if (!(other instanceof Tensor)) throw 'Tensor.dot() expects a tensor.';
         this.shape.check_matmul_compat(other.shape);
 
         const rows = this.shape.get_rows();
@@ -58,7 +80,7 @@ export class Tensor {
         const cols_other = other.shape.get_cols();
         const result = tensor([rows, cols_other]);
 
-        core._mat_mul(
+        core._mul_mat(
             this.get_ptr(),  rows,       cols,
             other.get_ptr(), rows_other, cols_other,
             result.get_ptr());

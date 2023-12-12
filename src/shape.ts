@@ -41,6 +41,14 @@ export class Shape extends Array {
         return new Shape(this.get_rows(), this.get_cols());
     }
 
+    equals(other: Shape): boolean {
+        for (let i = 0; i < this.length; i++) {
+            if (!other[i] || this[i] !== other[i]) return false;
+        }
+    
+        return true;
+    }
+
     // this is a work in progress
     check_matmul_compat(other: Shape): void {
         if (this.get_cols() !== other.get_rows()) {
