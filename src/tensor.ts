@@ -1,3 +1,4 @@
+import core from './core/build';
 import { Shape } from './shape';
 
 export class Tensor {
@@ -16,7 +17,6 @@ export class Tensor {
     }
 
     *get_axis_iterable(n: number) {
-
         // todo extract into a function (duplicate code in shape.get_axis_iterable)
         const flattened: Shape = this.shape.flatten(n);
         const new_shape = flattened.slice(1) as Shape;
@@ -28,15 +28,47 @@ export class Tensor {
         }
     }
 
-    flatten(n: number): Tensor {
-        return new Tensor(this.shape.flatten(n), this.data);
+    get_ptr(): number {
+        return this.data.byteOffset;
     }
 
-    mat_flat(): Tensor {
-        return new Tensor(this.shape.mat_flat(), this.data);
+    // shape operations
+    flatten  = (n: number): Tensor => new Tensor(this.shape.flatten(n), this.data);
+    mat_flat = ():          Tensor => new Tensor(this.shape.mat_flat(), this.data);
+
+    // data operations
+    free = () => core._free_farr(this.get_ptr());
+
+    rand_f(min = -1, max = 1) {
+        core._rand_f(this.get_ptr(), this.data.length, min, max);
+        return this;
     }
 
-    mat_to_string(num_width = 10, space_before = 0) {
+    rand_i(min = -1, max = 1) {
+        core._rand_i(this.get_ptr(), this.data.length, min, max);
+        return this;
+    }
+
+    mul(other: Tensor): Tensor {
+        this.shape.check_matmul_compat(other.shape);
+
+        const rows = this.shape.get_rows();
+        const cols = this.shape.get_cols();
+        const rows_other = other.shape.get_rows();
+        const cols_other = other.shape.get_cols();
+        const result = tensor([rows, cols_other]);
+
+        core._mat_mul(
+            this.get_ptr(),  rows,       cols,
+            other.get_ptr(), rows_other, cols_other,
+            result.get_ptr());
+
+        return result;
+    }
+
+    // usability methods
+    
+    private mat_to_string(num_width = 10, space_before = 0) {
         if (this.shape.get_ndim() !== 2)
             throw new Error(`Cannot print tensor of shape [${this.shape}] as matrix.`);
 
@@ -86,56 +118,26 @@ export class Tensor {
 
         return `[ ${strings.join(',\n\n' + ' '.repeat(space_before + 2))} ]`
     }
-
-    mul(other: Tensor): Tensor {
-        this.shape.check_matmul_compat(other.shape);
-
-        const rows = this.shape.get_rows();
-        const cols = this.shape.get_cols();
-        const cols_other = other.shape.get_cols();
-        const result = tensor([rows, cols_other]);
-
-        for (let r = 0; r < rows; r++) {
-            for (let c = 0; c < cols_other; c++) {
-                const index = result.shape.get_index(r, c);
-            
-                 for (let i = 0; i < cols; i++) {
-                    const ia = this.shape.get_index(r, i);
-                    const ib = other.shape.get_index(i, c);
-                    result.data[index] += this.data[ia] * other.data[ib];
-                 }
-            }
-        }
-
-        return result;
-    }
-
-    rand(min = -1, max = 1) {
-        const range = max - min;
-
-        this.data.forEach((_, index) =>
-            this.data[index] = Math.random() * range + min);
-
-        return this;
-    }
-
-    rand_int(min = -1, max = 1) {
-        min = Math.ceil(min);
-        max = Math.floor(max);
-
-        this.data.forEach((_, index) =>
-            this.data[index] = ((Math.random() * (max - min + 1)) | 0) + min);
-
-        return this;
-    }
 }
 
+/**
+ * create a new tensor
+ * NOTE: Only safe to call after core_ready is resolved
+ * @param shape shape of tensor
+ * @param data tensor data
+ * @returns tensor of specified shape with specified data
+ */
 export default function tensor(shape: number[] | Shape, data?: number[]) {
-    const _shape = new Shape(...shape); // clone shape
-    const _data = new Float32Array(_shape.get_nelem());
+    const _shape = new Shape(...shape);         // clone shape (shapes are mutable, prevents issues later)
+    const n_elem = _shape.get_nelem();          // compute number of elements based on shape
+    const pointer = core._alloc_farr(n_elem);   // allocate space in wasm memory
 
-    if (data !== undefined)
-        _data.set(data);
+    const _data = new Float32Array(             // create js f32arr binding to that space
+        core.memory.buffer,                     // ref to wasm memory
+        pointer,                                // ref to previously allocated space
+        n_elem);                                // nr of elements in array
+
+    if (data !== undefined) _data.set(data);    // fill array with data
 
     return new Tensor(_shape, _data);
 }

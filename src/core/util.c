@@ -9,9 +9,12 @@ struct sized_arr {
     float* data[];
 };
 
-EMSCRIPTEN_KEEPALIVE
 float* alloc_farr(size_t size) {
     return (float*)malloc(size * sizeof(float));
+}
+
+void free_farr(float* ptr) {
+    free(ptr);
 }
 
 #endif //CORE_UTIL
