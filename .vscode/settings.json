@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "util.c": "c",
+        "stddef.h": "c",
+        "emscripten.h": "c"
+    }
+}

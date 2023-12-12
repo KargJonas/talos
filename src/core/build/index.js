@@ -1569,7 +1569,7 @@ function createExportWrapper(name, fixedasm) {
 }
 
 var wasmBinaryFile;
-  wasmBinaryFile = 'compiled.wasm';
+  wasmBinaryFile = 'index.wasm';
   if (!isDataURI(wasmBinaryFile)) {
     wasmBinaryFile = locateFile(wasmBinaryFile);
   }
@@ -1895,7 +1895,37 @@ var ___wasm_call_ctors = Module["___wasm_call_ctors"] = createExportWrapper("__w
 var _alloc_farr = Module["_alloc_farr"] = createExportWrapper("alloc_farr");
 
 /** @type {function(...*):?} */
-var _add = Module["_add"] = createExportWrapper("add");
+var _scl_add = Module["_scl_add"] = createExportWrapper("scl_add");
+
+/** @type {function(...*):?} */
+var _scl_sub = Module["_scl_sub"] = createExportWrapper("scl_sub");
+
+/** @type {function(...*):?} */
+var _scl_mul = Module["_scl_mul"] = createExportWrapper("scl_mul");
+
+/** @type {function(...*):?} */
+var _scl_div = Module["_scl_div"] = createExportWrapper("scl_div");
+
+/** @type {function(...*):?} */
+var _prw_add = Module["_prw_add"] = createExportWrapper("prw_add");
+
+/** @type {function(...*):?} */
+var _prw_sub = Module["_prw_sub"] = createExportWrapper("prw_sub");
+
+/** @type {function(...*):?} */
+var _prw_mul = Module["_prw_mul"] = createExportWrapper("prw_mul");
+
+/** @type {function(...*):?} */
+var _prw_div = Module["_prw_div"] = createExportWrapper("prw_div");
+
+/** @type {function(...*):?} */
+var _rand_seed = Module["_rand_seed"] = createExportWrapper("rand_seed");
+
+/** @type {function(...*):?} */
+var _rand_f = Module["_rand_f"] = createExportWrapper("rand_f");
+
+/** @type {function(...*):?} */
+var _rand_i = Module["_rand_i"] = createExportWrapper("rand_i");
 
 /** @type {function(...*):?} */
 var ___errno_location = Module["___errno_location"] = createExportWrapper("__errno_location");

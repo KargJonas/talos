@@ -18,13 +18,23 @@
 // console.log(t1.toString());
 // console.log(t2.toString())
 
-import core from './wasm/build/compiled';
+import core_ready from './core';
 
-core.onRuntimeInitialized = () => {
+core_ready.then(({ core, memory }) => {
+    const arr_size = 4;
+    const arr = new Float32Array(
+        memory.buffer, core._alloc_farr(arr_size), arr_size);
 
-    const memory = new Uint8Array(core.HEAPU8.buffer);
-    const arr = core._alloc_farr(8);
-    const f32_arr = new Float32Array(memory.buffer, arr, 8);
-    core._add(arr, 2, 8);
-    console.log(f32_arr)
-}
+    core._rand_seed(1319);
+
+    // NOTE
+    // arr.byteOffset is the pointer of the array within the memory object
+    // arr.length is the number of items in the array
+
+    arr.set([3, 2, 1, 0]);
+    // core._rand_i(arr.byteOffset, arr.length, -1, 1);
+    // core._rand_f(arr.byteOffset, arr.length, -1, 1);
+    // core._scl_add(arr.byteOffset, 3, arr.length);
+    // core._prw_add(arr.byteOffset, arr.byteOffset, 8); // todo: figure out if func(data, shape, parameter) is more reasonable
+    console.log(arr)
+});
