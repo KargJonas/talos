@@ -21,7 +21,6 @@ export class Tensor {
         const flattened: Shape = this.shape.flatten(n);
         const new_shape = flattened.slice(1) as Shape;
         const stepover = new_shape.get_nelem() || 0;
-        console.log(new_shape)
 
         for (let index of this.shape.get_axis_iterable(n)) {
             // creating a tensor that references the data of this tensor
