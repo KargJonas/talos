@@ -19,30 +19,23 @@ export class Shape extends Array {
         return this.reduce((acc, cur) => acc *= cur, 1);
     }
 
-    get_ndim(): number {
-        return this.length;
-    }
-
     get_axis_size(axis_index: number): number {
         let axis_size = this[axis_index];
         if (axis_size === undefined) return 1;
         return axis_size;
     }
 
+    public get_ndim = () => this.length;
+
     // returns the size of the second-to-last axis, or 1 if that axis does not exits 
-    get_rows(): number {
-        return this.get_axis_size(this.get_ndim() - 2);
-    }
+    public get_rows = () => this.get_axis_size(this.get_ndim() - 2);
 
     // returns the size of the last axis, or 1 if that axis does not exits 
-    get_cols(): number {
-        return this.get_axis_size(this.get_ndim() - 1);
-    }
+    public get_cols = () => this.get_axis_size(this.get_ndim() - 1);
 
-    get_mat_shape(): Shape {
-        return new Shape(this.get_rows(), this.get_cols());
-    }
+    public get_mat_shape = () => new Shape(this.get_rows(), this.get_cols());
 
+    // returns true if two shapes are identical
     equals(other: Shape): boolean {
         for (let i = 0; i < this.length; i++) {
             if (!other[i] || this[i] !== other[i]) return false;
@@ -51,13 +44,7 @@ export class Shape extends Array {
         return true;
     }
 
-    // this is a work in progress
-    check_matmul_compat(other: Shape): void {
-        if (this.get_cols() !== other.get_rows()) {
-            throw new Error(`Cannot multiply matrices of shape [${this.get_mat_shape()}] and [${other.get_mat_shape()}]`);
-        }
-    }
-
+    // computes number of indices to step over for each element in each axis
     get_strides(): number[] {
         const strides = Array(this.get_ndim()).fill(1);
 
@@ -66,6 +53,25 @@ export class Shape extends Array {
         }
 
         return strides;
+    }
+
+    // flattens the array by n levels. e.g.: n=1 -> [2, 4, 3] turns to [8, 3]
+    flatten(n?: number): Shape {
+        if (n === undefined) n = this.get_ndim() - 1;
+        if (this.get_ndim() <= n) throw new Error("Can't flatten this much.");
+        let new_axis_size = 1;
+
+        for (let i = 0; i < n + 1; i++) {
+            new_axis_size *= this.get_axis_size(i);
+        }
+
+        return shape(new_axis_size, ...this.slice(n + 1));
+    }
+
+    // flatten to such an extent that we get an array of matrices
+    mat_flat(): Shape {
+        const amount = Math.max(this.get_ndim() - 3, 0);
+        return this.flatten(amount);
     }
 
     /**
@@ -86,32 +92,10 @@ export class Shape extends Array {
         return [index, shape(...new_shape)];
     }
 
-    flatten(n?: number): Shape {
-        if (n === undefined) n = this.get_ndim() - 1;
-        if (this.get_ndim() <= n) throw new Error("Can't flatten this much.");
-        let new_axis_size = 1;
-
-        for (let i = 0; i < n + 1; i++) {
-            new_axis_size *= this.get_axis_size(i);
-        }
-
-        return shape(new_axis_size, ...this.slice(n + 1));
-    }
-
-    // flatten to such an extent that we get an array of matrices
-    mat_flat(): Shape {
-        const amount = Math.max(this.get_ndim() - 3, 0);
-        return this.flatten(amount);
-    }
-
-    /**
-     * Returns the shape of the elements of an axis.
-     * @param depth Depth of the axis - axis nr 0 is the "topmost" or least deeply nested axis.
-     * @returns the shape of the elements of an axis.
-     */
-    get_axis_shape(depth: number): Shape {
-        if (depth >= this.get_ndim()) throw new Error(`Cannot get ${ordinal_str(depth)} axis.`);
-        return new Shape(...this.slice(depth - this.get_ndim()));
+    // get shape of elements in an axis (n determines the level of nesting)
+    get_axis_shape(n: number): Shape {
+        if (n >= this.get_ndim()) throw new Error(`Cannot get ${ordinal_str(n)} axis.`);
+        return new Shape(...this.slice(n - this.get_ndim()));
     }
 
     *get_axis_iterable(n: number) {

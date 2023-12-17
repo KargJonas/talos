@@ -8,7 +8,7 @@ EF = [ \
 	'_rand_seed', '_rand_f', '_rand_i', \
 	'_add_scl', '_sub_scl', '_mul_scl', '_div_scl', \
 	'_add_prw', '_sub_prw', '_mul_prw', '_div_prw', \
-	'_mul_mat' \
+	'_mul_tns' \
 ]
 
 ##  WARNING  ##

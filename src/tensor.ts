@@ -1,5 +1,6 @@
 import core from './core/build';
 import { Shape } from './shape';
+import { mat_to_string } from './util';
 
 export class Tensor {
     shape: Shape; // [outermost axis, ..., rows, cols]
@@ -9,12 +10,12 @@ export class Tensor {
         this.shape = shape;
         this.data = data;
 
-        // this is probably a bad idea but it allows for syntax like this:
-        // my_tensor[1][3]
-        //
+        // // this is probably a bad idea but it allows for syntax like this:
+        // // my_tensor[1][3].str
         // return new Proxy(this, {
-        //     get(target, prop, receiver) {
+        //     get(target: Tensor, prop: any) {
         //         if (!isNaN(prop)) return target.get(prop) as Tensor;
+        //         if (prop === 'str') return target.toString();
         //         return target[prop];
         //     },
         // });
@@ -27,15 +28,7 @@ export class Tensor {
     }
 
     *get_axis_iterable(n: number) {
-        // // todo extract into a function (duplicate code in shape.get_axis_iterable)
-        // const flattened: Shape = this.shape.flatten(n);
-        // const new_shape = flattened.slice(1) as Shape;
-        // const stepover = new_shape.get_nelem() || 0;
-
-        // for (let index of this.shape.get_axis_iterable(n)) {
-        //     // creating a tensor that references the data of this tensor
-        //     yield new Tensor(new_shape, this.data.subarray(index, index + stepover));
-        // }
+        // todo extract into a function (duplicate code in shape.get_axis_iterable)
 
         const shape = this.shape.get_axis_shape(n + 1);
         const n_elements = shape.get_nelem();
@@ -79,7 +72,7 @@ export class Tensor {
 
     // todo: consolidate api of get_axis_iterable/get into a single method
 
-    public get(...loc: number[]) {
+    public get(...loc: number[]): Tensor | number {
         if (loc.length > this.shape.get_ndim()) throw new Error(`Location [${loc}] is too specific for shape [${this}]`);
         const [index, shape] = this.shape.get_index(...loc);
         if (loc.length === this.shape.get_ndim()) return this.data[index];
@@ -92,93 +85,52 @@ export class Tensor {
     public div = (other: Tensor | number) => this.basic_op('div', core._div_prw, core._div_scl, other);
     public mul = (other: Tensor | number) => this.basic_op('mul', core._mul_prw, core._mul_scl, other);
     
-    // dot product/standard matmul
-    public dot(other: Tensor): Tensor {
-        if (!(other instanceof Tensor)) throw new Error('Tensor.dot() expects a tensor.');
-        // definitions:
-        //   hidim: ndim > 2
-        //   lodim: ndim <= 2 (vec, mat)
-        // case 1: tensor 1 lodim, other tensor of higher dim
-        // case 2: tensor 1 hidim, tensor 2 lodim
-        // case 3: both tensors lodim
+    // dot product/standard matmul on tensors 
+    public mul_mat(b: Tensor): Tensor {
+        if (!(b instanceof Tensor)) throw new Error('Tensor.dot() expects a tensor.');
 
-        // implementation option 1:
-        // iterate over tensor elements in js - high overhead for small matrices
-        // option 2:
-        // iterate over tensor in wasm - low overhead in all cases
-        // would have to pass stepover into matmul fn
-        // potentially would have to implement multiply matmul fns and
-        // do case distinction in js
+        const nmat_a = this.shape.mat_flat()[0];
+        const nmat_b = this.shape.mat_flat()[0];
 
-        this.shape.check_matmul_compat(other.shape);
+        if (this.shape.get_cols() !== b.shape.get_rows() ||
+            nmat_a > 1 && nmat_b > 1 && nmat_a != nmat_b) {
+            throw new Error(`Cannot multiply matrices of shape [${this.shape.get_mat_shape()}] and [${b.shape.get_mat_shape()}]`);
+        }
 
-        const rows = this.shape.get_rows();
-        const cols = this.shape.get_cols();
-        const rows_other = other.shape.get_rows();
-        const cols_other = other.shape.get_cols();
-        const result = tensor([rows, cols_other]);
+        const rows_a = this.shape.get_rows();
+        const cols_a = this.shape.get_cols();
+        const rows_b = b.shape.get_rows();
+        const cols_b = b.shape.get_cols();
 
-        core._mul_mat(
-            this.get_ptr(),  rows,       cols,
-            other.get_ptr(), rows_other, cols_other,
-            result.get_ptr());
+        const result_shape = new Shape(...b.shape.slice(0, b.shape.get_ndim() - 2), rows_a, cols_b); // todo kinda want to do this with .get_axis_shape
+        const result = tensor(result_shape);
+        const nmat = result_shape.mat_flat()[0];
+
+        core._mul_tns(
+            this.get_ptr(), rows_a, cols_a, 1,
+            b.get_ptr(),    rows_b, cols_b, nmat,
+            result.get_ptr()
+        );
 
         return result;
     }
 
     // usability methods
-    
-    private mat_to_string(num_width = 10, space_before = 0) {
-        if (this.shape.get_ndim() !== 2)
-            throw new Error(`Cannot print tensor of shape [${this.shape}] as matrix.`);
 
-        const rows = this.shape.get_rows();
-        const cols = this.shape.get_cols();
+    public toString = () => this.to_str();
 
-        let s = '[';
-
-        for (let r = 0; r < rows; r++) {
-            if (r !== 0) s += ' '.repeat(space_before + 1);
-            let row_string = '';
-
-            for (let c = 0; c < cols; c++) {
-                const [index] = this.shape.get_index(r, c);
-                const value = this.data[index];
-
-                // -5 because of: space, comma, sign, dot, and at least one digit
-                let p = String(value.toFixed(num_width - 5));
-                if (value > 0) p = ` ${p}`;
-
-                // commas, newlines, padding
-                if (c !== cols - 1) p += ',';
-                if (c !== cols - 1) p = p.padEnd(num_width);
-                row_string += p;
-            }
-
-            s += `[${row_string}]`;
-            if (r !== rows - 1) s += '\n';
-        }
-
-        return s + ']';
-    }
-
-    public toString(num_width = 10, space_before = 0) {
+    public to_str(num_width = 10, space_before = 0) {
         const ndim = this.shape.get_ndim();
 
+        // empty arr, vec, mat
         if (ndim === 0) return '[]';
-
-        // vectors
         if (ndim === 1) return `[ ${this.data.join(', ')} ]`;
+        if (ndim == 2) return mat_to_string(this, num_width, space_before);
 
-        // matrices
-        if (ndim == 2) {
-            return this.mat_to_string(num_width, space_before);
-        }
-
-        // whatever lies beyond
+        // hidim tensors
         let strings: string[] = [];
         for (const element of this.get_axis_iterable(0)) {
-            strings.push(element.toString(num_width, space_before + 2)!);
+            strings.push(element.to_str(num_width, space_before + 2)!);
         }
 
         return `[ ${strings.join(',\n\n' + ' '.repeat(space_before + 2))} ]`
