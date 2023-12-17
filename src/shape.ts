@@ -1,3 +1,5 @@
+import { ordinal_str } from "./util";
+
 export class Shape extends Array {
 
     constructor(...shape: number[]) {
@@ -56,9 +58,32 @@ export class Shape extends Array {
         }
     }
 
-    get_index(row: number, col: number): number {
-        const cols = this.get_cols();
-        return row * cols + col;
+    get_strides(): number[] {
+        const strides = Array(this.get_ndim()).fill(1);
+
+        for (let i = this.get_ndim() - 2; i >= 0; i--) {
+            strides[i] = strides[i + 1] * this[i + 1];
+        }
+
+        return strides;
+    }
+
+    /**
+     * Returns the index of an element of a tensor as well as that element's shape.
+     * @param loc Location vector of the desired element/slice
+     * @returns A 2-Tuple containing the index and shape
+     */
+    get_index(...loc: number[]): [number, Shape] {
+        if (loc.length > this.get_ndim()) throw new Error(`Location [${loc}] is too specific for shape [${this}]`);
+
+        const strides = this.get_strides();
+        const index = loc.reduce((acc, l_axis, i) => {
+            if (l_axis >= this[i]) throw new Error(`Location [${loc}] out of bounds of shape [${this}]`);
+            return acc + l_axis * strides[i];
+        }, 0);
+
+        const new_shape = this.slice(loc.length);
+        return [index, shape(...new_shape)];
     }
 
     flatten(n?: number): Shape {
@@ -70,7 +95,7 @@ export class Shape extends Array {
             new_axis_size *= this.get_axis_size(i);
         }
 
-        return new Shape(new_axis_size, ...this.slice(n + 1));
+        return shape(new_axis_size, ...this.slice(n + 1));
     }
 
     // flatten to such an extent that we get an array of matrices
@@ -79,20 +104,22 @@ export class Shape extends Array {
         return this.flatten(amount);
     }
 
+    /**
+     * Returns the shape of the elements of an axis.
+     * @param depth Depth of the axis - axis nr 0 is the "topmost" or least deeply nested axis.
+     * @returns the shape of the elements of an axis.
+     */
+    get_axis_shape(depth: number): Shape {
+        if (depth >= this.get_ndim()) throw new Error(`Cannot get ${ordinal_str(depth)} axis.`);
+        return new Shape(...this.slice(depth - this.get_ndim()));
+    }
+
     *get_axis_iterable(n: number) {
-        // squish shape down to lower number of dimensions
-        const flattened: Shape = this.flatten(n);
+        const stride = this.get_strides()[n];
+        const n_elem = this.get_nelem();
 
-        // the the shape of each element of the relevant axis
-        const new_shape = flattened.slice(1) as Shape;
-
-        // calculate how many elements are in each sub-shape
-        const stepover = new_shape.get_nelem() || 1;
-        const n_steps = flattened[0];
-
-        for (let i = 0; i < n_steps; i++) {
-            const value = i * stepover;
-            yield value;
+        for (let i = 0; i < n_elem; i += stride) {
+            yield i;
         }
     }
 }
