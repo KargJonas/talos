@@ -2,7 +2,6 @@
 #define CORE_MATMUL
 
 #include <stddef.h>
-#include <stdbool.h>
 
 #define MAX(A, B) A > B ? A : B;
 
@@ -27,6 +26,7 @@ void mul_mat(
         }
     }
 }
+
 
 // pairwise multiplication of the matrices in two tensors
 void mul_tns(

@@ -3,3 +3,4 @@
 #include "./pairwise.c"
 #include "./rand.c"
 #include "./matmul.c"
+#include "./unary.c"
