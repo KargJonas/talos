@@ -11,7 +11,16 @@ core_ready.then(() => {
 
     // console.log(t1.matmul(t2).tanh().toString() + "\n---");
 
-    print(t2.matmul(t1));
+    // basic printing
+    // print(t1);
 
-    print(t2.dot(t1))
+    // flatten/unflatten to specific ranks
+    // print(t1.flatten(1));
+    // print(t1.flatten(2));
+    // print(t1.flatten(10));
+
+    // matmul/dot product
+    print(t2.matmul(t1));
+    print(t2.dot(t1));
+
 });

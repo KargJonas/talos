@@ -9,7 +9,7 @@ EF = [ \
 	'_add_scl', '_sub_scl', '_mul_scl', '_div_scl', \
 	'_add_prw', '_sub_prw', '_mul_prw', '_div_prw', \
 	'_mul_tns', '_dot_tns', \
-	'_act_relu', '_act_tanh', '_act_relu_simd' \
+	'_act_relu', '_act_tanh' \
 ]
 
 ##  WARNING  ##

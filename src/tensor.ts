@@ -3,22 +3,21 @@ import { Shape } from './shape';
 import { mat_to_string } from './util';
 
 export class Tensor {
-    shape: Shape; // [outermost axis, ..., rows, cols]
-    data: Float32Array;
+    public readonly shape: Shape; // [outermost axis, ..., rows, cols]
+    public readonly data: Float32Array;
+
+    // proxy props
+    public readonly rank: number;
+    public readonly nrows: number;
+    public readonly ncols: number;
 
     constructor(shape: Shape, data: Float32Array) {
-        this.shape = shape;
+        this.shape = new Shape(...shape);
         this.data = data;
 
-        // // this is probably a bad idea but it allows for syntax like this:
-        // // my_tensor[1][3].str
-        // return new Proxy(this, {
-        //     get(target: Tensor, prop: any) {
-        //         if (!isNaN(prop)) return target.get(prop) as Tensor;
-        //         if (prop === 'str') return target.toString();
-        //         return target[prop];
-        //     },
-        // });
+        this.rank = this.shape.get_ndim();
+        this.nrows = this.shape.get_rows();
+        this.ncols = this.shape.get_cols();
     }
 
     clone(): Tensor {
@@ -27,27 +26,8 @@ export class Tensor {
         return new_tensor;
     }
 
-    *get_axis_iterable(n: number) {
-        // todo extract into a function (duplicate code in shape.get_axis_iterable)
-
-        const shape = this.shape.get_axis_shape(n + 1);
-        const n_elements = shape.get_nelem();
-
-        for (const index of this.shape.get_axis_iterable(n)) {
-            yield new Tensor(shape, this.data.subarray(index, index + n_elements))
-        }
-    }
-
-    get_ptr(): number {
-        return this.data.byteOffset;
-    }
-
-    // shape operations
-    flatten  = (n: number): Tensor => new Tensor(this.shape.flatten(n), this.data);
-    mat_flat = ():          Tensor => new Tensor(this.shape.mat_flat(), this.data);
-    vec_flat = ():          Tensor => new Tensor(this.shape.vec_flat(), this.data);
-
     // data operations
+    get_ptr = () => this.data.byteOffset;
     free = () => core._free_farr(this.get_ptr());
 
     rand(min = -1, max = 1) {
@@ -60,12 +40,26 @@ export class Tensor {
         return this;
     }
 
-    // todo: consolidate api of get_axis_iterable/get into a single method
+    // shape operations
+    flatten = (n: number): Tensor => new Tensor(this.shape.flatten(n), this.data);
+
+    *get_axis_iterable(n: number) {
+        const shape = this.shape.get_axis_shape(n + 1);
+        const n_elements = shape.get_nelem();
+
+        for (const index of this.shape.get_axis_iterable(n)) {
+            yield new Tensor(shape, this.data.subarray(index, index + n_elements))
+        }
+    }
 
     public get(...loc: number[]): Tensor | number {
-        if (loc.length > this.shape.get_ndim()) throw new Error(`Location [${loc}] is too specific for shape [${this}]`);
+        if (loc.length > this.rank)
+            throw new Error(`Location [${loc}] is too specific for shape [${this}]`);
+
         const [index, shape] = this.shape.get_index(...loc);
-        if (loc.length === this.shape.get_ndim()) return this.data[index];
+
+        // return element, if location describes a scalar, return subtensor if not
+        if (loc.length === this.rank) return this.data[index];
         return new Tensor(shape, this.data.subarray(index, index + shape.get_nelem()));
     }
 
@@ -80,7 +74,7 @@ export class Tensor {
         return this;
     }
 
-    private unary_op(name: string, core_fn: Function) {
+    private unary_op(core_fn: Function) {
         core_fn(this.get_ptr(), this.data.length);
         return this;
     }
@@ -92,77 +86,68 @@ export class Tensor {
     public mul = (other: Tensor | number) => this.binary_op('mul', core._mul_prw, core._mul_scl, other);
 
     // unary operations
-    public relu = () => this.unary_op('relu', core._act_relu);
-    public relu_simd = () => this.unary_op('relu', core._act_relu_simd); // todo: remove. no perf gains
-    public tanh = () => this.unary_op('tanh', core._act_tanh);
+    public relu = () => this.unary_op(core._act_relu);
+    public tanh = () => this.unary_op(core._act_tanh);
+
+    /**
+     * Checks, if this tensor is matmul/dot compatible with tensor b regarding columns/rows.
+     * @param b Other tensor
+     */
+    private check_row_col_compat(b: Tensor) {
+        if (this.shape.get_cols() !== b.shape.get_rows())
+            throw new Error(`Cannot multiply tensors of shape [${this.shape}] and [${b.shape}]`);
+    }
     
-    // dot product/standard matmul on tensors 
+    // standard matmul on tensors 
     public matmul(b: Tensor): Tensor {
         if (!(b instanceof Tensor)) throw new Error('Tensor.matmul() expects a tensor.');
+        this.check_row_col_compat(b);
 
-        const nmat_a = this.shape.get_ndim() > 2 ? this.shape.mat_flat()[0] : 1;
-        const nmat_b =    b.shape.get_ndim() > 2 ?    b.shape.mat_flat()[0] : 1;
+        // flatten tensors to a "list of matrices" and get the size of that list
+        const nmat_a = this.shape.flatten(3)[0];
+        const nmat_b =    b.shape.flatten(3)[0];
+        
+        // check hidim matmul compatibility
+        if (nmat_a > 1 && nmat_b > 1 && nmat_a != nmat_b)
+            throw new Error(`Cannot multiply matrices of shape [${this.shape}] and [${b.shape}]`);
 
-        if (this.shape.get_cols() !== b.shape.get_rows() ||
-            nmat_a > 1 && nmat_b > 1 && nmat_a != nmat_b) {
-            throw new Error(`Cannot multiply matrices of shape [${this.shape.get_mat_shape()}] and [${b.shape.get_mat_shape()}]`);
-        }
+        // get shape of resulting tensor without the last two axes
+        const high_level_shape = this.rank > b.rank
+            ? this.shape.slice(0, this.rank - 2)
+            : b.shape.slice(0, b.rank - 2);
 
-        const rows_a = this.shape.get_rows();
-        const cols_a = this.shape.get_cols();
-        const rows_b = b.shape.get_rows();
-        const cols_b = b.shape.get_cols();
-
-        // todo validate (relatively sure already, that this works)
-        const high_level_shape = this.shape.get_ndim() > b.shape.get_ndim()
-            ? this.shape.slice(0, this.shape.get_ndim() - 2)
-            : b.shape.slice(0, b.shape.get_ndim() - 2);
-
-        const result_shape = new Shape(...high_level_shape, rows_a, cols_b); // todo kinda want to do this with .get_axis_shape
+        // create result tensor
+        const result_shape = new Shape(...high_level_shape, this.nrows, b.ncols); // todo kinda want to do this with .get_axis_shape
         const result = tensor(result_shape);
 
-        core._mul_tns(
-        //  data pointer    number of rows, number of cols, number of matrices i (when flattened to [i, n, m])
-            this.get_ptr(), rows_a, cols_a, nmat_a,
-            b.get_ptr(),    rows_b, cols_b, nmat_b,
+        // perform computation using core
+        core._mul_tns( /*
+            data pointer    n rows,     n cols,     number mats (=i) when flattened to [i, rows, cols] */
+            this.get_ptr(), this.nrows, this.ncols, nmat_a,
+            b.get_ptr(),    b.nrows,     b.ncols,   nmat_b,
             result.get_ptr()
         );
 
         return result;
     }
 
+    // numpy-style dot-product
     public dot(b: Tensor): Tensor {
         if (!(b instanceof Tensor)) throw new Error('Tensor.dot() expects a tensor.');
-
-        if (this.shape.get_cols() !== b.shape.get_rows()) {
-            throw new Error(`Cannot compute dot product of tensors of shapes [${this.shape.get_mat_shape()}] and [${b.shape.get_mat_shape()}]`);
-        }
-
-        const ndim_a = this.shape.get_ndim();
-        const ndim_b = b.shape.get_ndim();
+        this.check_row_col_compat(b);
 
         const result_shape = new Shape(
-            ...this.shape.slice(0, ndim_a - 1),                     // shape of tensor a without the last axis
-            ...b.shape.slice(0, ndim_b - 2), b.shape[ndim_b - 1]);  // shape of tensor b without the second-to-last axis
+            ...this.shape.slice(0, this.rank - 1),                  // shape of tensor a without the last axis
+               ...b.shape.slice(0,    b.rank - 2), b.shape[b.rank - 1]);  // shape of tensor b without the second-to-last axis
         const result = tensor(result_shape);
 
-        // todo
-
-        // for (const v of this.vec_flat().get_axis_iterable(0)) {
-        //     for (const m of b.mat_flat().get_axis_iterable(0)) {
-        //         console.log(v.matmul(m).toString())
-        //     }
-        // }
-
-        const nvec_a = this.shape.get_ndim() > 1 ? this.shape.vec_flat()[0] : 1;
-        const nmat_b =    b.shape.get_ndim() > 2 ?    b.shape.mat_flat()[0] : 1;
-        const cols_a = this.shape.get_cols();
-        const rows_b = b.shape.get_rows();
-        const cols_b = b.shape.get_cols();
+        // flatten tensors to a list of vectors/matrices respectively
+        const nvec_a = this.shape.flatten(2)[0];
+        const nmat_b =    b.shape.flatten(3)[0];
 
         core._dot_tns(
-            this.get_ptr(), cols_a, nvec_a,
-            b.get_ptr(),    rows_b, cols_b, nmat_b,
+            this.get_ptr(), this.ncols,    nvec_a,
+            b.get_ptr(), b.nrows, b.ncols, nmat_b,
             result.get_ptr()
         );
 
@@ -172,12 +157,11 @@ export class Tensor {
     // usability methods
     public toString = () => this.to_str();
     public to_str(num_width = 10, space_before = 0) {
-        const ndim = this.shape.get_ndim();
-
-        // empty arr, vec, mat
-        if (ndim === 0) return '[]';
-        if (ndim === 1) return `[ ${this.data.join(', ')} ]`;
-        if (ndim == 2)  return mat_to_string(this, num_width, space_before);
+        switch(this.rank) {
+            case 0: return '[]';
+            case 1: return `[ ${this.data.join(', ')} ]`;
+            case 2: return mat_to_string(this, num_width, space_before);
+        }
 
         // hidim tensors
         let strings: string[] = [];

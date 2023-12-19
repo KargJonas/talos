@@ -2,6 +2,10 @@ import { ordinal_str } from "./util";
 
 export class Shape extends Array {
 
+    public readonly rank: number;
+    public readonly rows: number;
+    public readonly cols: number;
+
     constructor(...shape: number[]) {
         // special case: arr length == 1:
         // would create an array of size shape[0]
@@ -12,6 +16,10 @@ export class Shape extends Array {
         }
 
         super(...shape);
+    }
+
+    clone(): Shape {
+        return new Shape(...this);
     }
 
     get_nelem(): number {
@@ -26,13 +34,8 @@ export class Shape extends Array {
     }
 
     public get_ndim = () => this.length;
-
-    // returns the size of the second-to-last axis, or 1 if that axis does not exits 
     public get_rows = () => this.get_axis_size(this.get_ndim() - 2);
-
-    // returns the size of the last axis, or 1 if that axis does not exits 
     public get_cols = () => this.get_axis_size(this.get_ndim() - 1);
-
     public get_mat_shape = () => new Shape(this.get_rows(), this.get_cols());
 
     // returns true if two shapes are identical
@@ -55,29 +58,45 @@ export class Shape extends Array {
         return strides;
     }
 
-    // flattens the array by n levels. e.g.: n=1 -> [2, 4, 3] turns to [8, 3]
-    flatten(n?: number): Shape {
-        if (n === undefined) n = this.get_ndim() - 1;
-        if (this.get_ndim() <= n) throw new Error("Can't flatten this much.");
-        let new_axis_size = 1;
+    /**
+     * Appends n 1s to the left of the shape
+     * @param n Number of 1s to append
+     * @returns A new shape with n 1s appended to the left.
+     */
+    expand_left(n: number): Shape {
+        const new_shape = this.clone();
+        for (let i = 0; i < n; i++) new_shape.unshift(1); 
+        return new_shape;
+    }
 
-        for (let i = 0; i < n + 1; i++) {
-            new_axis_size *= this.get_axis_size(i);
+    /**
+     * flattens (or unflattens) a shape to a specific rank
+     * while preserving the innermost shape and overall number of elements
+     * [2,2,3] --flatten(2)--> [4,3]
+     * if the desired rank is higher than the current rank, the shape will be extended
+     * with new size-1 axes to the left:
+     * [2,3] --flatten(3}--> [1,2,3]
+     * @param rank Desired rank
+     * @returns A new shape that is based on this shape with the desired rank
+     */
+    flatten(rank: number) {
+        const current_rank = this.get_ndim();
+        const amount = Math.abs(current_rank - rank);
+
+        // flatten
+        // combines n axes from the left into a single axes through mult
+        if (rank < current_rank) {
+            let new_axis_size = 1;
+            for (let i = 0; i < amount + 1; i++) new_axis_size *= this.get_axis_size(i);
+            return shape(new_axis_size, ...this.slice(amount + 1));
         }
 
-        return shape(new_axis_size, ...this.slice(n + 1));
-    }
-
-    // flatten to such an extent that we get an array of matrices
-    mat_flat(): Shape {
-        const amount = Math.max(this.get_ndim() - 3, 0);
-        return this.flatten(amount);
-    }
-
-    // flatten to such an extent that we get an array of vectors
-    vec_flat(): Shape {
-        const amount = Math.max(this.get_ndim() - 2, 0);
-        return this.flatten(amount);
+        // unflatten
+        if (rank > current_rank) {
+            return this.expand_left(amount);
+        }
+        
+        return this.clone();
     }
 
     /**
