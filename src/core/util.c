@@ -4,6 +4,8 @@
 #include <stddef.h>
 #include <stdlib.h>
 
+#define MAX(A, B) A > B ? A : B;
+
 struct sized_arr {
     size_t size;
     float* data[];
@@ -13,7 +15,11 @@ float* alloc_farr(size_t size) {
     return (float*)malloc(size * sizeof(float));
 }
 
-void free_farr(float* ptr) {
+size_t* alloc_starr(size_t size) {
+    return (size_t*)malloc(size * sizeof(size_t));
+}
+
+void free(void* ptr) {
     free(ptr);
 }
 

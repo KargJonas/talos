@@ -1,11 +1,6 @@
 import { ordinal_str } from "./util";
 
 export class Shape extends Array {
-
-    public readonly rank: number;
-    public readonly rows: number;
-    public readonly cols: number;
-
     constructor(...shape: number[]) {
         // special case: arr length == 1:
         // would create an array of size shape[0]
@@ -59,6 +54,19 @@ export class Shape extends Array {
         return true;
     }
 
+    broadcast(other: Shape): Shape {
+        const max_rank = Math.max(this.get_ndim(), other.get_ndim());
+        const new_shape: number[] = [];
+        const a = new Shape(...this.slice().reverse());
+        const b = new Shape(...other.slice().reverse());
+
+        for (let i = 0; i < max_rank; i++) {
+            new_shape.unshift(Math.max(a.get_axis_size(i), b.get_axis_size(i)));
+        }
+
+        return new Shape(...new_shape);
+    }
+
     // computes number of indices to step over for each element in each axis
     get_strides(): number[] {
         const strides = Array(this.get_ndim()).fill(1);
@@ -71,12 +79,14 @@ export class Shape extends Array {
     }
 
     /**
-     * Appends n 1s to the left of the shape
-     * @param n Number of 1s to append
-     * @returns A new shape with n 1s appended to the left.
+     * Appends n 1s to the left to reach the desired rank.
+     * If the rank of the shape is already >= rank, nothing will be done.
+     * @param rank Desired rank
+     * @returns A new shape with 1s appended to the left.
      */
-    expand_left(n: number): Shape {
+    expand_left(rank: number): Shape {
         const new_shape = this.clone();
+        const n = Math.max(0, rank - this.get_ndim());
         for (let i = 0; i < n; i++) new_shape.unshift(1); 
         return new_shape;
     }

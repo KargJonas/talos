@@ -2,8 +2,7 @@
 #define CORE_MATMUL
 
 #include <stddef.h>
-
-#define MAX(A, B) A > B ? A : B;
+#include "./util.c"
 
 // performs standard matrix multiplication on a matrix
 // that is located somewhere inside a larger tensor

@@ -28,7 +28,7 @@ export class Tensor {
 
     // data operations
     public get_ptr = () => this.data.byteOffset;
-    public free = () => core._free_farr(this.get_ptr());
+    public free = () => core._free(this.get_ptr());
 
     public rand(min = -1, max = 1) {
         core._rand_f(this.get_ptr(), this.data.length, min, max);
@@ -63,13 +63,48 @@ export class Tensor {
         return new Tensor(shape, this.data.subarray(index, index + shape.get_nelem()));
     }
 
-    private binary_op(name: string, core_fn_prw: Function, core_fn_scl: Function, other: Tensor | number) {
-        if (other instanceof Tensor) {
-            if (!this.shape.equals(other.shape)) // todo: should be overridable
-                throw new Error(`Shape mismatch: Tensor.${name}() expects tensors of the same shape.`);
-            core_fn_prw(this.get_ptr(), other.get_ptr(), this.data.length);
+    private binary_op(name: string, core_fn_prw: Function, core_fn_scl: Function, b: Tensor | number) {
+        if (b instanceof Tensor) {
+            // perform fast pairwise addition without broadcasting
+            if (this.shape.equals(b.shape)) {
+                core_fn_prw(this.get_ptr(), b.get_ptr(), this.data.length);
+                return this;
+            }
+
+            // check if broadcasting is possible
+            if (!this.shape.broadcastable(b.shape))
+                throw new Error(`Shape mismatch: Cannot broadcast tensor of shape [${this.shape}] with [${b.shape}].`);
+
+            const max_rank = Math.max(this.rank, b.rank);
+            const result_shape = this.shape.broadcast(b.shape);
+            const result = tensor(result_shape);
+
+            const exp_a = this.shape.expand_left(max_rank);
+            const exp_b =    b.shape.expand_left(max_rank);
+            const strides_a = exp_a.get_strides();
+            const strides_b = exp_b.get_strides();
+
+            for (let i = 0; i < max_rank; i++) {
+                if (exp_a[i] === 1) strides_a[i] = 0;
+                if (exp_b[i] === 1) strides_b[i] = 0;
+            }
+
+            const strides_arr_size = max_rank * 3;
+            const strides_arr_ptr = core._alloc_starr(strides_arr_size);
+            const strides = new Uint32Array(
+                core.memory.buffer,
+                strides_arr_ptr,
+                strides_arr_size);
+            
+            strides.set([...strides_a, ...strides_b, ...result_shape]);
+
+            core._prw_op_broadcast(
+                this.get_ptr(), b.get_ptr(), result.get_ptr(),
+                strides_arr_ptr, max_rank);
+
+            return result;
         }
-        else if (typeof other === 'number') core_fn_scl(this.get_ptr(), other, this.data.length);
+        else if (typeof b === 'number') core_fn_scl(this.get_ptr(), b, this.data.length);
         else throw new Error(`Type mismatch: Tensor.${name}() expects a Tensor or number.`);
         return this;
     }

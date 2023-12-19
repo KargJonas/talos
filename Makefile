@@ -4,9 +4,10 @@ SRC_DIR 	= ./src/core
 
 # exported functions
 EF = [ \
-	'_alloc_farr', '_free_farr', \
+	'_alloc_farr', '_alloc_starr', '_free',  \
 	'_rand_seed', '_rand_f', '_rand_i', \
 	'_add_scl', '_sub_scl', '_mul_scl', '_div_scl', \
+	'_prw_op_broadcast', \
 	'_add_prw', '_sub_prw', '_mul_prw', '_div_prw', \
 	'_mul_tns', '_dot_tns', \
 	'_act_relu', '_act_tanh' \
