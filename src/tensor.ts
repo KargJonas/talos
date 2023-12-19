@@ -20,22 +20,22 @@ export class Tensor {
         this.ncols = this.shape.get_cols();
     }
 
-    clone(): Tensor {
+    public clone(): Tensor {
         const new_tensor = tensor(this.shape);
         new_tensor.data.set(this.data);
         return new_tensor;
     }
 
     // data operations
-    get_ptr = () => this.data.byteOffset;
-    free = () => core._free_farr(this.get_ptr());
+    public get_ptr = () => this.data.byteOffset;
+    public free = () => core._free_farr(this.get_ptr());
 
-    rand(min = -1, max = 1) {
+    public rand(min = -1, max = 1) {
         core._rand_f(this.get_ptr(), this.data.length, min, max);
         return this;
     }
 
-    rand_int(min = -1, max = 1) {
+    public rand_int(min = -1, max = 1) {
         core._rand_i(this.get_ptr(), this.data.length, min, max);
         return this;
     }
@@ -89,10 +89,7 @@ export class Tensor {
     public relu = () => this.unary_op(core._act_relu);
     public tanh = () => this.unary_op(core._act_tanh);
 
-    /**
-     * Checks, if this tensor is matmul/dot compatible with tensor b regarding columns/rows.
-     * @param b Other tensor
-     */
+    // checks, if this tensor is matmul/dot compatible with tensor b regarding columns/rows
     private check_row_col_compat(b: Tensor) {
         if (this.shape.get_cols() !== b.shape.get_rows())
             throw new Error(`Cannot multiply tensors of shape [${this.shape}] and [${b.shape}]`);

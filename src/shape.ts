@@ -47,6 +47,18 @@ export class Shape extends Array {
         return true;
     }
 
+    broadcastable(other: Shape): boolean {   
+        const min_rank = Math.min(this.get_ndim(), other.get_ndim());
+        const a = this.slice().reverse();
+        const b = other.slice().reverse();
+
+        for (let i = 0; i < min_rank; i++) {
+            if (a[i] !== b[i] && a[i] !== 1 && b[i] !== 1) return false;
+        }
+
+        return true;
+    }
+
     // computes number of indices to step over for each element in each axis
     get_strides(): number[] {
         const strides = Array(this.get_ndim()).fill(1);
