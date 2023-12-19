@@ -74,6 +74,12 @@ export class Shape extends Array {
         return this.flatten(amount);
     }
 
+    // flatten to such an extent that we get an array of vectors
+    vec_flat(): Shape {
+        const amount = Math.max(this.get_ndim() - 2, 0);
+        return this.flatten(amount);
+    }
+
     /**
      * Returns the index of an element of a tensor as well as that element's shape.
      * @param loc Location vector of the desired element/slice

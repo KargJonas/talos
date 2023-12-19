@@ -1,7 +1,7 @@
 import { core_ready } from './util';
 import tensor from './tensor';
 
-const print = (t) => console.log(t.toString() + "\n---");
+const print = (t) => console.log(t?.toString() + "\n---");
 
 core_ready.then(() => {
 
@@ -13,5 +13,5 @@ core_ready.then(() => {
 
     print(t2.matmul(t1));
 
-    // t2.dot(t1)
+    print(t2.dot(t1))
 });

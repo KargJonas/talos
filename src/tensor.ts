@@ -45,6 +45,7 @@ export class Tensor {
     // shape operations
     flatten  = (n: number): Tensor => new Tensor(this.shape.flatten(n), this.data);
     mat_flat = ():          Tensor => new Tensor(this.shape.mat_flat(), this.data);
+    vec_flat = ():          Tensor => new Tensor(this.shape.vec_flat(), this.data);
 
     // data operations
     free = () => core._free_farr(this.get_ptr());
@@ -99,13 +100,8 @@ export class Tensor {
     public matmul(b: Tensor): Tensor {
         if (!(b instanceof Tensor)) throw new Error('Tensor.matmul() expects a tensor.');
 
-        // todo this can cause problems - when the tensors are of rank <= 2 
-        // const nmat_a = this.shape.mat_flat()[0];
-        // const nmat_b = b.shape.mat_flat()[0];
         const nmat_a = this.shape.get_ndim() > 2 ? this.shape.mat_flat()[0] : 1;
         const nmat_b =    b.shape.get_ndim() > 2 ?    b.shape.mat_flat()[0] : 1;
-
-        // console.log(nmat_a, nmat_b)
 
         if (this.shape.get_cols() !== b.shape.get_rows() ||
             nmat_a > 1 && nmat_b > 1 && nmat_a != nmat_b) {
@@ -117,7 +113,7 @@ export class Tensor {
         const rows_b = b.shape.get_rows();
         const cols_b = b.shape.get_cols();
 
-        // todo validate
+        // todo validate (relatively sure already, that this works)
         const high_level_shape = this.shape.get_ndim() > b.shape.get_ndim()
             ? this.shape.slice(0, this.shape.get_ndim() - 2)
             : b.shape.slice(0, b.shape.get_ndim() - 2);
@@ -126,6 +122,7 @@ export class Tensor {
         const result = tensor(result_shape);
 
         core._mul_tns(
+        //  data pointer    number of rows, number of cols, number of matrices i (when flattened to [i, n, m])
             this.get_ptr(), rows_a, cols_a, nmat_a,
             b.get_ptr(),    rows_b, cols_b, nmat_b,
             result.get_ptr()
@@ -145,10 +142,31 @@ export class Tensor {
         const ndim_b = b.shape.get_ndim();
 
         const result_shape = new Shape(
-            ...this.shape.slice(0, ndim_a - 1),
-            ...b.shape.slice(0, ndim_b - 2), b.shape[ndim_b - 1]);
+            ...this.shape.slice(0, ndim_a - 1),                     // shape of tensor a without the last axis
+            ...b.shape.slice(0, ndim_b - 2), b.shape[ndim_b - 1]);  // shape of tensor b without the second-to-last axis
+        const result = tensor(result_shape);
 
-        console.log(result_shape);
+        // todo
+
+        // for (const v of this.vec_flat().get_axis_iterable(0)) {
+        //     for (const m of b.mat_flat().get_axis_iterable(0)) {
+        //         console.log(v.matmul(m).toString())
+        //     }
+        // }
+
+        const nvec_a = this.shape.get_ndim() > 1 ? this.shape.vec_flat()[0] : 1;
+        const nmat_b =    b.shape.get_ndim() > 2 ?    b.shape.mat_flat()[0] : 1;
+        const cols_a = this.shape.get_cols();
+        const rows_b = b.shape.get_rows();
+        const cols_b = b.shape.get_cols();
+
+        core._dot_tns(
+            this.get_ptr(), cols_a, nvec_a,
+            b.get_ptr(),    rows_b, cols_b, nmat_b,
+            result.get_ptr()
+        );
+
+        return result;
     }
 
     // usability methods
