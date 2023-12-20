@@ -19,7 +19,11 @@ size_t* alloc_starr(size_t size) {
     return (size_t*)malloc(size * sizeof(size_t));
 }
 
-void free(void* ptr) {
+void free_farr(float* ptr) {
+    free(ptr);
+}
+
+void free_starr(size_t* ptr) {
     free(ptr);
 }
 

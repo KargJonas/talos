@@ -28,7 +28,7 @@ export class Tensor {
 
     // data operations
     public get_ptr = () => this.data.byteOffset;
-    public free = () => core._free(this.get_ptr());
+    public free = () => core._free_farr(this.get_ptr());
 
     public rand(min = -1, max = 1) {
         core._rand_f(this.get_ptr(), this.data.length, min, max);
@@ -63,50 +63,50 @@ export class Tensor {
         return new Tensor(shape, this.data.subarray(index, index + shape.get_nelem()));
     }
 
-    private binary_op(name: string, core_fn_prw: Function, core_fn_scl: Function, b: Tensor | number) {
-        if (b instanceof Tensor) {
-            // perform fast pairwise addition without broadcasting
-            if (this.shape.equals(b.shape)) {
-                core_fn_prw(this.get_ptr(), b.get_ptr(), this.data.length);
-                return this;
-            }
-
-            // check if broadcasting is possible
-            if (!this.shape.broadcastable(b.shape))
-                throw new Error(`Shape mismatch: Cannot broadcast tensor of shape [${this.shape}] with [${b.shape}].`);
-
-            const max_rank = Math.max(this.rank, b.rank);
-            const result_shape = this.shape.broadcast(b.shape);
-            const result = tensor(result_shape);
-
-            const exp_a = this.shape.expand_left(max_rank);
-            const exp_b =    b.shape.expand_left(max_rank);
-            const strides_a = exp_a.get_strides();
-            const strides_b = exp_b.get_strides();
-
-            for (let i = 0; i < max_rank; i++) {
-                if (exp_a[i] === 1) strides_a[i] = 0;
-                if (exp_b[i] === 1) strides_b[i] = 0;
-            }
-
-            const strides_arr_size = max_rank * 3;
-            const strides_arr_ptr = core._alloc_starr(strides_arr_size);
-            const strides = new Uint32Array(
-                core.memory.buffer,
-                strides_arr_ptr,
-                strides_arr_size);
-            
-            strides.set([...strides_a, ...strides_b, ...result_shape]);
-
-            core._prw_op_broadcast(
-                this.get_ptr(), b.get_ptr(), result.get_ptr(),
-                strides_arr_ptr, max_rank);
-
-            return result;
+    private binary_op(name: string, core_fn_prw: Function, core_fn_scl: Function, core_fn_brc: Function, b: Tensor | number) {
+        if (typeof b === 'number') {
+            // perform scalar operation
+            core_fn_scl(this.get_ptr(), b, this.data.length);
+            return this;
         }
-        else if (typeof b === 'number') core_fn_scl(this.get_ptr(), b, this.data.length);
-        else throw new Error(`Type mismatch: Tensor.${name}() expects a Tensor or number.`);
-        return this;
+
+        if (!(b instanceof Tensor))
+            throw new Error(`Type mismatch: Tensor.${name}() expects a Tensor or number.`);
+        
+        // perform fast pairwise operation without broadcasting if possible
+        if (this.shape.equals(b.shape)) {
+            core_fn_prw(this.get_ptr(), b.get_ptr(), this.data.length);
+            return this;
+        }
+
+        // check if broadcasting is possible
+        if (!this.shape.broadcastable(b.shape))
+            throw new Error(`Shape mismatch: Cannot broadcast tensor of shape [${this.shape}] with [${b.shape}].`);
+
+        const max_rank = Math.max(this.rank, b.rank);
+        const result_shape = this.shape.broadcast(b.shape);
+        const result = tensor(result_shape);
+        const shape_a_exp = this.shape.expand_left(max_rank);
+        const shape_b_exp =    b.shape.expand_left(max_rank);
+        const strides_a = shape_a_exp.get_strides();
+        const strides_b = shape_b_exp.get_strides();
+
+        for (let i = 0; i < max_rank; i++) {
+            if (shape_a_exp[i] === 1) strides_a[i] = 0;
+            if (shape_b_exp[i] === 1) strides_b[i] = 0;
+        }
+
+        // create array for passing in metadata
+        const metadata_size = max_rank * 3;
+        const metadata_ptr = core._alloc_starr(metadata_size);
+        const metadata = new Uint32Array(core.memory.buffer, metadata_ptr, metadata_size);
+        metadata.set([...strides_a, ...strides_b, ...result_shape]);
+
+        // perform operation with broadcast
+        core_fn_brc(this.get_ptr(), b.get_ptr(), result.get_ptr(), metadata_ptr, max_rank);
+        core._free_starr(metadata_ptr);
+
+        return result;
     }
 
     private unary_op(core_fn: Function) {
@@ -114,11 +114,11 @@ export class Tensor {
         return this;
     }
 
-    // binary operations (pairwise/scalar)
-    public add = (other: Tensor | number) => this.binary_op('add', core._add_prw, core._add_scl, other);
-    public sub = (other: Tensor | number) => this.binary_op('sub', core._sub_prw, core._sub_scl, other);
-    public div = (other: Tensor | number) => this.binary_op('div', core._div_prw, core._div_scl, other);
-    public mul = (other: Tensor | number) => this.binary_op('mul', core._mul_prw, core._mul_scl, other);
+    // binary operations                                           pairwise,      scalar,        broadcasting
+    public add = (other: Tensor | number) => this.binary_op('add', core._add_prw, core._add_scl, core._add_prw_brc, other);
+    public sub = (other: Tensor | number) => this.binary_op('sub', core._sub_prw, core._sub_scl, core._sub_prw_brc, other);
+    public mul = (other: Tensor | number) => this.binary_op('mul', core._mul_prw, core._mul_scl, core._mul_prw_brc, other);
+    public div = (other: Tensor | number) => this.binary_op('div', core._div_prw, core._div_scl, core._div_prw_brc, other);
 
     // unary operations
     public relu = () => this.unary_op(core._act_relu);
@@ -138,6 +138,8 @@ export class Tensor {
         // flatten tensors to a "list of matrices" and get the size of that list
         const nmat_a = this.shape.flatten(3)[0];
         const nmat_b =    b.shape.flatten(3)[0];
+
+        console.log(b.shape.flatten(3))
         
         // check hidim matmul compatibility
         if (nmat_a > 1 && nmat_b > 1 && nmat_a != nmat_b)

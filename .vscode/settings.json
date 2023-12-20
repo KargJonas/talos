@@ -10,6 +10,7 @@
         "unordered_map": "c",
         "vector": "c",
         "wasm_simd128.h": "c",
-        "math.h": "c"
+        "math.h": "c",
+        "cmath": "c"
     }
 }

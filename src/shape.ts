@@ -35,6 +35,8 @@ export class Shape extends Array {
 
     // returns true if two shapes are identical
     equals(other: Shape): boolean {
+        if (this.length !== other.length) return false;
+
         for (let i = 0; i < this.length; i++) {
             if (!other[i] || this[i] !== other[i]) return false;
         }
@@ -115,7 +117,7 @@ export class Shape extends Array {
 
         // unflatten
         if (rank > current_rank) {
-            return this.expand_left(amount);
+            return this.expand_left(rank);
         }
         
         return this.clone();

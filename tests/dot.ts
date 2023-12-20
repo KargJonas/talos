@@ -1,4 +1,3 @@
-import core from '../src/core/build';
 import { core_ready } from '../src//util';
 import tensor from '../src/tensor';
 
