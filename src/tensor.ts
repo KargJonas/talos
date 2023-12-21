@@ -122,7 +122,7 @@ export class Tensor {
     private unary_op(core_fn: Function) {
         const result = tensor(this.shape);
         core_fn(this.get_ptr(), result.get_ptr(), this.data.length);
-        return this;
+        return result;
     }
 
     // binary operations                                           pairwise,      scalar,        broadcasting
@@ -132,8 +132,36 @@ export class Tensor {
     public div = (other: Tensor | number) => this.binary_op('div', core._div_prw, core._div_scl, core._div_prw_brc, other);
 
     // unary operations
-    public relu = () => this.unary_op(core._act_relu);
-    public tanh = () => this.unary_op(core._act_tanh);
+    public relu = () => this.unary_op(core._relu_tns);
+    public tanh = () => this.unary_op(core._tanh_tns);
+    public binstep = () => this.unary_op(core._binstep_tns);
+    public logistic = () => this.unary_op(core._logistic_tns);
+    public sigmoid = () => this.unary_op(core._sigmoid_tns);
+
+    public negate = () => this.unary_op(core._negate_tns);
+    public sin = () => this.unary_op(core._sin_tns);
+    public cos = () => this.unary_op(core._cos_tns);
+    public tan = () => this.unary_op(core._tan_tns);
+    public asin = () => this.unary_op(core._asin_tns);
+    public acos = () => this.unary_op(core._acos_tns);
+    public atan = () => this.unary_op(core._atan_tns);
+    public sinh = () => this.unary_op(core._sinh_tns);
+    public cosh = () => this.unary_op(core._cosh_tns);
+    public exp = () => this.unary_op(core._exp_tns);
+    public log = () => this.unary_op(core._log_tns);
+    public log10 = () => this.unary_op(core._log10_tns);
+    public log2 = () => this.unary_op(core._log2_tns);
+    public invsqrt = () => this.unary_op(core._invsqrt_tns);
+    public sqrt = () => this.unary_op(core._sqrt_tns);
+    public ceil = () => this.unary_op(core._ceil_tns);
+    public floor = () => this.unary_op(core._floor_tns);
+    public abs = () => this.unary_op(core._abs_tns);
+    public reciprocal = () => this.unary_op(core._reciprocal_tns);
+    public pow = (exponent: number) => {
+        const result = tensor(this.shape);
+        core._pow_tns(this.get_ptr(), result.get_ptr(), exponent, this.data.length);
+        return result;
+    }
 
     // checks, if this tensor is matmul/dot compatible with tensor b regarding columns/rows
     private check_row_col_compat(b: Tensor) {

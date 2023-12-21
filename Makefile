@@ -6,11 +6,21 @@ SRC_DIR 	= ./src/core
 EF = [ \
 	'_alloc_farr', '_alloc_starr', '_free_farr', '_free_starr',  \
 	'_rand_seed', '_rand_f', '_rand_i', \
-	'_add_scl', '_sub_scl', '_mul_scl', '_div_scl', \
+	'_add_scl', '_sub_scl', '_mul_scl', '_div_scl', '_pow_scl', \
 	'_add_prw', '_sub_prw', '_mul_prw', '_div_prw', \
 	'_add_prw_brc', '_sub_prw_brc', '_mul_prw_brc', '_div_prw_brc', \
 	'_mul_tns', '_dot_tns', \
-	'_act_relu', '_act_tanh' \
+	\
+	'_negate_tns', '_reciprocal_tns', \
+	'_sin_tns', '_cos_tns', '_tan_tns', \
+	'_asin_tns', '_acos_tns', '_atan_tns', \
+	'_sinh_tns', '_cosh_tns', '_tanh_tns', \
+	'_exp_tns', \
+	'_log_tns', '_log10_tns', '_log2_tns', \
+	'_invsqrt_tns', '_sqrt_tns', \
+	'_ceil_tns', '_floor_tns', '_abs_tns', \
+	\
+	'_relu_tns', '_binstep_tns', '_logistic_tns', '_sigmoid_tns' \
 ]
 
 ##  WARNING  ##
