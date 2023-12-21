@@ -4,29 +4,46 @@ import tensor from './tensor';
 const print = (t) => console.log(t?.toString() + "\n---");
 
 core_ready.then(() => {
-    console.log('###########')
+    // let t1 = tensor([2, 2, 3], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+    // let t2 = tensor([3, 2],    [1, 2, 3, 4, 5, 6]);
+    // let t3 = tensor([2, 3],    [-100, 2, 3, 2, 4, 2]);
+    // let t4 = tensor([3],       [1, 2, 3]);
 
-    let t1 = tensor([2, 2, 3], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);    
-    let t2 = tensor([3, 2],    [1, 2, 3, 4, 5, 6]);
-    let t3 = tensor([2, 3],    [-100, 2, 3, 2, 4, 2]);
-    let t4 = tensor([3],       [1, 2, 3]);
+    // print(t1.add(t4))
 
-    print(t1.matmul(t2));
+    // print(t1.matmul(t2));
 
-    // basic printing
-    print(t1);
+    // // basic printing
+    // print(t1);
 
-    // flatten/unflatten to specific ranks
-    print(t1.flatten(1));
-    print(t1.flatten(2));
-    print(t1.flatten(10));
+    // // flatten/unflatten to specific ranks
+    // print(t1.flatten(1));
+    // print(t1.flatten(2));
+    // print(t1.flatten(10));
 
-    // matmul/dot product
-    print(t2.matmul(t1));
-    print(t2.dot(t1));
+    // // matmul/dot product
+    // print(t2.matmul(t1));
+    // print(t2.dot(t1));
 
-    print(t1.add(t4));
+    // print(t1.add(t4));
+    // print(t1.add(t4))
+    // print(t1.add(t4))
 
-    print(t1.add(t4))
-    print(t1.add(t4))
+    const t1 = tensor([200, 300, 3]).rand();
+    const t2 = tensor([200, 300, 3]).rand();
+    const t3 = tensor([3]).rand();
+
+    console.log('no broadcasting')
+    console.time();
+    for (let i = 0; i < 100; i++) {
+        t1.add(t2).free();
+    }
+    console.timeEnd();
+
+    console.log('broadcasting')
+    console.time();
+    for (let i = 0; i < 100; i++) {
+        t1.add(t3).free();
+    }
+    console.timeEnd();
 });

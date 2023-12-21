@@ -30,6 +30,8 @@ export class Tensor {
     public get_ptr = () => this.data.byteOffset;
     public free = () => core._free_farr(this.get_ptr());
 
+    // in place ops [CAREFUL]
+
     public rand(min = -1, max = 1) {
         core._rand_f(this.get_ptr(), this.data.length, min, max);
         return this;
@@ -41,6 +43,9 @@ export class Tensor {
     }
 
     // shape operations
+
+    // watch out! this will create a reference to the original tensor
+    // no new memory will be allocated
     flatten = (n: number): Tensor => new Tensor(this.shape.flatten(n), this.data);
 
     *get_axis_iterable(n: number) {
@@ -63,20 +68,25 @@ export class Tensor {
         return new Tensor(shape, this.data.subarray(index, index + shape.get_nelem()));
     }
 
+    // todo: move core_fn_scl and core_fn_prw from in-place to designated result ptr operation
+    // should we perhaps do malloc in c, not js?
+
     private binary_op(name: string, core_fn_prw: Function, core_fn_scl: Function, core_fn_brc: Function, b: Tensor | number) {
+        // perform scalar operation
         if (typeof b === 'number') {
-            // perform scalar operation
-            core_fn_scl(this.get_ptr(), b, this.data.length);
-            return this;
+            const result = tensor(this.shape);
+            core_fn_scl(this.get_ptr(), b, result.get_ptr(), this.data.length);
+            return result;
         }
 
         if (!(b instanceof Tensor))
             throw new Error(`Type mismatch: Tensor.${name}() expects a Tensor or number.`);
-        
+
         // perform fast pairwise operation without broadcasting if possible
         if (this.shape.equals(b.shape)) {
-            core_fn_prw(this.get_ptr(), b.get_ptr(), this.data.length);
-            return this;
+            const result = tensor(this.shape);
+            core_fn_prw(this.get_ptr(), b.get_ptr(), result.get_ptr(), this.data.length);
+            return result;
         }
 
         // check if broadcasting is possible
@@ -110,7 +120,8 @@ export class Tensor {
     }
 
     private unary_op(core_fn: Function) {
-        core_fn(this.get_ptr(), this.data.length);
+        const result = tensor(this.shape);
+        core_fn(this.get_ptr(), result.get_ptr(), this.data.length);
         return this;
     }
 
@@ -138,8 +149,6 @@ export class Tensor {
         // flatten tensors to a "list of matrices" and get the size of that list
         const nmat_a = this.shape.flatten(3)[0];
         const nmat_b =    b.shape.flatten(3)[0];
-
-        console.log(b.shape.flatten(3))
         
         // check hidim matmul compatibility
         if (nmat_a > 1 && nmat_b > 1 && nmat_a != nmat_b)

@@ -6,8 +6,8 @@
 #include <stddef.h>
 
 #define SCALAR_OP(NAME, OP) \
-    void NAME(float* a, float b, size_t size) { \
-        for (size_t i = 0; i < size; i++) a[i] OP##= b; }
+    void NAME(float* a, float b, float* res, size_t size) { \
+        for (size_t i = 0; i < size; i++) res[i] = a[i] OP b; }
 
 SCALAR_OP(add_scl, +) // add
 SCALAR_OP(sub_scl, -) // sub

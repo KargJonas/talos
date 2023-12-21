@@ -8,11 +8,11 @@
 #include <wasm_simd128.h>
 
 #define UNARY_OP(NAME, OP) \
-    void NAME(float* a, size_t size) { \
-        for (size_t i = 0; i < size; i++) OP(a[i]); }
+    void NAME(float* a, float* res, size_t size) { \
+        for (size_t i = 0; i < size; i++) res[i] = OP(a[i]); }
 
-void act_relu(float* a, size_t size) {
-    for (size_t i = 0; i < size; i++) a[i] = a[i] < 0 ? 0 : a[i];
+void act_relu(float* a, float* res, size_t size) {
+    for (size_t i = 0; i < size; i++) res[i] = a[i] < 0 ? 0 : a[i];
 }
 
 // void act_relu_simd(float* a, size_t size) {
@@ -31,8 +31,8 @@ void act_relu(float* a, size_t size) {
 //     }
 // }
 
-void act_tanh(float* a, size_t size) {
-    for (size_t i = 0; i < size; i++) a[i] = tanh(a[i]); 
+void act_tanh(float* a, float* res, size_t size) {
+    for (size_t i = 0; i < size; i++) res[i] = tanh(a[i]); 
 }
 
 #endif //CORE_UNARY
