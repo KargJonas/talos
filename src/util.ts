@@ -1,5 +1,10 @@
 import core from './core/build';
-import { Tensor } from './tensor';
+import { Shape } from "./Shape";
+import Tensor from './tensor/Tensor';
+
+export type UnaryOp  = (a: Tensor) => Tensor;
+export type BinaryOp = (a: Tensor, b: Tensor | number) => Tensor;
+export type TensorOp = UnaryOp | BinaryOp;
 
 export const core_ready = new Promise<null>((resolve) => {
     core.onRuntimeInitialized = () => {
@@ -64,4 +69,36 @@ export function mat_to_string(mat: Tensor, num_width = 10, space_before = 0) {
     }
 
     return s + ']';
+}
+
+/**
+ * create a new tensor
+ * NOTE: Only safe to call after core_ready is resolved
+ * @param shape shape of tensor
+ * @param data tensor data
+ * @returns tensor of specified shape with specified data
+ */
+export function tensor(shape: number[] | Shape, data?: number[]) {
+    const _shape = new Shape(...shape); // clone shape (shapes are mutable, prevents issues later)
+    const n_elem = _shape.get_nelem(); // compute number of elements based on shape
+    const pointer = core._alloc_farr(n_elem); // allocate space in wasm memory
+
+    const _data = new Float32Array(
+        core.memory.buffer,
+        pointer,
+        n_elem); // nr of elements in array
+
+    if (data !== undefined) _data.set(data); // fill array with data
+
+    return new Tensor(_shape, _data);
+}
+
+export function tensor_like(other: Tensor) {
+    return tensor(other.shape);
+}
+
+// checks, if tensor a is matmul/dot compatible with tensor b regarding columns/rows
+export function check_row_col_compat(a: Tensor, b: Tensor) {
+    if (a.shape.get_cols() !== b.shape.get_rows())
+        throw new Error(`Cannot multiply tensors of shape [${a.shape}] and [${b.shape}]`);
 }

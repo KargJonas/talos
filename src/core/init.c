@@ -22,4 +22,9 @@ void rand_i(float* a, size_t size, int min, int max) {
         a[i] = (rand() % range) + min;
 }
 
+void fill(float* a, size_t size, float value) {
+    for (size_t i = 0; i < size; i++)
+        a[i] = value;
+}
+
 #endif //CORE_RAND

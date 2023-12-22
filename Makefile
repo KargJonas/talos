@@ -5,7 +5,7 @@ SRC_DIR 	= ./src/core
 # exported functions
 EF = [ \
 	'_alloc_farr', '_alloc_starr', '_free_farr', '_free_starr',  \
-	'_rand_seed', '_rand_f', '_rand_i', \
+	'_rand_seed', '_rand_f', '_rand_i', '_fill', \
 	'_add_scl', '_sub_scl', '_mul_scl', '_div_scl', '_pow_scl', \
 	'_add_prw', '_sub_prw', '_mul_prw', '_div_prw', \
 	'_add_prw_brc', '_sub_prw_brc', '_mul_prw_brc', '_div_prw_brc', \
@@ -19,6 +19,7 @@ EF = [ \
 	'_log_tns', '_log10_tns', '_log2_tns', \
 	'_invsqrt_tns', '_sqrt_tns', \
 	'_ceil_tns', '_floor_tns', '_abs_tns', \
+	'_copy', \
 	\
 	'_relu_tns', '_binstep_tns', '_logistic_tns', '_sigmoid_tns' \
 ]
@@ -30,7 +31,7 @@ EF = [ \
 clean: $(OUT_DIR)
 	-rm -rf $(OUT_DIR)
 
-main: $(SRC_DIR)/main.c $(SRC_DIR)/util.c $(SRC_DIR)/scalar.c $(SRC_DIR)/pairwise.c $(SRC_DIR)/rand.c $(SRC_DIR)/matmul.c
+main: $(SRC_DIR)/main.c $(SRC_DIR)/util.c $(SRC_DIR)/scalar.c $(SRC_DIR)/pairwise.c $(SRC_DIR)/init.c $(SRC_DIR)/matmul.c
 	@echo Building WASM executables from $(SRC_DIR)
 	-mkdir -p $(OUT_DIR)
 	-emcc -s "EXPORTED_RUNTIME_METHODS=$(EERM)" \

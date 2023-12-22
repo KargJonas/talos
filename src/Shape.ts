@@ -112,7 +112,7 @@ export class Shape extends Array {
         if (rank < current_rank) {
             let new_axis_size = 1;
             for (let i = 0; i < amount + 1; i++) new_axis_size *= this.get_axis_size(i);
-            return shape(new_axis_size, ...this.slice(amount + 1));
+            return new Shape(new_axis_size, ...this.slice(amount + 1));
         }
 
         // unflatten
@@ -138,7 +138,7 @@ export class Shape extends Array {
         }, 0);
 
         const new_shape = this.slice(loc.length);
-        return [index, shape(...new_shape)];
+        return [index, new Shape(...new_shape)];
     }
 
     // get shape of elements in an axis (n determines the level of nesting)
@@ -155,8 +155,4 @@ export class Shape extends Array {
             yield i;
         }
     }
-}
-
-export default function shape(...s: number[]): Shape {
-    return new Shape(...s);
 }

@@ -5,6 +5,7 @@
 
 #include <stddef.h>
 #include <math.h>
+#include <string.h>
 
 #define UNARY_OP(NAME, OP) \
     void NAME(float* a, float* res, size_t size) { \
@@ -39,6 +40,10 @@ UNARY_OP(floor_tns, floor);
 UNARY_OP(abs_tns, fabsf);
 
 UNARY_OP(reciprocal_tns, 1./);
+
+void copy(float* a, float* res, size_t size) {
+    memcpy(res, a, size * sizeof(float));
+}
 
 void relu_tns(float* a, float* res, size_t size) {
     for (size_t i = 0; i < size; i++) res[i] = a[i] < 0 ? 0 : a[i];
