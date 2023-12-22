@@ -1,7 +1,8 @@
 import core from '../core/build';
 import CompGraphNode from '../graph/graph';
 import { Shape } from '../Shape';
-import { mat_to_string, tensor } from '../util';
+import { mat_to_string, tensor, tensor_like, TensorOp } from '../util';
+import { add } from './tensor_operations';
 
 export default class Tensor {
     public readonly shape: Shape; // [outermost axis, ..., rows, cols]
@@ -26,35 +27,45 @@ export default class Tensor {
         this.ncols = this.shape.get_cols();
     }
 
-    // Gradient-related methods
-    public set_grad(grad: Tensor) {
-        if (!this.shape.equals(grad.shape))
-            throw new Error('Gradient must have same shape as tensor!');
-
-        this.grad = grad;
-    }
-
-    public get_grad(): Tensor | undefined {
-        return this.grad;
+    public add_to_graph(operation: TensorOp, inputs: Tensor[], grad_fn: TensorOp[]) {
+        this.graph_node = new CompGraphNode(operation, grad_fn, inputs);
     }
 
     public backward(grad_output: Tensor | undefined = undefined) {
         if (!this.graph_node)
             throw new Error('No computation graph node associated with this tensor');
 
-        // if gradOutput is undefined, this is the end of the graph (e.g., loss tensor)
+        // if grad_output is undefined, this is the end of the graph (e.g., loss tensor)
         if (grad_output === undefined && this.grad === undefined) this.grad = tensor(this.shape).ones();
         else if (grad_output !== undefined) this.grad = grad_output;
 
+        // reached start of graph
+        if (this.graph_node.inputs.length === 0) return;
+
+        // propagate gradients up to the input tensors
         const inputGrads = this.graph_node.backward(this.grad);
-        this.graph_node.inputs.forEach((inputTensor, idx) => {
-            inputTensor.backward(inputGrads[idx]);
+        this.graph_node.inputs.forEach((input_tensor, idx) => {
+            input_tensor.backward(inputGrads[idx]);
         });
     }
 
+    // todo: separate allocation from computation
+    //   currently, when i call something like add(Tensor, Tensor),
+    //   add() computes the shape of the resulting tensor, allocates
+    //   memory and computes its value.
+    // how it should be:
+    //   get_pairwise_op_shape() caluclates the shape and does error handling
+    //   
+
+    public add(other: Tensor) {
+        // result.add_to_graph(add, );
+    }
+
     public clone(): Tensor {
-        const new_tensor = tensor(this.shape);
-        new_tensor.data.set(this.data);
+        // todo: all this could be replaced by copy(this);
+        //   not sure if we should use tensor ops in the tensor class though
+        const new_tensor = tensor_like(this);
+        core._copy(this.get_ptr(), new_tensor.get_ptr(), this.data.length);
         return new_tensor;
     }
 

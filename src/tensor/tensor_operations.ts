@@ -38,8 +38,7 @@ export const floor      = create_unary_op(core._floor_tns);
 export const abs        = create_unary_op(core._abs_tns);
 export const reciprocal = create_unary_op(core._reciprocal_tns);
 
-// standard matmul on tensors 
-export const matmul = (a: Tensor, b: Tensor, in_place = false): Tensor => {
+function get_shape_matmul(a: Tensor, b: Tensor) {
     if (!(a instanceof Tensor && b instanceof Tensor)) throw new Error('Tensor.matmul() expects a tensor.');
     check_row_col_compat(a, b);
 
@@ -58,7 +57,19 @@ export const matmul = (a: Tensor, b: Tensor, in_place = false): Tensor => {
 
     // create result tensor
     const result_shape = new Shape(...high_level_shape, a.nrows, b.ncols); // todo kinda want to do this with .get_axis_shape
+    return [result_shape, nmat_a, nmat_b];
+}
+
+function check_in_place_compat(a: Tensor, result: Tensor, in_place: boolean) {
+    if (in_place && a.shape.equals(result.shape))
+        throw new Error(`Cannot perform in-place operation. Result tensor [${result.shape}] has different shape than tensor a [${a.shape}].`);
+}
+
+// standard matmul on tensors 
+export const matmul = (a: Tensor, b: Tensor, in_place = false): Tensor => {
+    const [result_shape, nmat_a, nmat_b] = get_shape_matmul(a, b);
     const result = tensor(result_shape);
+    check_in_place_compat(a, result, in_place);
 
     // perform computation using core
     core._mul_tns(
@@ -71,19 +82,26 @@ export const matmul = (a: Tensor, b: Tensor, in_place = false): Tensor => {
     return result;
 }
 
-// numpy-style dot-product
-export const dot = (a: Tensor, b: Tensor, in_place = false): Tensor => {
+function get_shape_dot(a: Tensor, b: Tensor) {
     if (!(a instanceof Tensor && b instanceof Tensor)) throw new Error('Tensor.dot() expects a tensor.');
     check_row_col_compat(a, b);
 
     const result_shape = new Shape(
         ...a.shape.slice(0, a.rank - 1),
         ...b.shape.slice(0, b.rank - 2), b.shape[b.rank - 1]); // shape of tensor b without the second-to-last axis
-    const result = tensor(result_shape);
 
     // flatten tensors to a list of vectors/matrices respectively
     const nvec_a = a.shape.flatten(2)[0];
     const nmat_b = b.shape.flatten(3)[0];
+
+    return [result_shape, nvec_a, nmat_b];
+}
+
+// numpy-style dot-product
+export const dot = (a: Tensor, b: Tensor, in_place = false): Tensor => {
+    const [result_shape, nvec_a, nmat_b] = get_shape_dot(a, b);
+    const result = tensor(result_shape);
+    check_in_place_compat(a, result, in_place);
 
     core._dot_tns(
         a.get_ptr(), a.ncols, nvec_a,
@@ -169,11 +187,7 @@ function create_binary_op(core_fn_scl: Function, core_fn_prw: Function, core_fn_
 
 // copies data from result tensor back into tensor a
 function in_place_cpy(a: Tensor, result: Tensor) {
-    if (a.shape.equals(result.shape)) {
-        core._copy(result.get_ptr(), a.get_ptr(), a.shape.get_nelem());
-        result.free();
-        return a;
-    }
-
-    throw new Error(`Cannot perform in-place operation. Result tensor [${result.shape}] has different shape than tensor a [${a.shape}].`);
+    core._copy(result.get_ptr(), a.get_ptr(), a.shape.get_nelem());
+    result.free();
+    return a;
 }

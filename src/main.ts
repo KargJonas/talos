@@ -14,12 +14,11 @@ core_ready.then(() => {
     let t3 = tensor([2, 3],    [-100, 2, 3, 2, 4, 2]);
     let t4 = tensor([3],       [-1, 2, 3]);
 
-    let t5 = tensor([2, 2]);
-    let t6 = tensor_like(t5).rand_int(0, 10);
+    print(dot(t4, t2))
 
-    print(add(t5, 3));
-    print(add(t5, 3, true));
-    print(add(t5, t5, true));
+    // print(add(t5, 3));
+    // print(add(t5, 3, true));
+    // print(add(t5, t5, true));
     // print(matmul(t5, t6, true));
     // print(matmul(t5, t6, true));
 

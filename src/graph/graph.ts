@@ -22,13 +22,13 @@ export default class CompGraphNode {
     operation: TensorOp;        // The operation performed in this node (e.g., add, multiply, sin)
     inputs: Tensor[];           // The input tensors to this operation
     output: Tensor | undefined; // The output tensor of this operation
-    gradFn: Function[];         // Array of functions to compute gradients w.r.t each input tensor
+    grad_fn: Function[];        // Array of functions to compute gradients w.r.t each input tensor
 
-    constructor(operation: TensorOp, inputs: Tensor[], gradFn: TensorOp[]) {
+    constructor(operation: TensorOp, grad_fn: TensorOp[], inputs: Tensor[]) {
         this.operation = operation;
+        this.grad_fn = grad_fn;
         this.inputs = inputs;
         this.output = undefined;
-        this.gradFn = gradFn;
     }
 
     // Performs the forward pass and saves the output tensor
@@ -43,7 +43,7 @@ export default class CompGraphNode {
             throw new Error('Gradient is undefined.');
 
         // Assuming the same number of gradFn functions as input tensors
-        const gradients = this.gradFn.map((fn, idx) => fn(grad_output, ...this.inputs));
+        const gradients = this.grad_fn.map((fn, idx) => fn(grad_output, ...this.inputs));
         for (let i = 0; i < this.inputs.length; i++) {
             // todo: we have to be extremely careful here!
             // tensor data continues to exist in memory until we free it.
@@ -51,7 +51,7 @@ export default class CompGraphNode {
 
             // accumulate gradients
             if (this.inputs[i].grad === undefined) this.inputs[i].grad = gradients[i];
-            else this.inputs[i].grad = op.add(this.inputs[i].grad, gradients[i]);
+            else op.add(this.inputs[i].grad, gradients[i], true);
 
             // Recursive call for backpropagation
             if (this.inputs[i].graph_node) {
