@@ -41,7 +41,7 @@ UNARY_OP(abs_tns, fabsf);
 
 UNARY_OP(reciprocal_tns, 1./);
 
-// somewhat unconventional unary op. same as identity function
+// somewhat unconventional unary op. equivalent to identity function
 void copy(float* a, float* res, size_t size) {
     memcpy(res, a, size * sizeof(float));
 }
