@@ -38,7 +38,9 @@ export class Shape extends Array {
         if (this.length !== other.length) return false;
 
         for (let i = 0; i < this.length; i++) {
-            if (!other[i] || this[i] !== other[i]) return false;
+            if (this[i] !== other[i] || other[i] === undefined) {
+                return false;
+            }
         }
     
         return true;

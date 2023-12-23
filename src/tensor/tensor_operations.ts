@@ -1,6 +1,6 @@
 import core from "../core/build";
 import { Shape } from "../Shape";
-import { check_row_col_compat, tensor_like, TensorOp } from "../util";
+import { check_row_col_compat, tensor_like } from "../util";
 import { tensor } from "../util";
 import Tensor from './Tensor';
 
@@ -61,7 +61,7 @@ function get_shape_matmul(a: Tensor, b: Tensor) {
 }
 
 function check_in_place_compat(a: Tensor, result: Tensor, in_place: boolean) {
-    if (in_place && a.shape.equals(result.shape))
+    if (in_place && !a.shape.equals(result.shape))
         throw new Error(`Cannot perform in-place operation. Result tensor [${result.shape}] has different shape than tensor a [${a.shape}].`);
 }
 
@@ -70,6 +70,9 @@ export const matmul = (a: Tensor, b: Tensor, in_place = false): Tensor => {
     const [result_shape, nmat_a, nmat_b] = get_shape_matmul(a, b);
     const result = tensor(result_shape);
     check_in_place_compat(a, result, in_place);
+
+    // todo: decide if data should be passed into op from CompGraphNode.forward()
+    //   or if we can just pass in the data like here
 
     // perform computation using core
     core._mul_tns(

@@ -2,7 +2,7 @@ import core from '../core/build';
 import CompGraphNode from '../graph/graph';
 import { Shape } from '../Shape';
 import { mat_to_string, tensor, tensor_like, TensorOp } from '../util';
-import { add } from './tensor_operations';
+import * as ops from './tensor_operations';
 
 export default class Tensor {
     public readonly shape: Shape; // [outermost axis, ..., rows, cols]
@@ -55,11 +55,6 @@ export default class Tensor {
     //   memory and computes its value.
     // how it should be:
     //   get_pairwise_op_shape() caluclates the shape and does error handling
-    //   
-
-    public add(other: Tensor) {
-        // result.add_to_graph(add, );
-    }
 
     public clone(): Tensor {
         // todo: all this could be replaced by copy(this);
@@ -137,4 +132,40 @@ export default class Tensor {
     }
 
     public toString = () => this.to_str(this);
+
+    // unary operations
+    public relu       = (in_place = false) => ops.relu(this, in_place);
+    public binstep    = (in_place = false) => ops.binstep(this, in_place);
+    public logistic   = (in_place = false) => ops.logistic(this, in_place);
+    public sigmoid    = (in_place = false) => ops.sigmoid(this, in_place);
+    public negate     = (in_place = false) => ops.negate(this, in_place);
+    public identity   = (in_place = false) => ops.identity(this, in_place);
+    public copy       = (in_place = false) => ops.copy(this, in_place);
+    public sin        = (in_place = false) => ops.sin(this, in_place);
+    public cos        = (in_place = false) => ops.cos(this, in_place);
+    public tan        = (in_place = false) => ops.tan(this, in_place);
+    public asin       = (in_place = false) => ops.asin(this, in_place);
+    public acos       = (in_place = false) => ops.acos(this, in_place);
+    public atan       = (in_place = false) => ops.atan(this, in_place);
+    public sinh       = (in_place = false) => ops.sinh(this, in_place);
+    public cosh       = (in_place = false) => ops.cosh(this, in_place);
+    public tanh       = (in_place = false) => ops.tanh(this, in_place);
+    public exp        = (in_place = false) => ops.exp(this, in_place);
+    public log        = (in_place = false) => ops.log(this, in_place);
+    public log10      = (in_place = false) => ops.log10(this, in_place);
+    public log2       = (in_place = false) => ops.log2(this, in_place);
+    public invsqrt    = (in_place = false) => ops.invsqrt(this, in_place);
+    public sqrt       = (in_place = false) => ops.sqrt(this, in_place);
+    public ceil       = (in_place = false) => ops.ceil(this, in_place);
+    public floor      = (in_place = false) => ops.floor(this, in_place);
+    public abs        = (in_place = false) => ops.abs(this, in_place);
+    public reciprocal = (in_place = false) => ops.reciprocal(this, in_place);
+
+    // binary operations
+    public add        = (other: Tensor, in_place = false) => ops.add(this, other, in_place);
+    public sub        = (other: Tensor, in_place = false) => ops.sub(this, other, in_place);
+    public mul        = (other: Tensor, in_place = false) => ops.mul(this, other, in_place);
+    public div        = (other: Tensor, in_place = false) => ops.div(this, other, in_place);
+    public dot        = (other: Tensor, in_place = false) => ops.dot(this, other, in_place);
+    public matmul     = (other: Tensor, in_place = false) => ops.matmul(this, other, in_place);
 }

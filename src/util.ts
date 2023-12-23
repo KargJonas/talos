@@ -99,8 +99,6 @@ export function tensor_like(other: Tensor) {
 
 // checks, if tensor a is matmul/dot compatible with tensor b regarding columns/rows
 export function check_row_col_compat(a: Tensor, b: Tensor) {
-    console.log(a.shape.get_cols(), b.shape.get_rows())
-
-    if (a.shape.get_cols() !== b.shape.get_rows() && b.shape.get_rows() !== 1)
+    if (a.shape.get_cols() !== b.shape.get_rows())
         throw new Error(`Cannot multiply tensors of shape [${a.shape}] and [${b.shape}]`);
 }
