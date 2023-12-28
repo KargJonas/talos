@@ -1,9 +1,13 @@
 {
-  "dependencies": {},
-  "devDependencies": {
-    "bun-types": "^1.0.16"
-  },
+  "name": "talos-2",
+  "type": "module",
   "scripts": {
     "dev": "bun --watch src/main.ts"
+  },
+  "devDependencies": {
+    "bun-types": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
   }
 }

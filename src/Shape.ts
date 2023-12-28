@@ -1,21 +1,25 @@
 import { ordinal_str } from "./util";
+import core from "./core/build";
 
-export class Shape extends Array {
-    constructor(...shape: number[]) {
-        // special case: arr length == 1:
-        // would create an array of size shape[0]
-        if (shape.length === 1) {
-            super(1);
-            this[0] = shape[0];
-            return;
+export default class Shape extends Int32Array {
+    constructor(shape: Int32Array | number[] | Shape, attached = false) {
+        if (attached) {
+            // bind shape to a memory location (usually inside a tensor)
+            const ptr = core._alloc_starr(shape.length);
+            super(core.memory.buffer, ptr, shape.length);
+            this.set([...shape]);
+        } else {
+            // create a detatched shape (not bound to a tensor)
+            super(shape.length);
+            this.set([...shape]);
         }
-
-        super(...shape);
     }
-
-    clone(): Shape {
-        return new Shape(...this);
-    }
+    
+    public get_ndim = () => this.length;
+    public get_rows = () => this.get_axis_size(this.get_ndim() - 2);
+    public get_cols = () => this.get_axis_size(this.get_ndim() - 1);
+    public get_mat_shape = () => new Shape([this.get_rows(), this.get_cols()]);
+    public detach = () => new Shape(this);
 
     get_nelem(): number {
         if (this.length === 0) return 0;
@@ -27,11 +31,6 @@ export class Shape extends Array {
         if (axis_size === undefined) return 1;
         return axis_size;
     }
-
-    public get_ndim = () => this.length;
-    public get_rows = () => this.get_axis_size(this.get_ndim() - 2);
-    public get_cols = () => this.get_axis_size(this.get_ndim() - 1);
-    public get_mat_shape = () => new Shape(this.get_rows(), this.get_cols());
 
     // returns true if two shapes are identical
     equals(other: Shape): boolean {
@@ -46,10 +45,10 @@ export class Shape extends Array {
         return true;
     }
 
-    broadcastable(other: Shape): boolean {   
+    broadcastable(other: Shape): boolean {
         const min_rank = Math.min(this.get_ndim(), other.get_ndim());
-        const a = this.slice().reverse();
-        const b = other.slice().reverse();
+        const a = this.detach().reverse();
+        const b = other.detach().reverse();
 
         for (let i = 0; i < min_rank; i++) {
             if (a[i] !== b[i] && a[i] !== 1 && b[i] !== 1) return false;
@@ -61,14 +60,14 @@ export class Shape extends Array {
     broadcast(other: Shape): Shape {
         const max_rank = Math.max(this.get_ndim(), other.get_ndim());
         const new_shape: number[] = [];
-        const a = new Shape(...this.slice().reverse());
-        const b = new Shape(...other.slice().reverse());
+        const a = new Shape(this.detach().reverse());
+        const b = new Shape(other.detach().reverse());
 
         for (let i = 0; i < max_rank; i++) {
             new_shape.unshift(Math.max(a.get_axis_size(i), b.get_axis_size(i)));
         }
 
-        return new Shape(...new_shape);
+        return new Shape(new_shape);
     }
 
     // computes number of indices to step over for each element in each axis
@@ -89,10 +88,10 @@ export class Shape extends Array {
      * @returns A new shape with 1s appended to the left.
      */
     expand_left(rank: number): Shape {
-        const new_shape = this.clone();
+        const new_shape = [...this];
         const n = Math.max(0, rank - this.get_ndim());
         for (let i = 0; i < n; i++) new_shape.unshift(1); 
-        return new_shape;
+        return new Shape(new_shape);
     }
 
     /**
@@ -114,7 +113,7 @@ export class Shape extends Array {
         if (rank < current_rank) {
             let new_axis_size = 1;
             for (let i = 0; i < amount + 1; i++) new_axis_size *= this.get_axis_size(i);
-            return new Shape(new_axis_size, ...this.slice(amount + 1));
+            return new Shape([new_axis_size, ...Array.from(this).slice(amount + 1)]);
         }
 
         // unflatten
@@ -122,7 +121,7 @@ export class Shape extends Array {
             return this.expand_left(rank);
         }
         
-        return this.clone();
+        return this.detach();
     }
 
     /**
@@ -139,22 +138,14 @@ export class Shape extends Array {
             return acc + l_axis * strides[i];
         }, 0);
 
-        const new_shape = this.slice(loc.length);
-        return [index, new Shape(...new_shape)];
+        // const new_shape = new Shape(this.detach().slice(loc.length));
+        const new_shape = new Shape(this.get_axis_shape(this.length - 1));
+        return [index, new_shape];
     }
 
     // get shape of elements in an axis (n determines the level of nesting)
-    get_axis_shape(n: number): Shape {
+    get_axis_shape(n: number): number[] {
         if (n >= this.get_ndim()) throw new Error(`Cannot get ${ordinal_str(n)} axis.`);
-        return new Shape(...this.slice(n - this.get_ndim()));
-    }
-
-    *get_axis_iterable(n: number) {
-        const stride = this.get_strides()[n];
-        const n_elem = this.get_nelem();
-
-        for (let i = 0; i < n_elem; i += stride) {
-            yield i;
-        }
+        return [...this].slice(n - this.get_ndim()); // todo fix. should work with .subarry
     }
 }

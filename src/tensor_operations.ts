@@ -1,10 +1,9 @@
-import core from "../core/build";
-import { Shape } from "../Shape";
-import { check_row_col_compat, tensor_like } from "../util";
-import { tensor } from "../util";
-import Tensor from './Tensor';
+import core from "./core/build";
+import { check_row_col_compat, tensor_like } from "./util";
+import tensor, { Tensor } from "./Tensor";
+import Shape from "./Shape";
 
-// binary operations                       scalar,      pairwise,        broadcasting
+// binary operations                       scalar,        pairwise,      broadcasting
 export const add        = create_binary_op(core._add_scl, core._add_prw, core._add_prw_brc);
 export const sub        = create_binary_op(core._sub_scl, core._sub_prw, core._sub_prw_brc);
 export const mul        = create_binary_op(core._mul_scl, core._mul_prw, core._mul_prw_brc);
@@ -17,8 +16,7 @@ export const binstep    = create_unary_op(core._binstep_tns);
 export const logistic   = create_unary_op(core._logistic_tns);
 export const sigmoid    = create_unary_op(core._sigmoid_tns);
 export const negate     = create_unary_op(core._negate_tns);
-export const identity   = create_unary_op(core._copy);
-export const copy       = create_unary_op(core._copy);
+export const identity   = create_unary_op(core._identity_tns);
 export const sin        = create_unary_op(core._sin_tns);
 export const cos        = create_unary_op(core._cos_tns);
 export const tan        = create_unary_op(core._tan_tns);
@@ -38,26 +36,27 @@ export const floor      = create_unary_op(core._floor_tns);
 export const abs        = create_unary_op(core._abs_tns);
 export const reciprocal = create_unary_op(core._reciprocal_tns);
 
-function get_shape_matmul(a: Tensor, b: Tensor) {
+// !! POTENTIALLY DANGEROUS - be aware of tensor data dependencies !!
+export const free = (a: Tensor) => core._free_tensor(a.get_view_ptr());
+
+function get_shape_matmul(a: Tensor, b: Tensor): Shape {
     if (!(a instanceof Tensor && b instanceof Tensor)) throw new Error('Tensor.matmul() expects a tensor.');
     check_row_col_compat(a, b);
 
     // flatten tensors to a "list of matrices" and get the size of that list
     const nmat_a = a.shape.flatten(3)[0];
     const nmat_b = b.shape.flatten(3)[0];
-
+    
     // check hidim matmul compatibility
     if (nmat_a > 1 && nmat_b > 1 && nmat_a != nmat_b)
         throw new Error(`Cannot multiply matrices of shape [${a.shape}] and [${b.shape}]`);
 
     // get shape of resulting tensor without the last two axes
-    const high_level_shape = a.rank > b.rank
-        ? a.shape.slice(0, a.rank - 2)
-        : b.shape.slice(0, b.rank - 2);
+    const high_level_shape = a.get_rank() > b.get_rank()
+        ? [...a.shape].slice(0, a.get_rank() - 2)   // todo: ...a.shape should probably be replaced by something like slice
+        : [...b.shape].slice(0, b.get_rank() - 2);
 
-    // create result tensor
-    const result_shape = new Shape(...high_level_shape, a.nrows, b.ncols); // todo kinda want to do this with .get_axis_shape
-    return [result_shape, nmat_a, nmat_b];
+    return new Shape([...high_level_shape, a.get_rows(), b.get_cols()]);
 }
 
 function check_in_place_compat(a: Tensor, result: Tensor, in_place: boolean) {
@@ -67,7 +66,7 @@ function check_in_place_compat(a: Tensor, result: Tensor, in_place: boolean) {
 
 // standard matmul on tensors 
 export const matmul = (a: Tensor, b: Tensor, in_place = false): Tensor => {
-    const [result_shape, nmat_a, nmat_b] = get_shape_matmul(a, b);
+    const result_shape = get_shape_matmul(a, b);
     const result = tensor(result_shape);
     check_in_place_compat(a, result, in_place);
 
@@ -76,43 +75,38 @@ export const matmul = (a: Tensor, b: Tensor, in_place = false): Tensor => {
 
     // perform computation using core
     core._mul_tns(
-        a.get_ptr(), a.nrows, a.ncols, nmat_a,
-        b.get_ptr(), b.nrows, b.ncols, nmat_b,
-        result.get_ptr()
+        a.get_view_ptr(),
+        b.get_view_ptr(),
+        result.get_view_ptr()
     );
 
-    if (in_place) return in_place_cpy(a, result);
+    if (in_place) return in_place_cpy(result, a);
     return result;
 }
 
-function get_shape_dot(a: Tensor, b: Tensor) {
+function get_shape_dot(a: Tensor, b: Tensor): Shape {
     if (!(a instanceof Tensor && b instanceof Tensor)) throw new Error('Tensor.dot() expects a tensor.');
     check_row_col_compat(a, b);
 
-    const result_shape = new Shape(
-        ...a.shape.slice(0, a.rank - 1),
-        ...b.shape.slice(0, b.rank - 2), b.shape[b.rank - 1]); // shape of tensor b without the second-to-last axis
+    const result_shape = new Shape([
+        ...[...a.shape].slice(0, a.get_rank() - 1),
+        ...[...b.shape].slice(0, b.get_rank() - 2), b.shape[b.get_rank() - 1]]); // shape of tensor b without the second-to-last axis
 
-    // flatten tensors to a list of vectors/matrices respectively
-    const nvec_a = a.shape.flatten(2)[0];
-    const nmat_b = b.shape.flatten(3)[0];
-
-    return [result_shape, nvec_a, nmat_b];
+    return result_shape;
 }
 
 // numpy-style dot-product
 export const dot = (a: Tensor, b: Tensor, in_place = false): Tensor => {
-    const [result_shape, nvec_a, nmat_b] = get_shape_dot(a, b);
+    const result_shape = get_shape_dot(a, b);
     const result = tensor(result_shape);
     check_in_place_compat(a, result, in_place);
 
     core._dot_tns(
-        a.get_ptr(), a.ncols, nvec_a,
-        b.get_ptr(), b.nrows, b.ncols, nmat_b,
-        result.get_ptr()
-    );
+        a.get_view_ptr(),
+        b.get_view_ptr(),
+        result.get_view_ptr());
 
-    if (in_place) return in_place_cpy(a, result);
+    if (in_place) return in_place_cpy(result, a);
     return result;
 }
 
@@ -125,7 +119,7 @@ function binary_op(
     // perform scalar operation
     if (typeof b === 'number') {
         const result = in_place ? a : tensor_like(a);
-        core_fn_scl(a.get_ptr(), b, result.get_ptr(), a.data.length);
+        core_fn_scl(a.get_view_ptr(), b, result.get_view_ptr());
         return result;
     }
 
@@ -135,7 +129,7 @@ function binary_op(
     // perform fast pairwise operation without broadcasting if possible
     if (a.shape.equals(b.shape)) {
         const result = in_place ? a : tensor_like(a);
-        core_fn_prw(a.get_ptr(), b.get_ptr(), result.get_ptr(), a.data.length);
+        core_fn_prw(a.get_view_ptr(), b.get_view_ptr(), result.get_view_ptr());
         return result;
     }
 
@@ -143,7 +137,7 @@ function binary_op(
     if (!a.shape.broadcastable(b.shape))
         throw new Error(`Shape mismatch: Cannot broadcast tensor of shape [${a.shape}] with [${b.shape}].`);
 
-    const max_rank = Math.max(a.rank, b.rank);
+    const max_rank = Math.max(a.get_rank(), b.get_rank());
     const result_shape = a.shape.broadcast(b.shape);
 
     if (in_place && !a.shape.equals(result_shape))
@@ -167,7 +161,7 @@ function binary_op(
     metadata.set([...strides_a, ...strides_b, ...result_shape]);
 
     // perform operation with broadcast
-    core_fn_brc(a.get_ptr(), b.get_ptr(), result.get_ptr(), metadata_ptr, max_rank);
+    core_fn_brc(a.get_view_ptr(), b.get_view_ptr(), result.get_view_ptr());
     core._free_starr(metadata_ptr);
 
     return result;
@@ -176,7 +170,7 @@ function binary_op(
 // applies a unary operation to a tensor
 function unary_op(core_fn: Function, a: Tensor, in_place: boolean) {
     const result = in_place ? a : tensor_like(a);
-    core_fn(a.get_ptr(), result.get_ptr(), a.data.length);
+    core_fn(a.get_view_ptr(), result.get_view_ptr());
     return result;
 }
 
@@ -188,9 +182,9 @@ function create_binary_op(core_fn_scl: Function, core_fn_prw: Function, core_fn_
     return (a: Tensor, b: Tensor | number, in_place = false) => binary_op(core_fn_scl, core_fn_prw, core_fn_brc, a, b, in_place);
 }
 
-// copies data from result tensor back into tensor a
-function in_place_cpy(a: Tensor, result: Tensor) {
-    core._copy(result.get_ptr(), a.get_ptr(), a.shape.get_nelem());
-    result.free();
-    return a;
+// copies data from one tensor to another
+function in_place_cpy(source: Tensor, dest: Tensor) {
+    core._copy_farr(source.get_data_ptr(), dest.get_data_ptr(), source.get_nelem());
+    source.free();
+    return dest;
 }

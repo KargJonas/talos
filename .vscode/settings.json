@@ -1,16 +1,14 @@
 {
     "files.associations": {
-        "util.c": "c",
-        "stddef.h": "c",
-        "emscripten.h": "c",
-        "__hash_table": "c",
-        "__split_buffer": "c",
         "array": "c",
+        "string": "c",
+        "string_view": "c",
+        "string.h": "c",
         "initializer_list": "c",
-        "unordered_map": "c",
-        "vector": "c",
-        "wasm_simd128.h": "c",
-        "math.h": "c",
-        "cmath": "c"
+        "utility": "c",
+        "stddef.h": "c",
+        "random": "c",
+        "util.h": "c",
+        "tensor.h": "c"
     }
 }

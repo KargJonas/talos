@@ -4,38 +4,33 @@
 #define CORE_PAIRWISE
 
 #include <stddef.h>
-#include "./util.c"
+#include "./util.h"
 #include <stdio.h>
 
 #define PARIWISE_OP(NAME, OP) \
-    void NAME(float* a, float* b, float* res, size_t size) { \
-        for (size_t i = 0; i < size; i++) res[i] = a[i] OP b[i]; }
+    void NAME(struct tensor_t* a, struct tensor_t* b, struct tensor_t* res) { \
+        for (size_t i = 0; i < a->nelem; i++) res->data[i] = a->data[i] OP b->data[i]; }
 
 // not proud of this one...
 // todo: optimize for perf, make macro smaller
 #define BAROADCASTING_PARIWISE_OP(NAME, OP) \
-    void NAME(float* a, float* b, float* res, size_t* metadata, size_t rank) { \
-        size_t* strides_a = metadata; \
-        size_t* strides_b = metadata + rank; \
-        size_t* shape_res = strides_b + rank; \
+    void NAME(struct tensor_t* a, struct tensor_t* b, struct tensor_t* res) { \
         size_t ia, ib, iaxis, remainder, dim, total_elements = 1; \
-        /* compute total number of elements of the resuting tensor */ \
-        for (size_t i = 0; i < rank; ++i) total_elements *= shape_res[i]; \
         /* iterate over flat result tensor */ \
-        for (size_t ires = 0; ires < total_elements; ires++) { \
+        for (size_t ires = 0; ires < res->nelem; ires++) { \
             ia = ib = 0; \
             /* get indices of a, b from ires */ \
             remainder = ires; \
-            for (dim = rank; dim-- > 0;) { \
+            for (dim = a->rank; dim-- > 0;) { \
                 /* index of current element on current axis */ \
-                iaxis = remainder % shape_res[dim]; \
-                ia += iaxis * strides_a[dim]; \
-                ib += iaxis * strides_b[dim]; \
-                remainder /= shape_res[dim]; \
+                iaxis = remainder % res->shape[dim]; \
+                ia += iaxis * a->strides[dim]; \
+                ib += iaxis * b->strides[dim]; \
+                remainder /= res->shape[dim]; \
             } \
-            res[ires] = a[ia] OP b[ib]; \
+            res->data[ires] = a->data[ia] OP b->data[ib]; \
         } \
-    } \
+    }
 
 PARIWISE_OP(add_prw, +) // add
 PARIWISE_OP(sub_prw, -) // sub

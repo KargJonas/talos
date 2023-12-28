@@ -2,7 +2,7 @@
 #define CORE_MATMUL
 
 #include <stddef.h>
-#include "./util.c"
+#include "./util.h"
 
 // performs standard matrix multiplication on a matrix
 // that is located somewhere inside a larger tensor
@@ -28,24 +28,27 @@ void mul_mat(
     }
 }
 
-
 // pairwise multiplication of the matrices in two tensors
-void mul_tns(
-    float* a, size_t nrow_a, size_t ncol_a, size_t nmat_a,
-    float* b, size_t nrow_b, size_t ncol_b, size_t nmat_b,
-    float* result
-) {
+void mul_tns(struct tensor_t* a, struct tensor_t* b, struct tensor_t* result) {
+    size_t nrow_a = get_nrows(a);
+    size_t ncol_a = get_ncols(a);
+    size_t nmat_a = get_nmat(a);
+
+    size_t nrow_b = get_nrows(b);
+    size_t ncol_b = get_ncols(b);
+    size_t nmat_b = get_nmat(b);
+
     size_t stride_res = nrow_a * ncol_b;
     size_t stride_a = nmat_a > 1 ? nrow_a * ncol_a : 0;
     size_t stride_b = nmat_b > 1 ? nrow_b * ncol_b : 0;
     size_t nmat_max = MAX(nmat_a, nmat_b);
-    size_t ia, ib, ires;
+    register size_t ia = 0, ib = 0, ires = 0;
 
     for (size_t i = 0; i < nmat_max; i++) {
         mul_mat(
-            a + ia, nrow_a, ncol_a,
-            b + ib, nrow_b, ncol_b,
-            result + ires);
+            a->data + ia, nrow_a, ncol_a,
+            b->data + ib, nrow_b, ncol_b,
+            result->data + ires);
 
         ia += stride_a; // todo: minimal optimization potential (if stride = 0, add useless)
         ib += stride_b;
@@ -53,20 +56,23 @@ void mul_tns(
     }
 }
 
-void dot_tns(
-    float* a, size_t ncol_a, size_t nvec_a,
-    float* b, size_t nrow_b, size_t ncol_b, size_t nmat_b,
-    float* result
-) {
+void dot_tns(struct tensor_t* a, struct tensor_t* b, struct tensor_t* result) {
+    size_t ncol_a = get_ncols(a);
+    size_t nvec_a = get_nrows(a);
+
+    size_t nrow_b = get_nrows(b);
+    size_t ncol_b = get_ncols(b);
+    size_t nmat_b = get_nmat(b);
+
     size_t stride_b = nrow_b * ncol_b; // number of elements in one matrix of b
-    size_t iv, im, ia, ib, ires;
+    size_t iv, im, ia = 0, ib = 0, ires = 0;
 
     for (iv = 0; iv < nvec_a; iv++) {
         for (im = 0; im < nmat_b; im++) {
             mul_mat(
-                a + ia, 1, ncol_a,
-                b + ib, nrow_b, ncol_b,
-                result + ires);
+                a->data + ia, 1, ncol_a,
+                b->data + ib, nrow_b, ncol_b,
+                result->data + ires);
 
             ib += stride_b; // step over to next matrix
             ires += ncol_b;

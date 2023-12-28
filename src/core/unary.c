@@ -6,10 +6,16 @@
 #include <stddef.h>
 #include <math.h>
 #include <string.h>
+#include "./util.h"
+#include "./tensor.h"
 
+// #define UNARY_OP(NAME, OP) \
+//     void NAME(float* a, float* res, size_t size) { \
+//         for (size_t i = 0; i < size; i++) res[i] = OP(a[i]); }
+//
 #define UNARY_OP(NAME, OP) \
-    void NAME(float* a, float* res, size_t size) { \
-        for (size_t i = 0; i < size; i++) res[i] = OP(a[i]); }
+    void NAME(struct tensor_t* a, struct tensor_t* res) { \
+        for (size_t i = 0; i < a->nelem; i++) res->data[i] = OP(a->data[i]); }
 
 // "tns" should signify that these are oparations
 // on tensors, not scalars
@@ -42,24 +48,24 @@ UNARY_OP(abs_tns, fabsf);
 UNARY_OP(reciprocal_tns, 1./);
 
 // somewhat unconventional unary op. equivalent to identity function
-void copy(float* a, float* res, size_t size) {
-    memcpy(res, a, size * sizeof(float));
+void identity_tns(struct tensor_t* a, struct tensor_t* res) {
+    memcpy(res->data, a->data, a->nelem * sizeof(float));
 }
 
-void relu_tns(float* a, float* res, size_t size) {
-    for (size_t i = 0; i < size; i++) res[i] = a[i] < 0 ? 0 : a[i];
+void relu_tns(struct tensor_t* a, struct tensor_t* res) {
+    for (size_t i = 0; i < a->nelem; i++) res->data[i] = a->data[i] < 0 ? 0 : a->data[i];
 }
 
-void binstep_tns(float* a, float* res, size_t size) {
-    for (size_t i = 0; i < size; i++) res[i] = a[i] < 0 ? 0 : 1;
+void binstep_tns(struct tensor_t* a, struct tensor_t* res) {
+    for (size_t i = 0; i < a->nelem; i++) res->data[i] = a->data[i] < 0 ? 0 : 1;
 }
 
-void logistic_tns(float* a, float* res, size_t size) {
-    for (size_t i = 0; i < size; i++) res[i] = 1. / (exp(-a[i]) + 1.);
+void logistic_tns(struct tensor_t* a, struct tensor_t* res) {
+    for (size_t i = 0; i < a->nelem; i++) res->data[i] = 1. / (exp(-a->data[i]) + 1.);
 }
 
-void sigmoid_tns(float* a, float* res, size_t size) {
-    for (size_t i = 0; i < size; i++) res[i] = a[i] / (exp(-a[i]) + 1.);
+void sigmoid_tns(struct tensor_t* a, struct tensor_t* res) {
+    for (size_t i = 0; i < a->nelem; i++) res->data[i] = a->data[i] / (exp(-a->data[i]) + 1.);
 }
 
 #endif //CORE_UNARY

@@ -1,9 +1,7 @@
 import { core_ready } from './util';
-import { tensor } from './util';
+import tensor, { Tensor } from './Tensor';
 
-import './graph/graph';
-
-const print = (t) => console.log(t?.toString() + "\n---");
+const print = (t: Tensor) => console.log(t?.toString() + "\n---");
 
 core_ready.then(() => {
     console.log('###########\n'.repeat(2));
@@ -18,7 +16,6 @@ core_ready.then(() => {
     print(t1.mul(t4));
     print(t1.div(t4));
     print(t1.matmul(t2));
-    print(t2.matmul(t3));
     print(t2.dot(t1));
     print(t4.sigmoid());
 
