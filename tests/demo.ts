@@ -1,7 +1,7 @@
 import { core_ready } from '../src/util';
-import tensor from '../src/tensor';
+import tensor, { Tensor } from '../src/Tensor';
 
-const print = (t) => console.log(t?.toString() + "\n---");
+const print = (t: Tensor) => console.log(t?.toString() + "\n---");
 
 core_ready.then(() => {
     let t1 = tensor([2, 2, 3], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);

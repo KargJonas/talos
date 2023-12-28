@@ -1,7 +1,7 @@
 import { core_ready } from '../src/util';
-import tensor from '../src/tensor';
+import tensor, { Tensor } from '../src/Tensor';
 
-const print = (t) => console.log(t?.toString() + "\n---");
+const print = (t: Tensor) => console.log(t?.toString() + "\n---");
 
 core_ready.then(() => {
     const t1 = tensor([200, 300, 3]).rand();

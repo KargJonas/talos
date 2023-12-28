@@ -127,7 +127,5 @@ export default function tensor(shape: Shape | number[], data?: number[]) {
 
     if (data !== undefined) _data.set(data);
 
-    const t = new Tensor(_shape, _strides, _data);
-    // console.log(t);
-    return t;
+    return new Tensor(_shape, _strides, _data);
 }

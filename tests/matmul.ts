@@ -1,5 +1,5 @@
 import { core_ready } from '../src/util';
-import tensor from '../src/tensor';
+import tensor from '../src/Tensor';
 
 core_ready.then(() => {
     console.log("Test 1: 2x2 multiplied by 2x2");

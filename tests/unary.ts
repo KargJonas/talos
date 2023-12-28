@@ -1,7 +1,7 @@
 import { core_ready } from '../src/util';
-import tensor from '../src/tensor';
+import tensor, { Tensor } from '../src/Tensor';
 
-const print = (t) => console.log(t?.toString() + "\n---");
+const print = (t: Tensor) => console.log(t?.toString() + "\n---");
 
 core_ready.then(() => {
     console.log('###########\n'.repeat(2));
@@ -31,7 +31,6 @@ core_ready.then(() => {
     print(t4.floor());
     print(t4.abs());
     print(t4.reciprocal());
-    print(t4.pow(2));
     print(t4.relu())
     print(t4.binstep())
     print(t4.logistic())
