@@ -32,6 +32,9 @@ EF = [ \
 # experimenting with -msimd128 flag
 # can cause compat issues
 
+## Initial memory flag ##
+# -s INITIAL_MEMORY=256MB
+
 clean: $(OUT_DIR)
 	-rm -rf $(OUT_DIR)
 
@@ -42,5 +45,4 @@ main: $(SRC_DIR)/main.c
 				-s "EXPORTED_FUNCTIONS=$(EF)" \
 				-s WASM=1 \
 				-s ALLOW_MEMORY_GROWTH=1 \
-				-msimd128 \
 				-O3 $(SRC_DIR)/main.c -o $(OUT_DIR)/index.js

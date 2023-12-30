@@ -154,15 +154,32 @@ function binary_op(
         if (shape_b_exp[i] === 1) strides_b[i] = 0;
     }
 
-    // create array for passing in metadata
-    const metadata_size = max_rank * 3;
-    const metadata_ptr = core._alloc_starr(metadata_size);
-    const metadata = new Uint32Array(core.memory.buffer, metadata_ptr, metadata_size);
-    metadata.set([...strides_a, ...strides_b, ...result_shape]);
+    // todo: fix. c code (BAROADCASTING_PARIWISE_OP) tries to access index of stride array that is
+    //   out of bounds, when the ranks of a and b are different
+    //   this is overkill. should not copy all data. will cause major issues for large tensors.
+    //   should be done in c by somehow virtually extending the shape array to the left
+    //   maybe memcpy, maybe inline condition
+    const _a = tensor(a.shape.detach().expand_left(result.get_rank()));
+    const _b = tensor(b.shape.detach().expand_left(result.get_rank()));
+    core._copy_farr(a.get_data_ptr(), _a.get_data_ptr(), a.get_nelem());
+    core._copy_farr(b.get_data_ptr(), _b.get_data_ptr(), b.get_nelem());
+
+    // todo: think i found the problem:
+    //    on memory expansion, the old wasm memory buffer will be deallcoated and "unmounted"
+    //    by not updating core.memory when growth events happen, we will reference the old
+    //    memory object. this is what made this error so hard to predict.
+    //    fixes:
+    //      first, we need to find the (potential) memory leak that lead to the memory expansion in the
+    //         first place; should not have happened to begin with (i think, 10x200x200 might fit into initial mem size)
+    //         [[ i think i may have fixed that already through _a.free() and _b.free() ]]
+    //      second, we need to hande memory growth properly. that means updating core.memory when a memory expansion happens.
+    //         according to chatgpt, there exists no event handler for this, so we might need to build our own solution
+    //         been meaning to build a "tensor registry" in c, to keep track of memory allocations anyways
 
     // perform operation with broadcast
-    core_fn_brc(a.get_view_ptr(), b.get_view_ptr(), result.get_view_ptr());
-    core._free_starr(metadata_ptr);
+    core_fn_brc(_a.get_view_ptr(), _b.get_view_ptr(), result.get_view_ptr());
+    _a.free();
+    _b.free();
 
     return result;
 }
