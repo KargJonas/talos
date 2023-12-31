@@ -4,22 +4,6 @@ import { core_ready } from "../src/util";
 import Shape from "../src/Shape";
 import Strides from "../src/Strides";
 
-const MACHINE_EPSILON = Math.pow(2, -23)
-
-// float32 values from wasm may be converted to js values with a decimal
-// cutoff that still includes values that lie beyond the machine epsilon
-// this would cause tests to fail with errors like this:
-// Expected: 0
-// Received: 0.00000000000000000000000000000000000000002359226094537262
-// therefore, we check if the delta between two values is smaller than
-// the machine epsilon and consider them equal if thats the case
-function floats_almost_equal(a: number, b: number) {
-    // const epsilon = 1.1920928955078125e-7;
-    return Math.abs(a - b) <= MACHINE_EPSILON;
-}
-
-test("core initialization", async () => await core_ready, 50);
-
 describe("tensor creation", async () => {
     await core_ready;
 
@@ -142,5 +126,159 @@ describe("tensor creation", async () => {
 
         old_tensor.free();
         new_tensor.free();
+    });
+
+    test("Tensor referencing/(meta-)data-dependence", () => {
+        let old_tensor = tensor([1, 2, 3, 4]).zeros();
+        let new_tensor = new Tensor(old_tensor.shape, old_tensor.strides, old_tensor.data);
+
+        // make sure metadata is copied correctly and that tensors are independent of one another
+        check_tensor_metadata_equality(new_tensor, old_tensor);
+        
+        old_tensor.shape[0] = 4;
+        old_tensor.strides[0] = 4;
+        old_tensor.data[0] = 4;
+        old_tensor.set_rank(6);
+        old_tensor.set_nelem(0);
+
+        expect(old_tensor.shape[0]).toEqual(new_tensor.shape[0]);
+        expect(old_tensor.strides[0]).toEqual(new_tensor.strides[0]);
+        expect(old_tensor.data[0]).toEqual(new_tensor.data[0]);
+        expect(old_tensor.get_rank()).not.toEqual(new_tensor.get_rank()); // nelem and rank are not dependent (might change this in the future)
+        expect(old_tensor.get_nelem()).not.toEqual(new_tensor.get_nelem());
+    });
+});
+
+describe("tensor operations", async () => {
+    await core_ready;
+
+    let t1 = tensor([2, 2, 3], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+    let t2 = tensor([3, 2],    [1, 2, 3, 4, 5, 6]);
+    let t3 = tensor([3, 2],    [-100, 2, 3, 2, 4, 2]);
+    let t4 = tensor([3, 2],    [7.5, 5.5, -2, 3.5, 0, 3]);
+    let t5 = tensor([3],       [-1, 2, 3]);
+
+    describe("in-place", () => {
+        test("unary ops", () => {
+            let t;
+
+            t = t5.clone().relu();
+            expect([...t.data]).toEqual([0, 2, 3]);
+            t.free();
+
+            t = t5.clone().binstep();
+            expect([...t.data]).toEqual([0, 1, 1]);
+            t.free();
+
+            t = t5.clone().logistic();
+            expect([...t.data]).toEqual([0.2689414322376251, 0.8807970881462097, 0.9525741338729858]);
+            t.free();
+
+            // todo: add proper values in equals expectation
+            // todo: fix sigmoid. seems to be implemented incorrectly
+            t = t5.clone().sigmoid();
+            console.log(t.data)
+            expect([...t.data]).toEqual([0.2689414322376251, 0.8807970881462097, 0.9525741338729858]);
+            t.free();
+
+            t = t5.clone().negate();
+            expect([...t.data]).toEqual([1, -2, -3]);
+            t.free();
+        });
+
+        test("scalar ops", () => {
+            const t = t1.clone();
+            let expected = [...t.data];
+
+            t.add(1, true);
+            expected = expected.map(v => v + 1);
+            expect([...t.data]).toEqual(expected);
+    
+            t.sub(2.5, true);
+            expected = expected.map(v => v - 2.5);
+            expect([...t.data]).toEqual(expected);
+
+            t.mul(2, true);
+            expected = expected.map(v => v * 2);
+            expect([...t.data]).toEqual(expected);
+
+            t.div(4, true);
+            expected = expected.map(v => v / 4);
+            expect([...t.data]).toEqual(expected);
+        
+            expect([...t1.shape]).toEqual([...t.shape]);
+        });
+
+        // warning: this test can cause precision-based errors!
+        test("pairwise ops", () => {
+            const t = t2.clone();
+            let expected = [...t.data];
+
+            t.add(t3, true);
+            expected = expected.map((v, i) => v + t3.data[i]);
+            expect([...t.data]).toEqual(expected);
+
+            t.sub(t4, true);
+            expected = expected.map((v, i) => v - t4.data[i]);
+            expect([...t.data]).toEqual(expected);
+
+            t.mul(t3, true);
+            expected = expected.map((v, i) => v * t3.data[i]);
+            // expect([...t.data]).toEqual(expected);
+            t.data.forEach((v, i) => expect(v).toBeCloseTo(expected[i]));
+
+            t.div(t2, true);
+            expected = expected.map((v, i) => v / t2.data[i]);
+            t.data.forEach((v, i) => expect(v).toBeCloseTo(expected[i]));
+        });
+    });
+
+    describe("out-of-place", () => {
+        test("scalar ops", () => {
+            let t;
+
+            t = t1.add(1);
+            expect([...t.data]).toEqual([...t1.data.map(v => v + 1)]);
+            t.free();
+    
+            t = t1.sub(2.5);
+            expect([...t.data]).toEqual([...t1.data.map(v => v - 2.5)]);
+            t.free();
+
+            t = t1.mul(2);
+            expect([...t.data]).toEqual([...t1.data.map(v => v * 2)]);
+            t.free();
+
+            t = t1.div(4);
+            expect([...t.data]).toEqual([...t1.data.map(v => v / 4)]);
+            t.free();
+        });
+
+        // warning: this test can cause precision-based errors!
+        test("pairwise ops", () => {
+            let t;
+            let expected: number[];
+
+            t = t2.add(t3);
+            expect([...t2.shape]).toEqual([...t.shape]);
+            expected = [...t2.data].map((v, i) => v + t3.data[i]);
+            expect([...t.data]).toEqual(expected);
+            t.free();
+
+            t = t2.sub(t4);
+            expected = [...t2.data].map((v, i) => v - t4.data[i]);
+            expect([...t.data]).toEqual(expected);
+            t.free();
+
+            t = t2.mul(t3);
+            expected = [...t2.data].map((v, i) => v * t3.data[i]);
+            t.data.forEach((v, i) => expect(v).toBeCloseTo(expected[i]));
+            t.free();
+
+            t = t2.div(t4);
+            expected = [...t2.data].map((v, i) => v / t4.data[i]);
+            t.data.forEach((v, i) => expect(v).toBeCloseTo(expected[i]));
+            t.free();
+        });
     });
 });
