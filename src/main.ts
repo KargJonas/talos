@@ -11,11 +11,9 @@ core_ready.then(() => {
     let t3 = tensor([2, 3],    [-100, 2, 3, 2, 4, 2]);
     let t4 = tensor([3],       [-1, 2, 3]);
 
-    print(t1.add(t4));
-
-    print(t1.add(t4));
     print(t1.sub(t4));
     print(t1.mul(t4));
+    console.log(t1.div(t4).toString())
     print(t1.div(t4));
     print(t1.matmul(t2));
     print(t2.dot(t1));

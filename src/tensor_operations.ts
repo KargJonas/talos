@@ -137,49 +137,13 @@ function binary_op(
     if (!a.shape.broadcastable(b.shape))
         throw new Error(`Shape mismatch: Cannot broadcast tensor of shape [${a.shape}] with [${b.shape}].`);
 
-    const max_rank = Math.max(a.get_rank(), b.get_rank());
     const result_shape = a.shape.broadcast(b.shape);
 
     if (in_place && !a.shape.equals(result_shape))
         throw new Error(`Cannot perform in-place operation. Result tensor [${result_shape}] has different shape than tensor a [${a.shape}].`);
 
     const result = in_place ? a : tensor(result_shape);
-    const shape_a_exp = a.shape.expand_left(max_rank);
-    const shape_b_exp = b.shape.expand_left(max_rank);
-    const strides_a = shape_a_exp.get_strides();
-    const strides_b = shape_b_exp.get_strides();
-
-    for (let i = 0; i < max_rank; i++) {
-        if (shape_a_exp[i] === 1) strides_a[i] = 0;
-        if (shape_b_exp[i] === 1) strides_b[i] = 0;
-    }
-
-    // todo: fix. c code (BAROADCASTING_PARIWISE_OP) tries to access index of stride array that is
-    //   out of bounds, when the ranks of a and b are different
-    //   this is overkill. should not copy all data. will cause major issues for large tensors.
-    //   should be done in c by somehow virtually extending the shape array to the left
-    //   maybe memcpy, maybe inline condition
-    const _a = tensor(a.shape.detach().expand_left(result.get_rank()));
-    const _b = tensor(b.shape.detach().expand_left(result.get_rank()));
-    core._copy_farr(a.get_data_ptr(), _a.get_data_ptr(), a.get_nelem());
-    core._copy_farr(b.get_data_ptr(), _b.get_data_ptr(), b.get_nelem());
-
-    // todo: think i found the problem:
-    //    on memory expansion, the old wasm memory buffer will be deallcoated and "unmounted"
-    //    by not updating core.memory when growth events happen, we will reference the old
-    //    memory object. this is what made this error so hard to predict.
-    //    fixes:
-    //      first, we need to find the (potential) memory leak that lead to the memory expansion in the
-    //         first place; should not have happened to begin with (i think, 10x200x200 might fit into initial mem size)
-    //         [[ i think i may have fixed that already through _a.free() and _b.free() ]]
-    //      second, we need to hande memory growth properly. that means updating core.memory when a memory expansion happens.
-    //         according to chatgpt, there exists no event handler for this, so we might need to build our own solution
-    //         been meaning to build a "tensor registry" in c, to keep track of memory allocations anyways
-
-    // perform operation with broadcast
-    core_fn_brc(_a.get_view_ptr(), _b.get_view_ptr(), result.get_view_ptr());
-    _a.free();
-    _b.free();
+    core_fn_brc(a.get_view_ptr(), b.get_view_ptr(), result.get_view_ptr());
 
     return result;
 }
