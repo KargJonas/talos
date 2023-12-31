@@ -108,6 +108,7 @@ export class Tensor {
     public abs        = (in_place = false) => ops.abs(this, in_place);
     public reciprocal = (in_place = false) => ops.reciprocal(this, in_place);
     public free       = ()                 => ops.free(this);
+    public clone      = ()                 => ops.clone(this);
 
     // binary operations
     public add        = (other: Tensor | number, in_place = false) => ops.add(this, other, in_place);
@@ -125,7 +126,14 @@ export default function tensor(shape: Shape | number[], data?: number[]) {
     const _shape = new Shape(shape, true);
     const _strides = new Strides(get_column_major(_shape), true);
 
-    if (data !== undefined) _data.set(data);
+    if (data !== undefined) {
+        if (data.length !== nelem) throw new Error(`Cannot cast array of size ${data.length} into tensor of shape [${shape}]`);
+        _data.set(data);
+    }
 
     return new Tensor(_shape, _strides, _data);
+}
+
+export function tensor_like(other: Tensor) {
+    return tensor(other.shape);
 }

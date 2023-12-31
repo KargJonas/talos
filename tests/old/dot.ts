@@ -1,5 +1,5 @@
-import { core_ready } from '../src//util';
-import tensor, { Tensor } from '../src/Tensor';
+import { core_ready } from '../../src/core_util';
+import tensor, { Tensor } from '../../src/Tensor';
 
 const print = (t: Tensor) => console.log(t?.toString() + "\n---");
 

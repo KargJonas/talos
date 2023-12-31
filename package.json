@@ -2,7 +2,8 @@
   "name": "talos-2",
   "type": "module",
   "scripts": {
-    "dev": "bun --watch src/main.ts"
+    "dev": "bun --watch src/main.ts",
+    "test": "bun test"
   },
   "devDependencies": {
     "bun-types": "latest"

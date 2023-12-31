@@ -1,5 +1,4 @@
 import { Tensor } from "./Tensor";
-import { tensor_like } from "./util";
 
 // usability methods
 export default function tensor_to_string(a: Tensor, num_width = 10, space_before = 0) {
@@ -29,12 +28,11 @@ function mat_to_string(mat: Tensor, num_width = 10, space_before = 0) {
     const rows = mat.shape.get_rows();
     const cols = mat.shape.get_cols();
 
-    const _mat = tensor_like(mat);
     const decimal_places = num_width - 5;
     const exp = Math.pow(10, decimal_places);
 
     // cap number of decimal places 
-    _mat.mul(exp, true).floor(true).div(exp, true);
+    const _mat = mat.clone().mul(exp, true).floor(true).div(exp, true);
 
     let only_ints = true;
     let maxlen = 1;

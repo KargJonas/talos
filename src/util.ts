@@ -1,4 +1,4 @@
-import tensor, { Tensor } from './Tensor';
+import { Tensor } from './Tensor';
 import core from './core/build';
 
 export const core_ready = new Promise<null>((resolve) => {
@@ -21,12 +21,6 @@ export function create_starr(nelem: number): Int32Array {
 export function check_row_col_compat(a: Tensor, b: Tensor) {
     if (a.get_cols() !== b.get_rows())
         throw new Error(`Cannot multiply tensors of shape [${a.shape}] and [${b.shape}]`);
-}
-
-export function tensor_like(other: Tensor) {
-    const new_tensor = tensor(other.shape);
-    core._copy_tensor(other.get_view_ptr(), new_tensor.get_view_ptr());
-    return new_tensor;
 }
 
 export function ordinal_str(n: number): string {

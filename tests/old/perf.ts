@@ -1,5 +1,5 @@
-import { core_ready } from '../src/util';
-import tensor from '../src/Tensor';
+import { core_ready } from '../../src/core_util';
+import tensor from '../../src/Tensor';
 
 const rand_int = (min: number, max: number) => ((Math.random() * (max - min)) | 0) + min;
 

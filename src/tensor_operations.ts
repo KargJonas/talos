@@ -1,5 +1,5 @@
 import core from "./core/build";
-import { check_row_col_compat, tensor_like } from "./util";
+import { check_row_col_compat } from "./util";
 import tensor, { Tensor } from "./Tensor";
 import Shape from "./Shape";
 
@@ -36,8 +36,14 @@ export const floor      = create_unary_op(core._floor_tns);
 export const abs        = create_unary_op(core._abs_tns);
 export const reciprocal = create_unary_op(core._reciprocal_tns);
 
-// !! POTENTIALLY DANGEROUS - be aware of tensor data dependencies !!
-export const free = (a: Tensor) => core._free_tensor(a.get_view_ptr());
+// be aware of tensor data dependencies when deallocating tensors !!
+export const free  = (a: Tensor) => core._free_tensor(a.get_view_ptr());
+
+export const clone = (a: Tensor) => {
+    const new_tensor = tensor(a.shape);
+    core._copy_tensor(a.get_view_ptr(), new_tensor.get_view_ptr());
+    return new_tensor;
+}
 
 function get_shape_matmul(a: Tensor, b: Tensor): Shape {
     if (!(a instanceof Tensor && b instanceof Tensor)) throw new Error('Tensor.matmul() expects a tensor.');
@@ -118,7 +124,7 @@ function binary_op(
 ) {
     // perform scalar operation
     if (typeof b === 'number') {
-        const result = in_place ? a : tensor_like(a);
+        const result = in_place ? a : clone(a);
         core_fn_scl(a.get_view_ptr(), b, result.get_view_ptr());
         return result;
     }
@@ -128,7 +134,7 @@ function binary_op(
 
     // perform fast pairwise operation without broadcasting if possible
     if (a.shape.equals(b.shape)) {
-        const result = in_place ? a : tensor_like(a);
+        const result = in_place ? a : clone(a);
         core_fn_prw(a.get_view_ptr(), b.get_view_ptr(), result.get_view_ptr());
         return result;
     }
@@ -150,7 +156,7 @@ function binary_op(
 
 // applies a unary operation to a tensor
 function unary_op(core_fn: Function, a: Tensor, in_place: boolean) {
-    const result = in_place ? a : tensor_like(a);
+    const result = in_place ? a : clone(a);
     core_fn(a.get_view_ptr(), result.get_view_ptr());
     return result;
 }
