@@ -22,9 +22,9 @@ export default function tensor_to_string(a: Tensor, num_width = 10, space_before
 }
 
 function mat_to_string(mat: Tensor, num_width = 10, space_before = 0) {
-    if (mat.shape.get_ndim() !== 2) {
-        throw new Error(`Cannot print tensor of shape [${_mat.shape}] as matrix.`);
-    }
+
+    if (mat.shape.get_ndim() !== 2)
+        throw new Error(`Cannot print tensor of shape [${mat.shape}] as matrix.`);
 
     const rows = mat.shape.get_rows();
     const cols = mat.shape.get_cols();
@@ -39,15 +39,9 @@ function mat_to_string(mat: Tensor, num_width = 10, space_before = 0) {
     let only_ints = true;
     let maxlen = 1;
     for (let i = 0; i < _mat.data.length; i++) {
-        if (_mat.data[i] !== (_mat.data[i] | 0)) {
-            console.log(_mat.data[i])
-            only_ints = false;
-        }
-
+        if (_mat.data[i] !== (_mat.data[i] | 0)) only_ints = false;
         maxlen = Math.max(maxlen, String(_mat.data[i] | 0).length);
     }
-
-    // todo
 
     let s = '[';
 

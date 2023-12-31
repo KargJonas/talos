@@ -10,20 +10,15 @@ core_ready.then(() => {
     let t2 = tensor([3, 2],    [1, 2, 3, 4, 5, 6]);
     let t3 = tensor([2, 3],    [-100, 2, 3, 2, 4, 2]);
     let t4 = tensor([3],       [-1, 2, 3]);
+    let t5 = tensor([2, 2]).rand_int(1, 6);
+    let t6 = tensor([2, 2]).rand_int(1, 6);
 
     print(t1.sub(t4));
     print(t1.mul(t4));
-    console.log(t1.div(t4).toString())
     print(t1.div(t4));
     print(t1.matmul(t2));
     print(t2.dot(t1));
     print(t4.sigmoid());
-
-    let t5 = tensor([2, 2]).rand_int(1, 6);
-    let t6 = tensor([2, 2]).rand_int(1, 6);
-
-    print(t5)
-    print(t6)
     print(t5.matmul(t6, true));
     print(t5.dot(t6, true));
 });
