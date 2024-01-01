@@ -13,12 +13,13 @@ core_ready.then(() => {
     let t5 = tensor([2, 2]).rand_int(1, 6);
     let t6 = tensor([2, 2]).rand_int(1, 6);
 
+    print(t1.add(t4));
     print(t1.sub(t4));
     print(t1.mul(t4));
     print(t1.div(t4));
     print(t1.matmul(t2));
     print(t2.dot(t1));
-    print(t4.sigmoid());
+    print(t4.logistic());
     print(t5.matmul(t6, true));
     print(t5.dot(t6, true));
 });

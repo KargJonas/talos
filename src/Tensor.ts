@@ -85,7 +85,6 @@ export class Tensor {
     public relu       = (in_place = false) => ops.relu(this, in_place);
     public binstep    = (in_place = false) => ops.binstep(this, in_place);
     public logistic   = (in_place = false) => ops.logistic(this, in_place);
-    public sigmoid    = (in_place = false) => ops.sigmoid(this, in_place);
     public negate     = (in_place = false) => ops.negate(this, in_place);
     public identity   = (in_place = false) => ops.identity(this, in_place);
     public sin        = (in_place = false) => ops.sin(this, in_place);
@@ -101,7 +100,7 @@ export class Tensor {
     public log        = (in_place = false) => ops.log(this, in_place);
     public log10      = (in_place = false) => ops.log10(this, in_place);
     public log2       = (in_place = false) => ops.log2(this, in_place);
-    public invsqrt    = (in_place = false) => ops.invsqrt(this, in_place);
+    public invsqrt    = (in_place = false) => ops.invsqrt(this, in_place); // careful - negative input values will produce Infinity, not NaN
     public sqrt       = (in_place = false) => ops.sqrt(this, in_place);
     public ceil       = (in_place = false) => ops.ceil(this, in_place);
     public floor      = (in_place = false) => ops.floor(this, in_place);

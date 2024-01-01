@@ -25,7 +25,7 @@ EF = [ \
 	_ceil_tns, _floor_tns, _abs_tns, \
 	_identity_tns, \
 	\
-	_relu_tns, _binstep_tns, _logistic_tns, _sigmoid_tns \
+	_relu_tns, _binstep_tns, _logistic_tns \
 ]
 
 ##  WARNING  ##

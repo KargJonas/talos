@@ -3,6 +3,7 @@ import tensor, { Tensor, tensor_like } from "../src/Tensor";
 import { core_ready } from "../src/util";
 import Shape from "../src/Shape";
 import Strides from "../src/Strides";
+import * as ops from "../src/tensor_operations";
 
 describe("tensor creation", async () => {
     await core_ready;
@@ -157,33 +158,72 @@ describe("tensor operations", async () => {
     let t3 = tensor([3, 2],    [-100, 2, 3, 2, 4, 2]);
     let t4 = tensor([3, 2],    [7.5, 5.5, -2, 3.5, 0, 3]);
     let t5 = tensor([3],       [-1, 2, 3]);
+    let t6 = tensor([2, 3],    [-100, 2, 3, 2, 4, 2]);
 
+    function unary(unary_op: ops.UnaryOp, a: Tensor, expectation: (v: number) => number, in_place = false) {
+        let t = a.clone();
+        const input = [...t.data];
+
+        t = unary_op(t, in_place);
+        expect([...t.shape]).toEqual([...a.shape]);
+
+        [...t.data].map((v, i) => {
+            if (Number.isNaN(v)) expect(expectation(input[i])).toBeNaN();
+            else expect(v).toBeCloseTo(expectation(input[i]));
+        });
+
+        t.free();
+    }
+
+    function binary(
+        binary_op: ops.BinaryOp<Tensor> | ops.BinaryOp<Tensor | number>,
+        a: Tensor, b: Tensor,
+        expected_data: number[],
+        expected_shape: Shape | number[],
+        in_place = false
+    ) {
+        let t = a.clone();
+
+        t = binary_op(t, b, in_place);
+        expect([...t.shape]).toEqual([...expected_shape]);
+
+        [...t.data].map((v, i) => {
+            if (Number.isNaN(v)) expect(expected_data[i]).toBeNaN();
+            else expect(v).toBeCloseTo(expected_data[i]);
+        });
+
+        t.free();
+    }
+    
     describe("in-place", () => {
         test("unary ops", () => {
-            let t;
+            unary(ops.relu, t5, v => v < 0 ? 0 : v, true);
+            unary(ops.binstep, t5, v => v < 0 ? 0 : 1, true);
+            unary(ops.logistic, t5, v => 1 / (Math.exp(-v) + 1), true);
+            unary(ops.negate, t5, v => -v, true);
+            unary(ops.identity, t5, v => v, true);
 
-            t = t5.clone().relu();
-            expect([...t.data]).toEqual([0, 2, 3]);
-            t.free();
-
-            t = t5.clone().binstep();
-            expect([...t.data]).toEqual([0, 1, 1]);
-            t.free();
-
-            t = t5.clone().logistic();
-            expect([...t.data]).toEqual([0.2689414322376251, 0.8807970881462097, 0.9525741338729858]);
-            t.free();
-
-            // todo: add proper values in equals expectation
-            // todo: fix sigmoid. seems to be implemented incorrectly
-            t = t5.clone().sigmoid();
-            console.log(t.data)
-            expect([...t.data]).toEqual([0.2689414322376251, 0.8807970881462097, 0.9525741338729858]);
-            t.free();
-
-            t = t5.clone().negate();
-            expect([...t.data]).toEqual([1, -2, -3]);
-            t.free();
+            unary(ops.sin, t5, Math.sin, true);
+            unary(ops.cos, t5, Math.cos, true);
+            unary(ops.tan, t5, Math.tan, true);
+            unary(ops.asin, t5, Math.asin, true);
+            unary(ops.acos, t5, Math.acos, true);
+            unary(ops.atan, t5, Math.atan, true);
+            unary(ops.sinh, t5, Math.sinh, true);
+            unary(ops.cosh, t5, Math.cosh, true);
+            unary(ops.tanh, t5, Math.tanh, true);
+            
+            unary(ops.exp, t5, Math.exp, true);
+            unary(ops.log, t5, Math.log, true);
+            unary(ops.log10, t5, Math.log10, true);
+            unary(ops.log2, t5, Math.log2, true);
+            unary(ops.invsqrt, t1, v => 1 / Math.sqrt(v), true);
+            unary(ops.sqrt, t1, Math.sqrt, true);
+            unary(ops.ceil, t4, Math.ceil, true);
+            unary(ops.floor, t4, Math.floor, true);
+            unary(ops.floor, t4, Math.floor, true);
+            unary(ops.abs, t4, Math.abs, true);
+            unary(ops.reciprocal, t4, v => 1 / v, true);
         });
 
         test("scalar ops", () => {
@@ -231,9 +271,46 @@ describe("tensor operations", async () => {
             expected = expected.map((v, i) => v / t2.data[i]);
             t.data.forEach((v, i) => expect(v).toBeCloseTo(expected[i]));
         });
+
+        test("broadcasting ops", () => {
+            binary(ops.add, t1, t5, [0, 4, 6, 3, 7, 9, 6, 10, 12, 9, 13, 15], t1.shape, true);
+            binary(ops.sub, t1, t5, [2, 0, 0, 5, 3, 3, 8, 6, 6, 11, 9, 9], t1.shape);
+            binary(ops.mul, t1, t5, [-1, 4, 9, -4, 10, 18, -7, 16, 27, -10, 22, 36], t1.shape, true);
+            binary(ops.div, t1, t5, [-1, 1, 1, -4, 2.5, 2, -7, 4, 3, -10, 5.5, 4], t1.shape, true);
+        });
     });
 
     describe("out-of-place", () => {
+        test("unary ops", () => {
+            unary(ops.relu, t5, v => v < 0 ? 0 : v);
+            unary(ops.binstep, t5, v => v < 0 ? 0 : 1);
+            unary(ops.logistic, t5, v => 1 / (Math.exp(-v) + 1));
+            unary(ops.negate, t5, v => -v);
+            unary(ops.identity, t5, v => v);
+
+            unary(ops.sin, t5, Math.sin);
+            unary(ops.cos, t5, Math.cos);
+            unary(ops.tan, t5, Math.tan);
+            unary(ops.asin, t5, Math.asin);
+            unary(ops.acos, t5, Math.acos);
+            unary(ops.atan, t5, Math.atan);
+            unary(ops.sinh, t5, Math.sinh);
+            unary(ops.cosh, t5, Math.cosh);
+            unary(ops.tanh, t5, Math.tanh);
+            
+            unary(ops.exp, t5, Math.exp);
+            unary(ops.log, t5, Math.log);
+            unary(ops.log10, t5, Math.log10);
+            unary(ops.log2, t5, Math.log2);
+            unary(ops.invsqrt, t1, v => 1 / Math.sqrt(v));
+            unary(ops.sqrt, t1, Math.sqrt);
+            unary(ops.ceil, t4, Math.ceil);
+            unary(ops.floor, t4, Math.floor);
+            unary(ops.floor, t4, Math.floor);
+            unary(ops.abs, t4, Math.abs);
+            unary(ops.reciprocal, t4, v => 1 / v);
+        });
+
         test("scalar ops", () => {
             let t;
 
@@ -279,6 +356,37 @@ describe("tensor operations", async () => {
             expected = [...t2.data].map((v, i) => v / t4.data[i]);
             t.data.forEach((v, i) => expect(v).toBeCloseTo(expected[i]));
             t.free();
+        });
+
+        test("broadcasting ops", () => {
+            binary(ops.add, t1, t5, [0, 4, 6, 3, 7, 9, 6, 10, 12, 9, 13, 15], t1.shape);
+            binary(ops.sub, t1, t5, [2, 0, 0, 5, 3, 3, 8, 6, 6, 11, 9, 9], t1.shape);
+            binary(ops.mul, t1, t5, [-1, 4, 9, -4, 10, 18, -7, 16, 27, -10, 22, 36], t1.shape);
+            binary(ops.div, t1, t5, [-1, 1, 1, -4, 2.5, 2, -7, 4, 3, -10, 5.5, 4], t1.shape);
+        });
+
+        // let t1 = tensor([2, 2, 3],   [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+        // let t2 = tensor([3, 2],      [1, 2, 3, 4, 5, 6]);
+        // let t3 = tensor([3, 2],      [-100, 2, 3, 2, 4, 2]);
+        // let t4 = tensor([3, 2],      [7.5, 5.5, -2, 3.5, 0, 3]);
+        // let t5 = tensor([3],         [-1, 2, 3]);
+        // let t6 = tensor([2, 3],      [-100, 2, 3, 2, 4, 2]);
+        let t7 = tensor([2, 3, 4], [8, 4, 4, 2, 3, 1, 4, 9, 2, 0, 9, 0, 4, 5, 1, 3, 2, 3, 4, 5, 8, 1, 2, 3]);
+        let t8 = tensor([4, 3],    [0, 2, 3, 0, 3, 6, 5, 7, 3, 1, 2, 1]);
+        let t9 = tensor([2, 2, 4, 3], [0.999, 0.859, 0.836, 0.066, 0.872, 0.644, 0.925, 0.961, 0.507, 0.644, 0.823, 0.004, 0.452, 0.862, 0.566, 0.117, 0.748, 0.989, 0.958, 0.532, 0.068, 0.831, 0.394, 0.531, 0.958, 0.817, 0.721, 0.238, 0.643, 0.199, 0.533, 0.802, 0.542, 0.106, 0.491, 0.979, 0.969, 0.207, 0.154, 0.692, 0.763, 0.121, 0.345, 0.822, 0.757, 0.763, 0.859, 0.132]);
+        let t10 = tensor([3], [0.111, 0.794, 0.09]);
+
+        test("matmul", () => {
+            expect(() => ops.matmul(t1, t5, false)).toThrow();
+            expect(() => ops.matmul(t4, t5, false)).toThrow();
+
+            binary(ops.matmul, t1, t2,  [22, 28, 49, 64, 76, 100, 103, 136], [2, 2, 2]);
+            binary(ops.matmul, t4, t6,  [-739.0, 37.0, 33.5, 207.0, 10.0, 1.0, 6.0, 12.0, 6.0], [3, 3]);
+            binary(ops.matmul, t1, t2,  [22, 28, 49, 64, 76, 100, 103, 136], [2, 2, 2]);
+            binary(ops.matmul, t7, t8,  [22, 60, 62, 29, 55, 36, 45, 67, 33, 8, 36, 48, 25, 51, 41, 13, 39, 39], [2, 3, 3]);
+            binary(ops.matmul, t9, t10, [0.868, 0.758, 0.911, 0.725, 0.786, 0.696, 0.535, 0.453, 0.82, 0.555, 0.745, 0.49, 0.286, 0.694, 0.759, 0.779], [2, 3, 3]);
+
+            // potentially add tests with large unit-matrices (easy to validate without other libraries)
         });
     });
 });

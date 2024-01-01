@@ -64,8 +64,4 @@ void logistic_tns(struct tensor_t* a, struct tensor_t* res) {
     for (size_t i = 0; i < a->nelem; i++) res->data[i] = 1. / (exp(-a->data[i]) + 1.);
 }
 
-void sigmoid_tns(struct tensor_t* a, struct tensor_t* res) {
-    for (size_t i = 0; i < a->nelem; i++) res->data[i] = a->data[i] / (exp(-a->data[i]) + 1.);
-}
-
 #endif //CORE_UNARY

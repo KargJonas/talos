@@ -3,6 +3,9 @@ import { check_row_col_compat } from "./util";
 import tensor, { Tensor } from "./Tensor";
 import Shape from "./Shape";
 
+export type UnaryOp = (a: Tensor, in_place: boolean) => Tensor;
+export type BinaryOp<OtherType> = (a: Tensor, b: OtherType, in_place: boolean) => Tensor;
+
 // binary operations                       scalar,        pairwise,      broadcasting
 export const add        = create_binary_op(core._add_scl, core._add_prw, core._add_prw_brc);
 export const sub        = create_binary_op(core._sub_scl, core._sub_prw, core._sub_prw_brc);
@@ -14,7 +17,6 @@ export const relu       = create_unary_op(core._relu_tns);
 export const tanh       = create_unary_op(core._tanh_tns);
 export const binstep    = create_unary_op(core._binstep_tns);
 export const logistic   = create_unary_op(core._logistic_tns);
-export const sigmoid    = create_unary_op(core._sigmoid_tns);
 export const negate     = create_unary_op(core._negate_tns);
 export const identity   = create_unary_op(core._identity_tns);
 export const sin        = create_unary_op(core._sin_tns);
@@ -71,7 +73,7 @@ function check_in_place_compat(a: Tensor, result: Tensor, in_place: boolean) {
 }
 
 // standard matmul on tensors 
-export const matmul = (a: Tensor, b: Tensor, in_place = false): Tensor => {
+export const matmul: BinaryOp<Tensor> = (a: Tensor, b: Tensor, in_place = false): Tensor => {
     const result_shape = get_shape_matmul(a, b);
     const result = tensor(result_shape);
     check_in_place_compat(a, result, in_place);
@@ -116,12 +118,20 @@ export const dot = (a: Tensor, b: Tensor, in_place = false): Tensor => {
     return result;
 }
 
+function create_unary_op(core_fn: Function): UnaryOp {
+    return (a: Tensor, in_place = false) => {
+        const result: Tensor = in_place ? a : clone(a);
+        core_fn(a.get_view_ptr(), result.get_view_ptr());
+        return result;
+    };
+}
+
 // computes a tensor-tensor/tensor-scalar operation and returns a result tensor
 function binary_op(
     core_fn_scl: Function, core_fn_prw: Function, core_fn_brc: Function,
     a: Tensor, b: Tensor | number,
     in_place: boolean
-) {
+): Tensor {
     // perform scalar operation
     if (typeof b === 'number') {
         const result = in_place ? a : clone(a);
@@ -154,18 +164,7 @@ function binary_op(
     return result;
 }
 
-// applies a unary operation to a tensor
-function unary_op(core_fn: Function, a: Tensor, in_place: boolean) {
-    const result = in_place ? a : clone(a);
-    core_fn(a.get_view_ptr(), result.get_view_ptr());
-    return result;
-}
-
-function create_unary_op(core_fn: Function) {
-    return (a: Tensor, in_place = false) => unary_op(core_fn, a, in_place);
-}
-
-function create_binary_op(core_fn_scl: Function, core_fn_prw: Function, core_fn_brc: Function) {
+function create_binary_op(core_fn_scl: Function, core_fn_prw: Function, core_fn_brc: Function): BinaryOp<Tensor | number> {
     return (a: Tensor, b: Tensor | number, in_place = false) => binary_op(core_fn_scl, core_fn_prw, core_fn_brc, a, b, in_place);
 }
 
