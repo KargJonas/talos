@@ -1,15 +1,22 @@
 {
-  "name": "talos-2",
-  "type": "module",
-  "scripts": {
-    "dev": "bun --watch src/main.ts",
-    "test": "bun test",
-    "lint": "tsc"
-  },
+  "name": "talos",
+  "module": "index.ts",
   "devDependencies": {
-    "bun-types": "latest"
+    "@typescript-eslint/eslint-plugin": "^6.17.0",
+    "@typescript-eslint/parser": "^6.17.0",
+    "bun-types": "latest",
+    "eslint": "^8.56.0"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
-  }
+  },
+  "scripts": {
+    "dev": "bun --watch src/main.ts",
+    "test": "bun test",
+    "lint": "eslint . ; tsc",
+    "build-core": "make main",
+    "build-ts": "bun build ./index.ts --outdir ./dist",
+    "build": "bun build-core ; bun build-ts"
+  },
+  "type": "module"
 }

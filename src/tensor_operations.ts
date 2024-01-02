@@ -3,8 +3,13 @@ import { check_row_col_compat } from "./util";
 import tensor, { Tensor } from "./Tensor";
 import Shape from "./Shape";
 
+// types for high level operations
 export type UnaryOp = (a: Tensor, in_place: boolean) => Tensor;
 export type BinaryOp<OtherType> = (a: Tensor, b: OtherType, in_place?: boolean) => Tensor;
+
+// types of core functions
+type CoreUnaryOp = (a_ptr: number, res_ptr: number) => void;
+type CoreBinaryOp = (a_ptr: number, b_ptr_or_val: number, res_ptr: number) => void;
 
 // binary operations                       scalar,        pairwise,      broadcasting
 export const add        = create_binary_op(core._add_scl, core._add_prw, core._add_prw_brc);
@@ -45,7 +50,7 @@ export const clone = (a: Tensor) => {
     const new_tensor = tensor(a.shape);
     core._copy_tensor(a.get_view_ptr(), new_tensor.get_view_ptr());
     return new_tensor;
-}
+};
 
 function get_shape_matmul(a: Tensor, b: Tensor): Shape {
     if (!(a instanceof Tensor && b instanceof Tensor)) throw new Error("Tensor.matmul() expects a tensor.");
@@ -90,7 +95,7 @@ export const matmul: BinaryOp<Tensor> = (a: Tensor, b: Tensor, in_place = false)
 
     if (in_place) return in_place_cpy(result, a);
     return result;
-}
+};
 
 function get_shape_dot(a: Tensor, b: Tensor): Shape {
     if (!(a instanceof Tensor && b instanceof Tensor)) throw new Error("Tensor.dot() expects a tensor.");
@@ -116,9 +121,9 @@ export const dot = (a: Tensor, b: Tensor, in_place = false): Tensor => {
 
     if (in_place) return in_place_cpy(result, a);
     return result;
-}
+};
 
-function create_unary_op(core_fn: Function): UnaryOp {
+function create_unary_op(core_fn: CoreUnaryOp): UnaryOp {
     return (a: Tensor, in_place = false) => {
         const result: Tensor = in_place ? a : clone(a);
         core_fn(a.get_view_ptr(), result.get_view_ptr());
@@ -128,7 +133,7 @@ function create_unary_op(core_fn: Function): UnaryOp {
 
 // computes a tensor-tensor/tensor-scalar operation and returns a result tensor
 function binary_op(
-    core_fn_scl: Function, core_fn_prw: Function, core_fn_brc: Function,
+    core_fn_scl: CoreBinaryOp, core_fn_prw: CoreBinaryOp, core_fn_brc: CoreBinaryOp,
     a: Tensor, b: Tensor | number,
     in_place: boolean
 ): Tensor {
@@ -140,7 +145,7 @@ function binary_op(
     }
 
     if (!(b instanceof Tensor))
-        throw new Error(`Type mismatch: Binary operations expect tensors or numbers.`);
+        throw new Error("Type mismatch: Binary operations expect tensors or numbers.");
 
     // perform fast pairwise operation without broadcasting if possible
     if (a.shape.equals(b.shape)) {
@@ -164,7 +169,7 @@ function binary_op(
     return result;
 }
 
-function create_binary_op(core_fn_scl: Function, core_fn_prw: Function, core_fn_brc: Function): BinaryOp<Tensor | number> {
+function create_binary_op(core_fn_scl: CoreBinaryOp, core_fn_prw: CoreBinaryOp, core_fn_brc: CoreBinaryOp): BinaryOp<Tensor | number> {
     return (a: Tensor, b: Tensor | number, in_place = false) => binary_op(core_fn_scl, core_fn_prw, core_fn_brc, a, b, in_place);
 }
 

@@ -5,7 +5,7 @@ export const core_ready = new Promise<null>((resolve) => {
     core.onRuntimeInitialized = () => {
         core.memory = new Uint8Array(core.HEAPU8.buffer);
         resolve(null);
-    }
+    };
 });
 
 export function create_farr(nelem: number): Float32Array {
@@ -24,12 +24,12 @@ export function check_row_col_compat(a: Tensor, b: Tensor) {
 }
 
 export function ordinal_str(n: number): string {
-    const last_digit = n % 10,
-          last_two_digits = n % 100;
+    const last_digit = n % 10;
+    const last_two_digits = n % 100;
 
     const suffix = (last_digit == 1 && last_two_digits != 11 ? "st" :
-                    last_digit == 2 && last_two_digits != 12 ? "nd" :
-                    last_digit == 3 && last_two_digits != 13 ? "rd" : "th");
+        last_digit == 2 && last_two_digits != 12 ? "nd" :
+            last_digit == 3 && last_two_digits != 13 ? "rd" : "th");
 
     return `${n}${suffix}`;
 }

@@ -6,7 +6,7 @@ import tensor_to_string from "./to_string";
 import { create_farr } from "./util";
 import * as ops from "./tensor_operations";
 
-enum  STRUCT_LAYOUT { DATA, SHAPE, STRIDES, RANK, NELEM };
+enum  STRUCT_LAYOUT { DATA, SHAPE, STRIDES, RANK, NELEM }
 const STRUCT_SIZE = Object.entries(STRUCT_LAYOUT).length / 2;
 
 export class Tensor {
@@ -42,15 +42,9 @@ export class Tensor {
     public get_data_ptr     = () => this.data.byteOffset;
     public get_shape_ptr    = () => this.shape.byteOffset;
     public get_strides_ptr  = () => this.strides.byteOffset;
+    public get_axis_size    = (axis_index: number) => this.shape.get_axis_size(axis_index);
 
     public toString = () => tensor_to_string(this);
-
-    // returns an entry of this.shape[] or 1 if that entry is out of bounds
-    get_axis_size(axis_index: number): number {
-        let axis_size = this.shape[axis_index];
-        if (axis_size === undefined) return 1;
-        return axis_size;
-    }
 
     *get_axis_iterable(n: number) {
         const axis_stride = this.strides[n];
@@ -119,7 +113,7 @@ export class Tensor {
 }
 
 export default function tensor(shape: Shape | number[], data?: number[]) {
-    // @ts-ignore
+    // @ts-expect-error Obscure signature incompatibility between Int32Array.reduce() and Array.reduce()
     const nelem = shape.reduce((acc: number, val: number) => acc * val, 1);
 
     const _data = create_farr(nelem);

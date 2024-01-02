@@ -12,10 +12,10 @@ describe("tensor creation", async () => {
         // tensor matches the expectation
         function init_and_validate_tensor(shape: Shape | number[], strides: number[], data?: number[]) {
             // create tensor
-            let new_tensor = tensor(shape, data);
+            const new_tensor = tensor(shape, data);
 
-            // @ts-ignore
-            let expected_nelem = shape.reduce((acc: number, val: number) => acc * val, 1);
+            // @ts-expect-error Obscure signature incompatibility between Int32Array.reduce() and Array.reduce()
+            const expected_nelem = shape.reduce((acc: number, val: number) => acc * val, 1);
 
             // check view types
             expect(new_tensor).toBeInstanceOf(Tensor);
@@ -131,8 +131,8 @@ describe("tensor creation", async () => {
     });
 
     test("Tensor referencing/(meta-)data-dependence", () => {
-        let old_tensor = tensor([1, 2, 3, 4]).zeros();
-        let new_tensor = new Tensor(old_tensor.shape, old_tensor.strides, old_tensor.data);
+        const old_tensor = tensor([1, 2, 3, 4]).zeros();
+        const new_tensor = new Tensor(old_tensor.shape, old_tensor.strides, old_tensor.data);
 
         // make sure metadata is copied correctly and that tensors are independent of one another
         check_tensor_metadata_equality(new_tensor, old_tensor);

@@ -9,10 +9,8 @@ export default function tensor_to_string(a: Tensor, num_width = 10, space_before
     }
 
     // hidim tensors
-    let strings: string[] = [];
-    // const stride = this.get_axis_stride(0);
-    // const nelem = this.get_nelem();
-    // for (let i = 0; i < nelem; i += stride)
+    const strings: string[] = [];
+
     for (const element of a.get_axis_iterable(0)) {
         strings.push(tensor_to_string(element, num_width, space_before + 2)!);
     }

@@ -19,17 +19,12 @@ export default class Shape extends Int32Array {
     public get_rows = () => this.get_axis_size(this.get_ndim() - 2);
     public get_cols = () => this.get_axis_size(this.get_ndim() - 1);
     public get_mat_shape = () => new Shape([this.get_rows(), this.get_cols()]);
+    public get_axis_size = (axis_index: number) => this[axis_index] === undefined ? 1 : this[axis_index];
     public detach = () => new Shape(this);
 
     get_nelem(): number {
         if (this.length === 0) return 0;
         return this.reduce((acc, cur) => acc *= cur, 1);
-    }
-
-    get_axis_size(axis_index: number): number {
-        let axis_size = this[axis_index];
-        if (axis_size === undefined) return 1;
-        return axis_size;
     }
 
     // returns true if two shapes are identical
