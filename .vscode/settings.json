@@ -9,6 +9,9 @@
         "stddef.h": "c",
         "random": "c",
         "util.h": "c",
-        "tensor.h": "c"
+        "tensor.h": "c",
+        "*.tcc": "c",
+        "functional": "c",
+        "streambuf": "c"
     }
 }

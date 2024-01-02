@@ -125,6 +125,10 @@ export default function tensor(shape: Shape | number[], data?: number[]) {
     const _shape = new Shape(shape, true);
     const _strides = new Strides(get_column_major(_shape), true);
 
+    // todo: ensure that tensor() is only called by the user and not used in the backend
+    //       (filling the tensor with zeros is not always necessary)
+    core._fill(_data.byteOffset, _data.length, 0);
+
     if (data !== undefined) {
         if (data.length !== nelem) throw new Error(`Cannot cast array of size ${data.length} into tensor of shape [${shape}]`);
         _data.set(data);

@@ -66,6 +66,12 @@ size_t get_nrows(struct tensor_t* a) {
 }
 
 size_t get_nmat(struct tensor_t* a) {
-    if (a->rank < 3) return 1;
-    return a->shape[a->rank - 3];
+    size_t end = a->rank - 2;
+    size_t nmat = 1;
+    
+    for (size_t dim = 0; dim < end; dim++) {
+        nmat *= a->shape[dim];
+    }
+
+    return nmat;
 }
