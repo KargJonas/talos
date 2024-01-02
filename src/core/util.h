@@ -34,7 +34,6 @@ void free_tensor(struct tensor_t* tensor);
 float fast_inv_sqrt(float number);
 size_t get_ncols(struct tensor_t* a);
 size_t get_nrows(struct tensor_t* a);
-size_t get_nmat(struct tensor_t* a);
-
+size_t get_nsubtns(struct tensor_t *a, size_t n);
 
 #endif //CORE_UTIL

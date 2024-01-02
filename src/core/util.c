@@ -65,13 +65,17 @@ size_t get_nrows(struct tensor_t* a) {
     return a->shape[a->rank - 2];
 }
 
-size_t get_nmat(struct tensor_t* a) {
-    size_t end = a->rank - 2;
-    size_t nmat = 1;
-    
+// get number of subtensors at a certain level
+//   e.g.: n=1 will return the number of vectors in the tensor
+//         n=2 will return the number of matrices in the tensor
+size_t get_nsubtns(struct tensor_t *a, size_t n)
+{
+    size_t end = a->rank - n;
+    size_t nsubtns = 1;
+
     for (size_t dim = 0; dim < end; dim++) {
-        nmat *= a->shape[dim];
+        nsubtns *= a->shape[dim];
     }
 
-    return nmat;
+    return nsubtns;
 }

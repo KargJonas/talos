@@ -32,11 +32,11 @@ void mul_mat(
 void mul_tns(struct tensor_t* a, struct tensor_t* b, struct tensor_t* result) {
     size_t nrow_a = get_nrows(a);
     size_t ncol_a = get_ncols(a);
-    size_t nmat_a = get_nmat(a);
+    size_t nmat_a = get_nsubtns(a, 2);
 
     size_t nrow_b = get_nrows(b);
     size_t ncol_b = get_ncols(b);
-    size_t nmat_b = get_nmat(b);
+    size_t nmat_b = get_nsubtns(b, 2);
 
     size_t stride_res = nrow_a * ncol_b; // todo: think i could replace this by using result->strides
     size_t stride_a = nmat_a > 1 ? nrow_a * ncol_a : 0;
@@ -44,7 +44,7 @@ void mul_tns(struct tensor_t* a, struct tensor_t* b, struct tensor_t* result) {
     size_t nmat_max = MAX(nmat_a, nmat_b);
     register size_t ia = 0, ib = 0, ires = 0;
 
-    fill(result->data, result->rank, 0);
+    fill(result->data, result->nelem, 0);
 
     for (size_t i = 0; i < nmat_max; i++) {
         mul_mat(
@@ -60,14 +60,16 @@ void mul_tns(struct tensor_t* a, struct tensor_t* b, struct tensor_t* result) {
 
 void dot_tns(struct tensor_t* a, struct tensor_t* b, struct tensor_t* result) {
     size_t ncol_a = get_ncols(a);
-    size_t nvec_a = get_nrows(a);
+    size_t nvec_a = get_nsubtns(a, 1);
 
     size_t nrow_b = get_nrows(b);
     size_t ncol_b = get_ncols(b);
-    size_t nmat_b = get_nmat(b);
+    size_t nmat_b = get_nsubtns(b, 2);
 
     size_t stride_b = nrow_b * ncol_b; // number of elements in one matrix of b
     size_t iv, im, ia = 0, ib = 0, ires = 0;
+
+    fill(result->data, result->nelem, 0);
 
     for (iv = 0; iv < nvec_a; iv++) {
         for (im = 0; im < nmat_b; im++) {

@@ -4,7 +4,7 @@ import tensor, { Tensor } from "./Tensor";
 import Shape from "./Shape";
 
 export type UnaryOp = (a: Tensor, in_place: boolean) => Tensor;
-export type BinaryOp<OtherType> = (a: Tensor, b: OtherType, in_place: boolean) => Tensor;
+export type BinaryOp<OtherType> = (a: Tensor, b: OtherType, in_place?: boolean) => Tensor;
 
 // binary operations                       scalar,        pairwise,      broadcasting
 export const add        = create_binary_op(core._add_scl, core._add_prw, core._add_prw_brc);

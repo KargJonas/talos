@@ -127,7 +127,9 @@ export default function tensor(shape: Shape | number[], data?: number[]) {
 
     // todo: ensure that tensor() is only called by the user and not used in the backend
     //       (filling the tensor with zeros is not always necessary)
-    core._fill(_data.byteOffset, _data.length, 0);
+    // core._fill(_data.byteOffset, _data.length, 0);
+    //
+    //   user likely expects tensor to be 0-initialized
 
     if (data !== undefined) {
         if (data.length !== nelem) throw new Error(`Cannot cast array of size ${data.length} into tensor of shape [${shape}]`);
