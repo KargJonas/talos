@@ -1,5 +1,4 @@
 import Shape from "./Shape";
-import Strides from "./Strides";
 
 export function get_column_major(shape: Shape): Int32Array {
     let stride = 1;
