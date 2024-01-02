@@ -125,7 +125,7 @@ export default class Shape extends Int32Array {
     }
 
     /**
-     * Returns the index of an element of a tensor as well as that element's shape.
+     * Returns the index of an element of a tensor as well as that element"s shape.
      * @param loc Location vector of the desired element/slice
      * @returns A 2-Tuple containing the index and shape
      */

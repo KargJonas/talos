@@ -1,5 +1,5 @@
-import { Tensor } from './Tensor';
-import core from './core/build';
+import { Tensor } from "./Tensor";
+import core from "./core/build";
 
 export const core_ready = new Promise<null>((resolve) => {
     core.onRuntimeInitialized = () => {

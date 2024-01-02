@@ -3,7 +3,8 @@
   "type": "module",
   "scripts": {
     "dev": "bun --watch src/main.ts",
-    "test": "bun test"
+    "test": "bun test",
+    "lint": "tsc"
   },
   "devDependencies": {
     "bun-types": "latest"

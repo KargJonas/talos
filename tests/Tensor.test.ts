@@ -13,6 +13,8 @@ describe("tensor creation", async () => {
         function init_and_validate_tensor(shape: Shape | number[], strides: number[], data?: number[]) {
             // create tensor
             let new_tensor = tensor(shape, data);
+
+            // @ts-ignore
             let expected_nelem = shape.reduce((acc: number, val: number) => acc * val, 1);
 
             // check view types

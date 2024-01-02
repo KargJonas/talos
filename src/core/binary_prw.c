@@ -19,7 +19,7 @@
         for (dim = res->rank; dim-- > 0;) { \
             /* original condition was (res->rank - a->rank > dim) but we cannot safely do */ \
             /* subtractions here because size_t would underflow so i reformulated the inequality */ \
-            /*               [pad with zeros to the left]     [when shape[dim] is 1 we can't step to the next element, so set stride to 0]*/ \
+            /*               [pad with zeros to the left]     [when shape[dim] is 1 we can"t step to the next element, so set stride to 0]*/ \
             strides_a[dim] = (res->rank > dim + a->rank ? 0 : (a->shape[dim] == 1 ? 0 : a->strides[dim - (res->rank - a->rank)])); \
             strides_b[dim] = (res->rank > dim + b->rank ? 0 : (b->shape[dim] == 1 ? 0 : b->strides[dim - (res->rank - b->rank)])); \
         } \

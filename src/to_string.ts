@@ -3,8 +3,8 @@ import { Tensor } from "./Tensor";
 // usability methods
 export default function tensor_to_string(a: Tensor, num_width = 10, space_before = 0) {
     switch (a.get_rank()) {
-        case 0: return '[]';
-        case 1: return `[ ${a.data.join(', ')} ]`;
+        case 0: return "[]";
+        case 1: return `[ ${a.data.join(", ")} ]`;
         case 2: return mat_to_string(a, num_width, space_before);
     }
 
@@ -17,7 +17,7 @@ export default function tensor_to_string(a: Tensor, num_width = 10, space_before
         strings.push(tensor_to_string(element, num_width, space_before + 2)!);
     }
 
-    return `[ ${strings.join(',\n\n' + ' '.repeat(space_before + 2))} ]`;
+    return `[ ${strings.join(",\n\n" + " ".repeat(space_before + 2))} ]`;
 }
 
 function mat_to_string(mat: Tensor, num_width = 10, space_before = 0) {
@@ -41,11 +41,11 @@ function mat_to_string(mat: Tensor, num_width = 10, space_before = 0) {
         maxlen = Math.max(maxlen, String(_mat.data[i] | 0).length);
     }
 
-    let s = '[';
+    let s = "[";
 
     for (let r = 0; r < rows; r++) {
-        if (r !== 0) s += ' '.repeat(space_before + 1);
-        let row_string = '';
+        if (r !== 0) s += " ".repeat(space_before + 1);
+        let row_string = "";
 
         for (let c = 0; c < cols; c++) {
             const [index] = _mat.shape.get_index(r, c);
@@ -57,14 +57,14 @@ function mat_to_string(mat: Tensor, num_width = 10, space_before = 0) {
             if (value > 0) p = ` ${p}`;
 
             // commas, newlines, padding
-            if (c !== cols - 1) p += ',';
+            if (c !== cols - 1) p += ",";
             if (c !== cols - 1) p = p.padEnd(num_width);
             row_string += p;
         }
 
         s += `[${row_string}]`;
-        if (r !== rows - 1) s += '\n';
+        if (r !== rows - 1) s += "\n";
     }
 
-    return s + ']';
+    return s + "]";
 }

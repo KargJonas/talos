@@ -1,5 +1,5 @@
-import Shape from './Shape';
-import core from './core/build';
+import Shape from "./Shape";
+import core from "./core/build";
 
 // todo could extract functionality to a superclass that can then be
 // extended by Shape, Stride and Tensor (view)

@@ -1,10 +1,10 @@
-import Shape from './Shape';
-import Strides from './Strides';
-import core from './core/build';
-import { get_column_major } from './stride_operations';
-import tensor_to_string from './to_string';
-import { create_farr } from './util';
-import * as ops from './tensor_operations';
+import Shape from "./Shape";
+import Strides from "./Strides";
+import core from "./core/build";
+import { get_column_major } from "./stride_operations";
+import tensor_to_string from "./to_string";
+import { create_farr } from "./util";
+import * as ops from "./tensor_operations";
 
 enum  STRUCT_LAYOUT { DATA, SHAPE, STRIDES, RANK, NELEM };
 const STRUCT_SIZE = Object.entries(STRUCT_LAYOUT).length / 2;
@@ -119,6 +119,7 @@ export class Tensor {
 }
 
 export default function tensor(shape: Shape | number[], data?: number[]) {
+    // @ts-ignore
     const nelem = shape.reduce((acc: number, val: number) => acc * val, 1);
 
     const _data = create_farr(nelem);

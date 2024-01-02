@@ -48,7 +48,7 @@ export const clone = (a: Tensor) => {
 }
 
 function get_shape_matmul(a: Tensor, b: Tensor): Shape {
-    if (!(a instanceof Tensor && b instanceof Tensor)) throw new Error('Tensor.matmul() expects a tensor.');
+    if (!(a instanceof Tensor && b instanceof Tensor)) throw new Error("Tensor.matmul() expects a tensor.");
     check_row_col_compat(a, b);
 
     // flatten tensors to a "list of matrices" and get the size of that list
@@ -93,7 +93,7 @@ export const matmul: BinaryOp<Tensor> = (a: Tensor, b: Tensor, in_place = false)
 }
 
 function get_shape_dot(a: Tensor, b: Tensor): Shape {
-    if (!(a instanceof Tensor && b instanceof Tensor)) throw new Error('Tensor.dot() expects a tensor.');
+    if (!(a instanceof Tensor && b instanceof Tensor)) throw new Error("Tensor.dot() expects a tensor.");
     check_row_col_compat(a, b);
 
     const result_shape = new Shape([
@@ -133,7 +133,7 @@ function binary_op(
     in_place: boolean
 ): Tensor {
     // perform scalar operation
-    if (typeof b === 'number') {
+    if (typeof b === "number") {
         const result = in_place ? a : clone(a);
         core_fn_scl(a.get_view_ptr(), b, result.get_view_ptr());
         return result;
