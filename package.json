@@ -11,12 +11,13 @@
     "typescript": "^5.0.0"
   },
   "scripts": {
-    "dev": "bun --watch src/main.ts",
+    "dev": "bun --watch examples/main.ts",
     "test": "bun test",
     "lint": "eslint . ; tsc",
     "build-core": "make main",
     "build-ts": "bun build ./index.ts --outdir ./dist",
     "build": "bun build-core ; bun build-ts"
   },
-  "type": "module"
+  "type": "module",
+  "license": "UNLICENSED"
 }

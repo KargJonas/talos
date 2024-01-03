@@ -8,6 +8,10 @@ export const core_ready = new Promise<null>((resolve) => {
     };
 });
 
+export const print = (t: Tensor) => console.log(t?.toString() + "\n---");
+
+export const set_rand_seed = (n: number) => core._rand_seed(n);
+
 export function create_farr(nelem: number): Float32Array {
     const ptr = core._alloc_farr(nelem);
     return new Float32Array(core.memory.buffer, ptr, nelem);

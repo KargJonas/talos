@@ -112,7 +112,7 @@ export class Tensor {
     public matmul     = (other: Tensor, in_place = false) => ops.matmul(this, other, in_place);
 }
 
-export default function tensor(shape: Shape | number[], data?: number[]) {
+export default function tensor(shape: Shape | number[], data?: number[]): Tensor {
     // @ts-expect-error Obscure signature incompatibility between Int32Array.reduce() and Array.reduce()
     const nelem = shape.reduce((acc: number, val: number) => acc * val, 1);
 
