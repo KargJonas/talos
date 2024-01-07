@@ -1,7 +1,7 @@
 import Shape from "./Shape";
 import Strides from "./Strides";
 import core from "./core/build";
-import { get_column_major } from "./stride_operations";
+import { get_row_major } from "./stride_operations";
 import tensor_to_string from "./to_string";
 import { create_farr } from "./util";
 import * as ops from "./tensor_operations";
@@ -50,7 +50,7 @@ export class Tensor {
         const axis_stride = this.strides[n];
         const n_elem = this.get_nelem();
         const shape = new Shape(this.shape.get_axis_shape(n + 1), true);
-        const strides = new Strides(get_column_major(shape), true);
+        const strides = new Strides(get_row_major(shape), true);
 
         for (let index = 0; index < n_elem; index += axis_stride) {
             yield new Tensor(shape, strides, this.data.subarray(index, index + axis_stride));
@@ -118,13 +118,7 @@ export default function tensor(shape: Shape | number[], data?: number[]): Tensor
 
     const _data = create_farr(nelem);
     const _shape = new Shape(shape, true);
-    const _strides = new Strides(get_column_major(_shape), true);
-
-    // todo: ensure that tensor() is only called by the user and not used in the backend
-    //       (filling the tensor with zeros is not always necessary)
-    // core._fill(_data.byteOffset, _data.length, 0);
-    //
-    //   user likely expects tensor to be 0-initialized
+    const _strides = new Strides(get_row_major(_shape), true);
 
     if (data !== undefined) {
         if (data.length !== nelem) throw new Error(`Cannot cast array of size ${data.length} into tensor of shape [${shape}]`);
@@ -136,4 +130,10 @@ export default function tensor(shape: Shape | number[], data?: number[]): Tensor
 
 export function tensor_like(other: Tensor) {
     return tensor(other.shape);
+}
+
+export function derive_tensor(a: Tensor, shape: number[], strides: number[]) {
+    const _shape = new Shape(shape, true);
+    const _strides = new Strides(strides, true);
+    return new Tensor(_shape, _strides, a.data);
 }

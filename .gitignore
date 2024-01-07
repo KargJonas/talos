@@ -2,6 +2,7 @@
 
 # Emscripten build output
 /src/core/build
+dist
 
 # Logs
 
@@ -119,7 +120,6 @@ out
 # Nuxt.js build / generate output
 
 .nuxt
-dist
 
 # Gatsby files
 

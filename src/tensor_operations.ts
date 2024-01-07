@@ -1,7 +1,8 @@
 import core from "./core/build";
 import { check_row_col_compat } from "./util";
-import tensor, { Tensor } from "./Tensor";
+import tensor, { Tensor, derive_tensor } from "./Tensor";
 import Shape from "./Shape";
+import { get_row_major } from "./stride_operations";
 
 // types for high level operations
 export type UnaryOp = (a: Tensor, in_place: boolean) => Tensor;
@@ -178,4 +179,40 @@ function in_place_cpy(source: Tensor, dest: Tensor) {
     core._copy_farr(source.get_data_ptr(), dest.get_data_ptr(), source.get_nelem());
     source.free();
     return dest;
+}
+
+function validate_permutation(permutation: number[]): void {
+    const _permutation = [...permutation].sort();
+    for (let i = 0; i < permutation.length; i++) {
+        if (_permutation[i] !== 1)
+            throw new Error(`The provided permutation [${permutation}] is not valid.`);
+    }
+}
+
+function get_matrix_transpose_permutation(ndim: number): number[] {
+    const permutation: number[] = [];
+    for (let i = 0; i < ndim - 2; i++) permutation.push(i);
+    permutation.push(ndim - 1);
+    permutation.push(ndim - 2);
+    return permutation;
+}
+
+export function transpose(a: Tensor, ...permutation: number[]): Tensor {
+    let _permutation: number[];
+
+    // todo: handle rank=1: shape should be 1-extended to the right
+
+    if (permutation.length === 0) {
+        _permutation = get_matrix_transpose_permutation(a.get_rank());
+    }
+    else {
+        _permutation = [...permutation];
+        validate_permutation(permutation);
+    }
+
+    const new_shape = _permutation.map(i => a.shape[i]);
+    let new_strides = get_row_major(new_shape);
+    new_strides = _permutation.map(i => new_strides[i]);
+
+    return derive_tensor(a, new_shape, new_strides);
 }

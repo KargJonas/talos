@@ -40,7 +40,7 @@ Basic unary and binary operators, broadcasting, in-place and out-of-place operat
         - Multiplication
         - Division
     - Matrix multiplication
-    - Dot product (mimics behaviour of NumPy)
+    - Dot product (mimics behavior of NumPy)
 - Unary operations:
     - relu
     - binstep

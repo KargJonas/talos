@@ -1,5 +1,6 @@
 import { core_ready, print } from "../src/util";
 import tensor from "../src/Tensor";
+import { transpose } from "../src/tensor_operations";
 
 core_ready.then(() => {
     console.log("###########\n".repeat(2));
@@ -10,13 +11,18 @@ core_ready.then(() => {
     const t5 = tensor([2, 2]).rand_int(1, 6);
     const t6 = tensor([2, 2]).rand_int(1, 6);
 
-    print(t1.add(t4));
-    print(t1.sub(t4));
-    print(t1.mul(t4));
-    print(t1.div(t4));
-    print(t1.matmul(t2));
-    print(t2.dot(t1));
-    print(t4.logistic());
-    print(t5.matmul(t6, true));
-    print(t5.dot(t6, true));
+    // print(t1.add(t4));
+    // print(t1.sub(t4));
+    // print(t1.mul(t4));
+    // print(t1.div(t4));
+    // print(t1.matmul(t2));
+    // print(t2.dot(t1));
+    // print(t4.logistic());
+    // print(t5.matmul(t6, true));
+    // print(t5.dot(t6, true));
+
+    const t = transpose(t2);
+
+    print(t2);
+    print(t);
 });
