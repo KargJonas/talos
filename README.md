@@ -42,32 +42,7 @@ Basic unary and binary operators, broadcasting, in-place and out-of-place operat
     - Matrix multiplication
     - Dot product (mimics behavior of NumPy)
 - Unary operations:
-    - relu
-    - binstep
-    - logistic
-    - negate
-    - identity
-    - sin
-    - cos
-    - tan
-    - asin
-    - acos
-    - atan
-    - sinh
-    - cosh
-    - tanh
-    - exp
-    - log
-    - log10
-    - log2
-    - invsqrt
-    - sqrt
-    - ceil
-    - floor
-    - abs
-    - reciprocal
-    - free
-    - clone
+  - relu, binstep, logistic, negate, identity, sin, cos, tan, asin, acos, atan, sinh, cosh, tanh, exp, log, log10, log2, invsqrt, sqrt, ceil, floor, abs, reciprocal, free, clone
 - Initialization
     - rand
     - rand_int
@@ -79,7 +54,7 @@ Basic unary and binary operators, broadcasting, in-place and out-of-place operat
 
 ### How to build
 #### Prerequisites
-To build this project, you will need to install `emcc` (emscripten), `make` and a js runtime environment like `bun` or `nodejs`.
+To build and run this project, you will need to install `emcc` (emscripten), `make` and a js runtime environment like `bun` or `nodejs`.
 
 ```bash
 # should work identically with node

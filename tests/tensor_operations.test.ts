@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import tensor, { Tensor } from "../src/Tensor";
-import { core_ready } from "../src/util";
+import { core_ready, set_rand_seed } from "../src/util";
 import Shape from "../src/Shape";
 import * as ops from "../src/tensor_operations";
 
@@ -246,6 +246,57 @@ describe("tensor operations", async () => {
             binary(ops.dot, t7, t8, [2, 3, 3], [22, 60, 62, 29, 55, 36, 45, 67, 33, 8, 36, 48, 25, 51, 41, 13, 39, 39]);
             binary(ops.dot, t9, t10, [2, 2, 4, 1], [0.548, 0.409, 0.752, 0.404, 0.984, 0.663, 0.417, 0.239, 0.419, 0.878, 0.814, 0.756, 0.996, 0.168, 0.232, 0.604]);
             binary(ops.dot, t11, t13, [3, 4, 2, 2, 2], [0.929, 1.13, 0.464, 0.934, 0.791, 1.08, 1.132, 0.973, 1.596, 1.011, 0.718, 0.8, 0.536, 1.644, 1.868, 1.111, 1.964, 2.061, 0.869, 1.747, 1.315, 2.312, 2.301, 1.549, 0.957, 1.038, 0.389, 0.902, 0.76, 1.027, 0.968, 0.904, 1.266, 1.949, 0.67, 1.625, 1.047, 1.66, 1.836, 1.446, 0.975, 1.3, 0.489, 1.081, 0.754, 1.112, 1.262, 1.183, 0.479, 0.492, 0.231, 0.404, 0.355, 0.543, 0.563, 0.431, 1.493, 1.421, 0.821, 1.093, 0.875, 1.815, 2.069, 1.189, 1.558, 0.939, 0.612, 0.798, 0.69, 1.686, 1.598, 0.735, 1.118, 1.379, 0.652, 1.079, 0.693, 1.313, 1.676, 1.336, 2.17, 2.219, 1.018, 1.836, 1.266, 2.463, 2.688, 1.931, 1.521, 2.049, 0.765, 1.71, 1.167, 1.955, 2.075, 1.469]);
+        });
+    });
+
+    // checks if all values in the tensor data array are within the specified range
+    function values_in_range(a: Tensor, min: number, max: number) {
+        [...a.data].map((value) => {
+            expect(value).toBeGreaterThanOrEqual(min);
+            expect(value).toBeLessThanOrEqual(max);
+        });
+    }
+
+    // warning - these tests contain nondeterminism and may thus yield
+    // different results at different pints in time
+    describe("tensor initialization", () => {
+        test("Tensor.rand()", () => {
+            // check that the tensor is initialized with *some data*
+            const old_tensor = tensor([100]).rand();
+            const new_tensor = old_tensor.clone().rand();
+            expect(old_tensor.data).not.toEqual(new_tensor.data);
+
+            // check that the initialized values are correct
+            values_in_range(new_tensor, -1, 1);
+            values_in_range(new_tensor.rand(-5.6, 19.3), -5.6, 19.3);
+            values_in_range(new_tensor.rand(100.1, 150.7), 100.1, 150.7);
+        });
+
+        test("Tensor.rand_int()", () => {
+            // check that the tensor is initialized with *some data*
+            const old_tensor = tensor([100]).rand_int();
+            const new_tensor = old_tensor.clone().rand_int();
+            expect(old_tensor.data).not.toEqual(new_tensor.data);
+
+            // check that the initialized values are correct
+            values_in_range(new_tensor, -1, 1);
+            values_in_range(new_tensor.rand_int(-5, 19), -5, 19);
+            values_in_range(new_tensor.rand_int(100, 150), 100, 150);
+        });
+
+        test("core.set_rand_seed()", () => {
+            // check that two tensors initialized randomly with the same seed are equal
+            set_rand_seed(31415);
+            const old_tensor = tensor([2]).rand();
+            
+            set_rand_seed(31415);
+            const old_tensor_2 = tensor([2]).rand();
+            expect([...old_tensor.data]).toEqual([...old_tensor_2.data]);
+
+            // check that different seeds produce different values
+            set_rand_seed(59307);
+            const new_tensor = tensor([2]).rand();
+            expect([...old_tensor.data]).not.toEqual([...new_tensor.data]);
         });
     });
 });
