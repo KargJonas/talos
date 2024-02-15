@@ -8,7 +8,7 @@ export type UnaryOp = (a: Tensor, in_place: boolean) => Tensor;
 export type BinaryOp<OtherType> = (a: Tensor, b: OtherType, in_place?: boolean) => Tensor;
 
 // types of core functions
-type CoreUnaryOp = (a_ptr: number, res_ptr: number) => void;
+type CoreUnaryOp =  (a_ptr: number, res_ptr: number) => void;
 type CoreBinaryOp = (a_ptr: number, b_ptr_or_val: number, res_ptr: number) => void;
 
 // binary operations                       scalar,        pairwise,      broadcasting

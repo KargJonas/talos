@@ -1,7 +1,7 @@
 import core from "./core/build";
 
 // todo could extract functionality to a superclass that can then be
-// extended by Shape, Stride and Tensor (view)
+// extended by Shape, Stride and Tensor (e.g. class WASMView)
 export default class Strides extends Int32Array {
     constructor(strides: Int32Array | number[], attached = true) {
         if (attached) {
@@ -10,7 +10,7 @@ export default class Strides extends Int32Array {
             super(core.memory.buffer, ptr, strides.length);
             this.set(strides);
         } else {
-            // create a detatched shape (not bound to a tensor)
+            // create a detached shape (not bound to a tensor)
             super(strides.length);
             this.set(strides);
         }
