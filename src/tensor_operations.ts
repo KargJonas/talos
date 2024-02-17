@@ -184,18 +184,47 @@ function in_place_cpy(source: Tensor, dest: Tensor) {
 function validate_permutation(permutation: number[]): void {
     const _permutation = [...permutation].sort();
     for (let i = 0; i < permutation.length; i++) {
-        if (_permutation[i] !== 1)
+        if (_permutation[i] !== i)
             throw new Error(`The provided permutation [${permutation}] is not valid.`);
     }
 }
 
-function get_matrix_transpose_permutation(ndim: number): number[] {
+/**
+ * This function generates a permutation that swaps the
+ * last (rightmost) two axes of a rank-n tensor.
+ * @param rank Rank of tensor
+ * @returns a permutation that swaps the last two axes.
+ */
+function get_matrix_transpose_permutation(rank: number): number[] {
     const permutation: number[] = [];
-    for (let i = 0; i < ndim - 2; i++) permutation.push(i);
-    permutation.push(ndim - 1);
-    permutation.push(ndim - 2);
+    for (let i = 0; i < rank - 2; i++) permutation.push(i);
+    permutation.push(rank - 1);
+    permutation.push(rank - 2);
     return permutation;
 }
+
+// export function transpose(a: Tensor, ...permutation: number[]): Tensor {
+//     let _permutation: number[];
+
+//     // todo: handle rank=1: shape should be 1-extended to the right
+
+//     if (permutation.length === 0) {
+//         _permutation = get_matrix_transpose_permutation(a.get_rank());
+//     }
+//     else {
+//         _permutation = [...permutation];
+//         validate_permutation(permutation);
+//     }
+
+//     const new_shape = _permutation.map(i => a.shape[i]);
+
+//     // todo: validate
+//     // let new_strides = get_row_major(new_shape);
+//     let new_strides = get_row_major(a.shape);
+//     new_strides = _permutation.map(i => new_strides[i]);
+
+//     return derive_tensor(a, new_shape, new_strides);
+// }
 
 export function transpose(a: Tensor, ...permutation: number[]): Tensor {
     let _permutation: number[];
@@ -210,9 +239,14 @@ export function transpose(a: Tensor, ...permutation: number[]): Tensor {
         validate_permutation(permutation);
     }
 
-    const new_shape = _permutation.map(i => a.shape[i]);
-    let new_strides = get_row_major(new_shape);
-    new_strides = _permutation.map(i => new_strides[i]);
+    const new_shape   = _permutation.map(i => a.shape[i]);
+    const new_strides = _permutation.map(i => a.strides[i]);
+    // const new_strides: number[] = [];
+
+    // for (let i = 0; i < _permutation.length; i++) {
+    //     const index = _permutation.indexOf(i);
+    //     new_strides.push(a.strides[index]);
+    // }
 
     return derive_tensor(a, new_shape, new_strides);
 }

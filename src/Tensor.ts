@@ -46,14 +46,49 @@ export class Tensor {
 
     public toString = () => tensor_to_string(this);
 
+    public print_info = (title: string = "---") => console.log(
+        `${title}\n` +
+        `  shape:   [${this.shape}]\n` +
+        `  strides: [${this.strides}]\n`
+    );
+
+    /**
+     * TODO:
+     * 
+     * major mistake:
+     *   we cannot assume that all components of a subtensor lie in memory contiguously
+     *   because we can permute the axes arbitrarily.
+     *   therefore, when creating a subtensor we simply cannot use data.subarray().
+     *   when creating a subtensor, we always have to reference the entire data array of the
+     *   supertensor (and potentially add a starting-offset)
+     */
+
     *get_axis_iterable(n: number) {
         const axis_stride = this.strides[n];
+
+        // number of elements in the supertensor
         const n_elem = this.get_nelem();
         const shape = new Shape(this.shape.get_axis_shape(n + 1), true);
-        const strides = new Strides(get_row_major(shape), true);
 
-        for (let index = 0; index < n_elem; index += axis_stride) {
-            yield new Tensor(shape, strides, this.data.subarray(index, index + axis_stride));
+        // todo: add get_axis_strides() and extract superclass from Shape and Strides
+        const strides = new Strides([...this.strides].slice(n - this.get_rank() + 1), true);
+
+        // number of elements in each one of the subtensors
+        const sub_nelem = shape.get_nelem(); // could be replaced by this.strides[n+1]
+
+        // for (let index = 0; index < n_elem; index += sub_nelem) {
+        //     // yield new Tensor(shape, strides, this.data.subarray(index, index + axis_stride));
+        //     yield new Tensor(shape, strides, this.data.subarray(index, index + sub_nelem));
+        
+        //     // todo: wise old man above was right. cant do it with subarray
+        // }
+
+        for (let index = 0; index < this.shape[n]; index++) {
+            const offset = index * this.strides[n];
+        
+            // yield new Tensor(shape, strides, this.data.subarray(index, offset));
+            yield new Tensor(shape, strides, this.data, );
+
         }
     }
 
@@ -132,7 +167,7 @@ export function tensor_like(other: Tensor) {
     return tensor(other.shape);
 }
 
-export function derive_tensor(a: Tensor, shape: number[], strides: number[]) {
+export function derive_tensor(a: Tensor, shape: number[], strides: number[], offset = 0) {
     const _shape = new Shape(shape, true);
     const _strides = new Strides(strides, true);
     return new Tensor(_shape, _strides, a.data);
