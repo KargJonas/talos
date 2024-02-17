@@ -2,7 +2,6 @@ import core from "./core/build";
 import { check_row_col_compat } from "./util";
 import tensor, { Tensor, derive_tensor } from "./Tensor";
 import Shape from "./Shape";
-import { get_row_major } from "./stride_operations";
 
 // types for high level operations
 export type UnaryOp = (a: Tensor, in_place: boolean) => Tensor;

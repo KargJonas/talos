@@ -11,6 +11,7 @@ struct tensor_t {
     size_t* strides;
     size_t rank;
     size_t nelem;
+    size_t offset;
 };
 
 struct tensor_t* create_tensor();

@@ -19,15 +19,18 @@ export default function tensor_to_string(a: Tensor, num_width = 10, space_before
 }
 
 function mat_to_string(_mat: Tensor, num_width = 10, space_before = 0) {
-    // console.log(_mat.data);
-
     if (_mat.shape.get_ndim() !== 2)
         throw new Error(`Cannot print tensor of shape [${_mat.shape}] as matrix.`);
 
     // capping the length of the numbers to the numbers of decimal places
     const decimal_places = num_width - 5;
     const exp = Math.pow(10, decimal_places);
+
+    // todo: this seems to apply the operations to the shape instead of the data !???
+    //   seems like an issue with the clone() operation
     const mat = _mat.clone().mul(exp, true).floor(true).div(exp, true);
+
+    _mat.clone().mul(5, true).print_info();
 
     const lines: string[] = [];
     const cols = mat.get_cols();

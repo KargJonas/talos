@@ -11,6 +11,7 @@ void copy_tensor_metadata(struct tensor_t* source, struct tensor_t* dest) {
     copy_starr(source->strides, dest->strides, source->rank);
     dest->rank = source->rank;
     dest->nelem = source->nelem;
+    dest->offset = source->offset;
 }
 
 void copy_tensor(struct tensor_t* source, struct tensor_t* dest) {
@@ -19,4 +20,5 @@ void copy_tensor(struct tensor_t* source, struct tensor_t* dest) {
     copy_starr(source->strides, dest->strides, source->rank);
     dest->rank = source->rank;
     dest->nelem = source->nelem;
+    dest->offset = source->offset;
 }

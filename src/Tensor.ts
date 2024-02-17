@@ -6,7 +6,7 @@ import tensor_to_string from "./to_string";
 import { create_farr } from "./util";
 import * as ops from "./tensor_operations";
 
-enum  STRUCT_LAYOUT { DATA, SHAPE, STRIDES, RANK, NELEM }
+enum  STRUCT_LAYOUT { DATA, SHAPE, STRIDES, RANK, NELEM, OFFSET }
 const STRUCT_SIZE = Object.entries(STRUCT_LAYOUT).length / 2;
 
 export class Tensor {
@@ -15,7 +15,7 @@ export class Tensor {
     shape: Shape;
     strides: Strides;
 
-    constructor(shape: Shape, strides: Strides, data: Float32Array) {
+    constructor(shape: Shape, strides: Strides, data: Float32Array, offset: number = 0) {
         const ptr = core._create_tensor();
         this.view = new Int32Array(core.memory.buffer, ptr, STRUCT_SIZE);
 
@@ -29,13 +29,16 @@ export class Tensor {
 
         this.set_rank(shape.length);
         this.set_nelem(data.length);
+        this.set_offset(offset);
     }
 
-    public set_rank     = (rank: number) => this.view[STRUCT_LAYOUT.RANK] = rank;
-    public set_nelem    = (nelem: number) => this.view[STRUCT_LAYOUT.NELEM] = nelem;
+    public set_rank     = (rank: number)   => this.view[STRUCT_LAYOUT.RANK] = rank;
+    public set_nelem    = (nelem: number)  => this.view[STRUCT_LAYOUT.NELEM] = nelem;
+    public set_offset   = (offset: number) => this.view[STRUCT_LAYOUT.OFFSET] = offset;
 
     public get_rank         = () => this.view[STRUCT_LAYOUT.RANK];
     public get_nelem        = () => this.view[STRUCT_LAYOUT.NELEM];
+    public get_offset       = () => this.view[STRUCT_LAYOUT.OFFSET];
     public get_rows         = () => this.get_axis_size(this.get_rank() - 2);
     public get_cols         = () => this.get_axis_size(this.get_rank() - 1);
     public get_view_ptr     = () => this.view.byteOffset;
@@ -64,31 +67,17 @@ export class Tensor {
      */
 
     *get_axis_iterable(n: number) {
-        const axis_stride = this.strides[n];
-
-        // number of elements in the supertensor
-        const n_elem = this.get_nelem();
-        const shape = new Shape(this.shape.get_axis_shape(n + 1), true);
-
+        // const axis_stride = this.strides[n];
+        // const n_elem = this.get_nelem(); // number of elements in the supertensor
         // todo: add get_axis_strides() and extract superclass from Shape and Strides
+        const shape = new Shape(this.shape.get_axis_shape(n + 1), true);
         const strides = new Strides([...this.strides].slice(n - this.get_rank() + 1), true);
-
-        // number of elements in each one of the subtensors
-        const sub_nelem = shape.get_nelem(); // could be replaced by this.strides[n+1]
-
-        // for (let index = 0; index < n_elem; index += sub_nelem) {
-        //     // yield new Tensor(shape, strides, this.data.subarray(index, index + axis_stride));
-        //     yield new Tensor(shape, strides, this.data.subarray(index, index + sub_nelem));
-        
-        //     // todo: wise old man above was right. cant do it with subarray
-        // }
 
         for (let index = 0; index < this.shape[n]; index++) {
             const offset = index * this.strides[n];
         
             // yield new Tensor(shape, strides, this.data.subarray(index, offset));
-            yield new Tensor(shape, strides, this.data, );
-
+            yield new Tensor(shape, strides, this.data, offset);
         }
     }
 
@@ -170,5 +159,5 @@ export function tensor_like(other: Tensor) {
 export function derive_tensor(a: Tensor, shape: number[], strides: number[], offset = 0) {
     const _shape = new Shape(shape, true);
     const _strides = new Strides(strides, true);
-    return new Tensor(_shape, _strides, a.data);
+    return new Tensor(_shape, _strides, a.data, offset);
 }
