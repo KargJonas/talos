@@ -18,20 +18,14 @@ export default function tensor_to_string(a: Tensor, num_width = 10, space_before
     return `[ ${strings.join(",\n\n" + " ".repeat(space_before + 2))} ]`;
 }
 
-function mat_to_string(_mat: Tensor, num_width = 10, space_before = 0) {
-    if (_mat.shape.get_ndim() !== 2)
+function mat_to_string(mat: Tensor, num_width: number, space_before: number) {
+    if (mat.shape.get_ndim() !== 2)
         throw new Error(`Cannot print tensor of shape [${_mat.shape}] as matrix.`);
 
     // capping the length of the numbers to the numbers of decimal places
     const decimal_places = num_width - 5;
-    const exp = Math.pow(10, decimal_places);
-
-    // todo:
-    //   this is where the dog is buried.
-    //   we cannot simply copy the data like it is contiguous in memory
-    //   i think we have to step through each element in the tensor
-    //   and copy it to a new one with appropriate size
-    const mat = _mat.clone().mul(exp, true).floor(true).div(exp, true);
+    // const exp = Math.pow(10, decimal_places);
+    // const mat = _mat.clone().mul(exp, true).floor(true).div(exp, true);
 
     const lines: string[] = [];
     const cols = mat.get_cols();
@@ -41,19 +35,24 @@ function mat_to_string(_mat: Tensor, num_width = 10, space_before = 0) {
     const offset = mat.get_offset();
 
     for (let r = 0; r < rows; r++) {
-        const vals: number[] = [];
+        const vals: string[] = [];
 
         for (let c = 0; c < cols; c++) {
             const index = offset + r * row_stride + c * col_stride;
-            // console.log(`${index} [${r}, ${c}] : ${mat.data[index]}`);
-            vals.push(mat.data[index]);
+            const val = mat.data[index].toFixed(5);
+            vals.push(val);
         }
 
         const padding_left = r !== 0 ? " ".repeat(space_before) : "";
-        lines.push(`${padding_left}[ ${vals.join(", ")} ]`);
+        lines.push(`${padding_left}[ ${vals.join(",\t")} ]`);
     }
 
     return lines.join("\n");
+}
+
+function limit_decimals(n: number, n_decimals: number) {
+    const exp = Math.pow(10, n_decimals);
+    return Math.floor(n * exp) / exp;
 }
 
 // function mat_to_string(mat: Tensor, num_width = 10, space_before = 0) {

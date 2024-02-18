@@ -212,29 +212,6 @@ function get_matrix_transpose_permutation(rank: number): number[] {
     return permutation;
 }
 
-// export function transpose(a: Tensor, ...permutation: number[]): Tensor {
-//     let _permutation: number[];
-
-//     // todo: handle rank=1: shape should be 1-extended to the right
-
-//     if (permutation.length === 0) {
-//         _permutation = get_matrix_transpose_permutation(a.get_rank());
-//     }
-//     else {
-//         _permutation = [...permutation];
-//         validate_permutation(permutation);
-//     }
-
-//     const new_shape = _permutation.map(i => a.shape[i]);
-
-//     // todo: validate
-//     // let new_strides = get_row_major(new_shape);
-//     let new_strides = get_row_major(a.shape);
-//     new_strides = _permutation.map(i => new_strides[i]);
-
-//     return derive_tensor(a, new_shape, new_strides);
-// }
-
 export function transpose(a: Tensor, ...permutation: number[]): Tensor {
     let _permutation: number[];
 
@@ -250,12 +227,6 @@ export function transpose(a: Tensor, ...permutation: number[]): Tensor {
 
     const new_shape   = _permutation.map(i => a.shape[i]);
     const new_strides = _permutation.map(i => a.strides[i]);
-    // const new_strides: number[] = [];
-
-    // for (let i = 0; i < _permutation.length; i++) {
-    //     const index = _permutation.indexOf(i);
-    //     new_strides.push(a.strides[index]);
-    // }
 
     return derive_tensor(a, new_shape, new_strides);
 }
