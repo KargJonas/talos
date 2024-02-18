@@ -28,7 +28,7 @@ export class Tensor {
         this.view[STRUCT_LAYOUT.STRIDES] = this.strides.byteOffset;
 
         this.set_rank(shape.length);
-        this.set_nelem(data.length);
+        this.set_nelem(shape.get_nelem()); // previously used data.length but this causes issues with subtensors
         this.set_offset(offset);
     }
 

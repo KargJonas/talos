@@ -1,7 +1,7 @@
 import { Tensor } from "./Tensor";
 
 // usability methods
-export default function tensor_to_string(a: Tensor, num_width = 10, space_before = 0) {
+export default function tensor_to_string(a: Tensor, num_width = 10, space_before = 0) {   
     switch (a.get_rank()) {
         case 0: return "[]";
         case 1: return `[ ${a.data.join(", ")} ]`;
@@ -26,23 +26,26 @@ function mat_to_string(_mat: Tensor, num_width = 10, space_before = 0) {
     const decimal_places = num_width - 5;
     const exp = Math.pow(10, decimal_places);
 
-    // todo: this seems to apply the operations to the shape instead of the data !???
-    //   seems like an issue with the clone() operation
+    // todo:
+    //   this is where the dog is buried.
+    //   we cannot simply copy the data like it is contiguous in memory
+    //   i think we have to step through each element in the tensor
+    //   and copy it to a new one with appropriate size
     const mat = _mat.clone().mul(exp, true).floor(true).div(exp, true);
-
-    _mat.clone().mul(5, true).print_info();
 
     const lines: string[] = [];
     const cols = mat.get_cols();
     const rows = mat.get_rows();
     const col_stride = mat.strides[1];
     const row_stride = mat.strides[0];
+    const offset = mat.get_offset();
 
     for (let r = 0; r < rows; r++) {
         const vals: number[] = [];
 
         for (let c = 0; c < cols; c++) {
-            const index = r * row_stride + c * col_stride;
+            const index = offset + r * row_stride + c * col_stride;
+            // console.log(`${index} [${r}, ${c}] : ${mat.data[index]}`);
             vals.push(mat.data[index]);
         }
 
