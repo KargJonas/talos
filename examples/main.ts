@@ -25,12 +25,18 @@ core_ready.then(() => {
     // print(t5.dot(t6, true));
 
     const t1 = tensor([2, 2, 3], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
-    // const t2 = tensor([3, 2],    [1, 2, 3, 4, 5, 6]);
 
+    // const t2 = tensor([3, 2],    [1, 2, 3, 4, 5, 6]);
     // console.log(transpose(t2).strides);
 
-    print(t1);
-    print(transpose(t1, 1, 0, 2));
+    // print(t1);
+    // print(transpose(t1, 1, 0, 2));
+
+    const x = transpose(t1);
+
+    for (const y of x.get_axis_iterable(0)) {
+        print(y.clone());
+    }
 
     // print(t2);
     // print(transpose(t2));

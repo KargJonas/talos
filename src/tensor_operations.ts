@@ -46,6 +46,16 @@ export const reciprocal = create_unary_op(core._reciprocal_tns);
 // be aware of tensor data dependencies when deallocating tensors !!
 export const free  = (a: Tensor) => core._free_tensor(a.get_view_ptr());
 
+/**
+ * Creates a deep copy of a tensor.
+ * This means all data and metadata is copied to a new tensor without 
+ * referencing the original.
+ * If the original tensor is a view of another tensor,
+ * we will only copy the elements in the tensor that actually
+ * occur in the view. This prevents allocating more memory than needed
+ * @param a Original tensor to copy
+ * @returns A copy of the original tensor.
+ */
 export const clone = (a: Tensor) => {
     const new_tensor = tensor(a.shape);
     core._copy_tensor(a.get_view_ptr(), new_tensor.get_view_ptr());

@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include "util.h"
 
 struct tensor_t {
@@ -12,6 +13,7 @@ struct tensor_t {
     size_t rank;
     size_t nelem;
     size_t offset;
+    bool isview;
 };
 
 struct tensor_t* create_tensor();

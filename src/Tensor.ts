@@ -6,7 +6,7 @@ import tensor_to_string from "./to_string";
 import { create_farr } from "./util";
 import * as ops from "./tensor_operations";
 
-enum  STRUCT_LAYOUT { DATA, SHAPE, STRIDES, RANK, NELEM, OFFSET }
+enum  STRUCT_LAYOUT { DATA, SHAPE, STRIDES, RANK, NELEM, OFFSET, ISVIEW }
 const STRUCT_SIZE = Object.entries(STRUCT_LAYOUT).length / 2;
 
 export class Tensor {
@@ -15,7 +15,13 @@ export class Tensor {
     shape: Shape;
     strides: Strides;
 
-    constructor(shape: Shape, strides: Strides, data: Float32Array, offset: number = 0) {
+    constructor(
+        shape: Shape, strides: Strides, data: Float32Array,
+        offset: number = 0, isview: boolean = false
+    ) {
+        // todo remove after complete implementation. this is just a safeguard
+        if (offset !== 0 && !isview) throw new Error("This cant be right.");
+
         const ptr = core._create_tensor();
         this.view = new Int32Array(core.memory.buffer, ptr, STRUCT_SIZE);
 
@@ -30,15 +36,18 @@ export class Tensor {
         this.set_rank(shape.length);
         this.set_nelem(shape.get_nelem()); // previously used data.length but this causes issues with subtensors
         this.set_offset(offset);
+        this.set_isview(isview ? 1 : 0);
     }
 
-    public set_rank     = (rank: number)   => this.view[STRUCT_LAYOUT.RANK] = rank;
-    public set_nelem    = (nelem: number)  => this.view[STRUCT_LAYOUT.NELEM] = nelem;
+    public set_rank     = (rank:   number) => this.view[STRUCT_LAYOUT.RANK]   = rank;
+    public set_nelem    = (nelem:  number) => this.view[STRUCT_LAYOUT.NELEM]  = nelem;
     public set_offset   = (offset: number) => this.view[STRUCT_LAYOUT.OFFSET] = offset;
+    public set_isview   = (isview: number) => this.view[STRUCT_LAYOUT.ISVIEW] = isview;
 
     public get_rank         = () => this.view[STRUCT_LAYOUT.RANK];
     public get_nelem        = () => this.view[STRUCT_LAYOUT.NELEM];
     public get_offset       = () => this.view[STRUCT_LAYOUT.OFFSET];
+    public get_isview       = () => this.view[STRUCT_LAYOUT.ISVIEW];
     public get_rows         = () => this.get_axis_size(this.get_rank() - 2);
     public get_cols         = () => this.get_axis_size(this.get_rank() - 1);
     public get_view_ptr     = () => this.view.byteOffset;
@@ -75,9 +84,9 @@ export class Tensor {
 
         for (let index = 0; index < this.shape[n]; index++) {
             const offset = index * this.strides[n];
-        
+
             // yield new Tensor(shape, strides, this.data.subarray(index, offset));
-            yield new Tensor(shape, strides, this.data, offset);
+            yield new Tensor(shape, strides, this.data, offset, true);
         }
     }
 

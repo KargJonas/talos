@@ -68,7 +68,7 @@ size_t get_nrows(struct tensor_t* a) {
 // get number of subtensors at a certain level
 //   e.g.: n=1 will return the number of vectors in the tensor
 //         n=2 will return the number of matrices in the tensor
-size_t get_nsubtns(struct tensor_t *a, size_t n)
+size_t get_nsubtns(struct tensor_t* a, size_t n)
 {
     size_t end = a->rank - n;
     size_t nsubtns = 1;
@@ -78,4 +78,28 @@ size_t get_nsubtns(struct tensor_t *a, size_t n)
     }
 
     return nsubtns;
+}
+
+void set_row_major(struct tensor_t* a) {
+    size_t stride = 1;
+
+    for (size_t i = 0; i < a->rank; i++) {
+        a->strides[i] = 1;
+    }
+
+    // todo: clean up - dirty code
+    switch(a->rank) {
+        case 0:
+        case 1:
+            return;
+
+        case 2:
+            a->strides[1] = 1;
+            a->strides[0] = a->shape[1];
+            return;
+    }
+
+    for (size_t i = a->rank - 2; i >= 0; i--) {
+        a->strides[i] = stride *= a->shape[i + 1];
+    }
 }
