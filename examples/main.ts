@@ -1,18 +1,14 @@
 import { core_ready, print } from "../src/util";
 import tensor from "../src/Tensor";
-import { transpose } from "../src/tensor_operations";
 
 core_ready.then(() => {
     console.log("###########\n".repeat(2));
 
-    // const t2 = tensor([2, 2, 3], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
-    // const t2 = tensor([3, 2],    [1, 2, 3, 4, 5, 6]);
+    const t1 = tensor([2, 2, 3], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+    const t2 = tensor([3, 2],    [1, 2, 3, 4, 5, 6]);
     const t4 = tensor([3],       [-1, 2, 3]);
     const t5 = tensor([2, 2]).rand_int(1, 6);
     const t6 = tensor([2, 2]).rand_int(1, 6);
-
-    // print(t4);
-    // print(t2);
 
     // print(t1.add(t4));
     // print(t1.sub(t4));
@@ -24,16 +20,26 @@ core_ready.then(() => {
     // print(t5.matmul(t6, true));
     // print(t5.dot(t6, true));
 
-    const t1 = tensor([2, 2, 3], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
-    const t2 = tensor([3, 2],    [1, 2, 3, 4, 5, 6]);
+    print(t2.transpose().matmul(t2));
+    print(t2.matmul(t2.transpose()));
 
-    // print(t1);
-    // print(transpose(t1, 1, 0, 2));
-    // print(transpose(t1, 0, 2, 1));
+    // todo:
+    //   reintroduce Tensor.get(...location). as a nice way to get tensor views.
 
-    t2.mul(Math.PI, true);
+    // todo:
+    //   currently, i matrix multiplication and many other operations would not work on tensor
+    //   views. we need to update the backend code to accommodate the introduced changes.
+    //   maybe i can take this opportunity to do some benchmarks on function call overhead in
+    //   the deeply nested loops and see if i cant create a function for accessing indices
+    //   of tensors through strides. (refactoring)
 
-    print(t2);
-    print(transpose(t2));
-    print(transpose(transpose(t2)));
+    // todo:
+    //   reconsider the way in_place operations are currently performed!
+    //   (transpose got me thinking... you can never perform a transpose operation in-place)
+    //   it should always return a view
+    //   on the other hand, there are operations that should never return views like all operations
+    //   where data is modified
+
+    // todo:
+    //   work through all todos
 });

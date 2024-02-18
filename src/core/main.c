@@ -1,6 +1,7 @@
 #include "./util.c"
 #include "./init.c"
 #include "./unary.c"
+#include "./reduce.c"
 #include "./binary_scl.c"
 #include "./binary_prw.c"
 #include "./binary_prw.c"

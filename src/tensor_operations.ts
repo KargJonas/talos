@@ -212,12 +212,12 @@ function get_matrix_transpose_permutation(rank: number): number[] {
     return permutation;
 }
 
-export function transpose(a: Tensor, ...permutation: number[]): Tensor {
+export function transpose(a: Tensor, permutation?: number[]): Tensor {
     let _permutation: number[];
 
     // todo: handle rank=1: shape should be 1-extended to the right
 
-    if (permutation.length === 0) {
+    if (!permutation || permutation.length === 0) {
         _permutation = get_matrix_transpose_permutation(a.get_rank());
     }
     else {
@@ -230,3 +230,8 @@ export function transpose(a: Tensor, ...permutation: number[]): Tensor {
 
     return derive_tensor(a, new_shape, new_strides);
 }
+
+// todo: add pairwise functionality (tensor-valued functions)
+export const max = (a: Tensor) => core._max_red(a.get_view_ptr());
+export const min = (a: Tensor) => core._min_red(a.get_view_ptr());
+export const sum = (a: Tensor) => core._sum_red(a.get_view_ptr());

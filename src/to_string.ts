@@ -1,7 +1,7 @@
 import { Tensor } from "./Tensor";
 
 // usability methods
-export default function tensor_to_string(a: Tensor, num_width = 10, space_before = 0) {   
+export default function tensor_to_string(a: Tensor, num_width = 5, space_before = 0) {   
     switch (a.get_rank()) {
         case 0: return "[]";
         case 1: return `[ ${a.data.join(", ")} ]`;
@@ -18,14 +18,12 @@ export default function tensor_to_string(a: Tensor, num_width = 10, space_before
     return `[ ${strings.join(",\n\n" + " ".repeat(space_before + 2))} ]`;
 }
 
-function mat_to_string(mat: Tensor, num_width: number, space_before: number) {
+function mat_to_string(mat: Tensor, n_decimals: number, space_before: number) {
     if (mat.shape.get_ndim() !== 2)
         throw new Error(`Cannot print tensor of shape [${_mat.shape}] as matrix.`);
 
-    // capping the length of the numbers to the numbers of decimal places
-    const decimal_places = num_width - 5;
-    // const exp = Math.pow(10, decimal_places);
-    // const mat = _mat.clone().mul(exp, true).floor(true).div(exp, true);
+    // largest amount of digits in the integer part of the number
+    const n_integer = Math.floor(mat.max()).toString().length;
 
     const lines: string[] = [];
     const cols = mat.get_cols();
@@ -39,68 +37,21 @@ function mat_to_string(mat: Tensor, num_width: number, space_before: number) {
 
         for (let c = 0; c < cols; c++) {
             const index = offset + r * row_stride + c * col_stride;
-            const val = mat.data[index].toFixed(5);
-            vals.push(val);
+            const val = mat.data[index];
+            const val_floor = Math.floor(val);
+
+            // if value is integer, omit trailing zeros, otherwise use fixed nr of digits
+            const str = val === val_floor ? val.toString() : val.toFixed(n_decimals);
+
+            // compute amount of left padding
+            const padding_amount = Math.max(n_integer - val_floor.toString().length, 0);
+
+            vals.push(" ".repeat(padding_amount) + str);
         }
 
         const padding_left = r !== 0 ? " ".repeat(space_before) : "";
-        lines.push(`${padding_left}[ ${vals.join(",\t")} ]`);
+        lines.push(`${padding_left}[ ${vals.join(", ")} ]`);
     }
 
     return lines.join("\n");
 }
-
-function limit_decimals(n: number, n_decimals: number) {
-    const exp = Math.pow(10, n_decimals);
-    return Math.floor(n * exp) / exp;
-}
-
-// function mat_to_string(mat: Tensor, num_width = 10, space_before = 0) {
-
-//     if (mat.shape.get_ndim() !== 2)
-//         throw new Error(`Cannot print tensor of shape [${mat.shape}] as matrix.`);
-
-//     const rows = mat.shape.get_rows();
-//     const cols = mat.shape.get_cols();
-
-//     const decimal_places = num_width - 5;
-//     const exp = Math.pow(10, decimal_places);
-
-//     // cap number of decimal places 
-//     const _mat = mat.clone().mul(exp, true).floor(true).div(exp, true);
-
-//     let only_ints = true;
-//     let maxlen = 1;
-//     for (let i = 0; i < _mat.data.length; i++) {
-//         if (_mat.data[i] !== (_mat.data[i] | 0)) only_ints = false;
-//         maxlen = Math.max(maxlen, String(_mat.data[i] | 0).length);
-//     }
-
-//     let s = "[";
-
-//     for (let r = 0; r < rows; r++) {
-//         if (r !== 0) s += " ".repeat(space_before + 1);
-//         let row_string = "";
-
-//         for (let c = 0; c < cols; c++) {
-//             const [index] = _mat.shape.get_index(r, c);
-//             const value = _mat.data[index];
-
-//             // -5 because of: space, comma, sign, dot, and at least one digit
-//             // let p = String(only_ints ? value : value.toFixed(num_width - 5));
-//             let p = String(value);
-//             if (value > 0) p = ` ${p}`;
-
-//             // commas, newlines, padding
-//             if (c !== cols - 1) p += ",";
-//             else p += " ";
-//             if (c !== cols - 1) p = p.padEnd(num_width);
-//             row_string += p;
-//         }
-
-//         s += `[${row_string}]`;
-//         if (r !== rows - 1) s += "\n";
-//     }
-
-//     return s + "]";
-// }

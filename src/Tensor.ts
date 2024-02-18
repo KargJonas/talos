@@ -105,8 +105,14 @@ export class Tensor {
         return this;
     }
 
+    // init/free operations
     public zeros = () => this.fill(0);
-    public ones = () => this.fill(1);
+    public ones  = () => this.fill(1);
+    public free  = () => ops.free(this);
+    public clone = () => ops.clone(this);
+
+    // metadata operations
+    public transpose  = (permutation?: number[]) => ops.transpose(this, permutation);
 
     // unary operations
     public relu       = (in_place = false) => ops.relu(this, in_place);
@@ -133,8 +139,6 @@ export class Tensor {
     public floor      = (in_place = false) => ops.floor(this, in_place);
     public abs        = (in_place = false) => ops.abs(this, in_place);
     public reciprocal = (in_place = false) => ops.reciprocal(this, in_place);
-    public free       = ()                 => ops.free(this);
-    public clone      = ()                 => ops.clone(this);
 
     // binary operations
     public add        = (other: Tensor | number, in_place = false) => ops.add(this, other, in_place);
@@ -143,6 +147,11 @@ export class Tensor {
     public div        = (other: Tensor | number, in_place = false) => ops.div(this, other, in_place);
     public dot        = (other: Tensor, in_place = false) => ops.dot(this, other, in_place);
     public matmul     = (other: Tensor, in_place = false) => ops.matmul(this, other, in_place);
+
+    // reduce operations
+    public min = (): number => ops.min(this);
+    public max = (): number => ops.max(this);
+    public sum = (): number => ops.sum(this);
 }
 
 export default function tensor(shape: Shape | number[], data?: number[]): Tensor {

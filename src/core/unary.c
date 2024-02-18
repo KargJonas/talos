@@ -9,10 +9,6 @@
 #include "./util.h"
 #include "./tensor.h"
 
-// #define UNARY_OP(NAME, OP) \
-//     void NAME(float* a, float* res, size_t size) { \
-//         for (size_t i = 0; i < size; i++) res[i] = OP(a[i]); }
-//
 #define UNARY_OP(NAME, OP) \
     void NAME(struct tensor_t* a, struct tensor_t* res) { \
         for (size_t i = 0; i < a->nelem; i++) res->data[i] = OP(a->data[i]); }
