@@ -25,7 +25,6 @@ EF = [ \
 	_log_tns, _log10_tns, _log2_tns, \
 	_invsqrt_tns, _sqrt_tns, \
 	_ceil_tns, _floor_tns, _abs_tns, \
-	_identity_tns, \
 	\
 	_relu_tns, _binstep_tns, _logistic_tns \
 ]

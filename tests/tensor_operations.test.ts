@@ -73,7 +73,6 @@ describe("tensor operations", async () => {
             unary(ops.binstep, t5, v => v < 0 ? 0 : 1, true);
             unary(ops.logistic, t5, v => 1 / (Math.exp(-v) + 1), true);
             unary(ops.negate, t5, v => -v, true);
-            unary(ops.identity, t5, v => v, true);
 
             unary(ops.sin, t5, Math.sin, true);
             unary(ops.cos, t5, Math.cos, true);
@@ -176,7 +175,6 @@ describe("tensor operations", async () => {
             unary(ops.binstep, t5, v => v < 0 ? 0 : 1);
             unary(ops.logistic, t5, v => 1 / (Math.exp(-v) + 1));
             unary(ops.negate, t5, v => -v);
-            unary(ops.identity, t5, v => v);
 
             unary(ops.sin, t5, Math.sin);
             unary(ops.cos, t5, Math.cos);

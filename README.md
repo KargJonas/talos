@@ -42,7 +42,7 @@ Basic unary and binary operators, broadcasting, in-place and out-of-place operat
     - Matrix multiplication
     - Dot product (mimics behavior of NumPy)
 - Unary operations:
-  - relu, binstep, logistic, negate, identity, sin, cos, tan, asin, acos, atan, sinh, cosh, tanh, exp, log, log10, log2, invsqrt, sqrt, ceil, floor, abs, reciprocal, free, clone
+  - relu, binstep, logistic, negate, sin, cos, tan, asin, acos, atan, sinh, cosh, tanh, exp, log, log10, log2, invsqrt, sqrt, ceil, floor, abs, reciprocal, free, clone
 - Initialization
     - rand
     - rand_int

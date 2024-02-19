@@ -113,7 +113,6 @@ export class Tensor {
     public binstep    = (in_place = false) => ops.binstep(this, in_place);
     public logistic   = (in_place = false) => ops.logistic(this, in_place);
     public negate     = (in_place = false) => ops.negate(this, in_place);
-    public identity   = (in_place = false) => ops.identity(this, in_place);
     public sin        = (in_place = false) => ops.sin(this, in_place);
     public cos        = (in_place = false) => ops.cos(this, in_place);
     public tan        = (in_place = false) => ops.tan(this, in_place);
@@ -147,7 +146,7 @@ export class Tensor {
     public max = (): number => ops.max(this);
     public sum = (): number => ops.sum(this);
 
-    // operations shorthands
+    // operation shorthands
     public get T() {
         return this.transpose();
     }

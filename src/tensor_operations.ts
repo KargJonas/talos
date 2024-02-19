@@ -23,7 +23,6 @@ export const tanh       = create_unary_op(core._tanh_tns);
 export const binstep    = create_unary_op(core._binstep_tns);
 export const logistic   = create_unary_op(core._logistic_tns);
 export const negate     = create_unary_op(core._negate_tns);
-export const identity   = create_unary_op(core._identity_tns);
 export const sin        = create_unary_op(core._sin_tns);
 export const cos        = create_unary_op(core._cos_tns);
 export const tan        = create_unary_op(core._tan_tns);

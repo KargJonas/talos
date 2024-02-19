@@ -87,19 +87,28 @@ void set_row_major(struct tensor_t* a) {
         a->strides[i] = 1;
     }
 
-    // todo: clean up - dirty code
-    switch(a->rank) {
-        case 0:
-        case 1:
-            return;
-
-        case 2:
-            a->strides[1] = 1;
-            a->strides[0] = a->shape[1];
-            return;
+    if (a->rank < 2) return;
+    if (a->rank == 2) {
+        a->strides[1] = 1;
+        a->strides[0] = a->shape[1];
+        return;
     }
 
     for (size_t i = a->rank - 2; i >= 0; i--) {
         a->strides[i] = stride *= a->shape[i + 1];
     }
+}
+
+size_t get_index(struct tensor_t* a, size_t linear_index) {
+    size_t ia = a->offset;
+    size_t remainder = linear_index;
+    size_t iaxis;
+
+    for (size_t dim = a->rank; dim-- > 0;) {
+        iaxis = remainder % a->shape[dim];
+        ia += iaxis * a->strides[dim];
+        remainder /= a->shape[dim];
+    }
+
+    return ia;
 }

@@ -11,8 +11,16 @@ const t4 = tensor([3],       [-1, 2, 3]);
 const t5 = tensor([2, 2]).rand_int(1, 6);
 const t6 = tensor([2, 2]).rand_int(1, 6);
 
+// t2.T.matmul(t2).print();
+
+// t2.print();
+// t2.T.div(.9).print();
+
+for (const e of t1.get_axis_iterable(0)) {
+    e.T.add(t2, true);
+}
+
 t1.print();
-t1.T.print();
 
 // print(t1.add(t4));
 // print(t1.sub(t4));
@@ -29,6 +37,12 @@ t1.T.print();
 
 // todo:
 //   reintroduce Tensor.get(...location). as a nice way to get tensor views.
+
+// todo:
+//   fix persisting trailing zeros of Tensor.print()
+
+// todo:
+//   add missing pow operation
 
 // todo:
 //   currently, matrix multiplication and many other operations would not work on tensor
