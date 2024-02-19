@@ -190,8 +190,12 @@ function in_place_cpy(source: Tensor, dest: Tensor) {
     return dest;
 }
 
-function validate_permutation(permutation: number[]): void {
+function validate_permutation(permutation: number[], rank: number): void {
+    if (permutation.length !== rank)
+        throw new Error(`The provided permutation [${permutation}] does not match the rank of the tensor (rank = ${rank}).`);
+
     const _permutation = [...permutation].sort();
+
     for (let i = 0; i < permutation.length; i++) {
         if (_permutation[i] !== i)
             throw new Error(`The provided permutation [${permutation}] is not valid.`);
@@ -222,7 +226,7 @@ export function transpose(a: Tensor, permutation?: number[]): Tensor {
     }
     else {
         _permutation = [...permutation];
-        validate_permutation(permutation);
+        validate_permutation(permutation, a.get_rank());
     }
 
     const new_shape   = _permutation.map(i => a.shape[i]);

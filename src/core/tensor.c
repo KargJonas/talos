@@ -7,6 +7,20 @@ struct tensor_t* create_tensor() {
     return new_tensor;
 }
 
+// todo
+// struct tensor_t* create_view(struct tensor_t* source, size_t axis, size_t offset) {
+//     struct tensor_t* new_tensor = create_tensor();
+//     new_tensor->data = source->data;
+//     new_tensor->offset = source->offset + offset;
+
+//     // the new shape/strides will be the source shape/strides but without
+//     // the first n (=axis) elements
+
+//     // assertion: axis may not be larger than rank - 1
+
+//     new_tensor->shape = alloc_starr();
+// }
+
 void copy_tensor_metadata(struct tensor_t* source, struct tensor_t* dest) {
     copy_starr(source->shape, dest->shape, source->rank);
     copy_starr(source->strides, dest->strides, source->rank);
@@ -72,3 +86,4 @@ void copy_tensor(struct tensor_t* source, struct tensor_t* dest) {
     dest->offset = 0;
     set_row_major(dest);
 }
+

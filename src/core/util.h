@@ -12,7 +12,6 @@
 // allocation functions
 
 float* alloc_farr(size_t size);
-
 size_t* alloc_starr(size_t size);
 
 

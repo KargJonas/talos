@@ -3,7 +3,7 @@ import Strides from "./Strides";
 import core from "./core/build";
 import { get_row_major } from "./stride_operations";
 import tensor_to_string from "./to_string";
-import { create_farr } from "./util";
+import { create_farr, ordinal_str } from "./util";
 import * as ops from "./tensor_operations";
 
 enum  STRUCT_LAYOUT { DATA, SHAPE, STRIDES, RANK, NELEM, OFFSET, ISVIEW }
@@ -58,34 +58,28 @@ export class Tensor {
 
     public toString = () => tensor_to_string(this);
 
-    public print_info = (title: string = "---") => console.log(
+    public print = () => console.log(this.toString() + "\n---");
+    public print_info = (title: string = "TENSOR INFO") => console.log(
         `${title}\n` +
+        `  address: 0x${this.get_view_ptr().toString(16)}\n` +
+        `  is view: ${this.get_isview() ? "true" : "false"}\n` +
         `  shape:   [${this.shape}]\n` +
-        `  strides: [${this.strides}]\n`
+        `  strides: [${this.strides}]\n` +
+        `  nelem:   ${this.get_nelem()}\n` +
+        `  offset:  ${this.get_offset()}\n`
     );
 
-    /**
-     * TODO:
-     * 
-     * major mistake:
-     *   we cannot assume that all components of a subtensor lie in memory contiguously
-     *   because we can permute the axes arbitrarily.
-     *   therefore, when creating a subtensor we simply cannot use data.subarray().
-     *   when creating a subtensor, we always have to reference the entire data array of the
-     *   supertensor (and potentially add a starting-offset)
-     */
+    *get_axis_iterable(n: number): Generator<Tensor> {
+        if (n > this.get_rank() - 2)
+            throw new Error(`Cannot iterate over ${ordinal_str(n)} axis.`);
 
-    *get_axis_iterable(n: number) {
-        // const axis_stride = this.strides[n];
-        // const n_elem = this.get_nelem(); // number of elements in the supertensor
         // todo: add get_axis_strides() and extract superclass from Shape and Strides
         const shape = new Shape(this.shape.get_axis_shape(n + 1), true);
         const strides = new Strides([...this.strides].slice(n - this.get_rank() + 1), true);
+        const nelem = this.shape.flatten(this.get_rank() - n)[0];
 
-        for (let index = 0; index < this.shape[n]; index++) {
+        for (let index = 0; index < nelem; index++) {
             const offset = index * this.strides[n];
-
-            // yield new Tensor(shape, strides, this.data.subarray(index, offset));
             yield new Tensor(shape, strides, this.data, offset, true);
         }
     }
@@ -112,7 +106,7 @@ export class Tensor {
     public clone = () => ops.clone(this);
 
     // metadata operations
-    public transpose  = (permutation?: number[]) => ops.transpose(this, permutation);
+    public transpose  = (...permutation: number[]) => ops.transpose(this, permutation);
 
     // unary operations
     public relu       = (in_place = false) => ops.relu(this, in_place);

@@ -2,13 +2,29 @@ import { Tensor } from "./Tensor";
 import core from "./core/build";
 
 export const core_ready = new Promise<null>((resolve) => {
+    let loaded = false;
+
     core.onRuntimeInitialized = () => {
         core.memory = new Uint8Array(core.HEAPU8.buffer);
+        loaded = true;
         resolve(null);
     };
-});
 
-export const print = (t: Tensor) => console.log(t?.toString() + "\n---");
+    // todo
+    //   this is a bandaid-fix
+    //   the real solution is to find out why onRuntimeInitialized
+    //   does not reliably trigger.
+    const loaded_check_interval = setInterval(() => {
+        if (!loaded && core.HEAPU8) {
+            core.memory = new Uint8Array(core.HEAPU8.buffer);
+
+            loaded = true;
+            resolve(null);
+        }        
+
+        if (loaded) clearInterval(loaded_check_interval);
+    }, 5);
+});
 
 export const set_rand_seed = (n: number) => core._rand_seed(n);
 

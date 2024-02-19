@@ -4,6 +4,15 @@
 #include <stddef.h>
 #include "./util.h"
 
+// todo:
+//         YOU LEFT OFF HERE
+// 
+//   here i need to work on different parts of the supertensor individually
+//   maybe i should introduce a get_view(offset) method
+//
+//   this is basically the same issue that get_axis_iterable() solves
+//   in the frontend...
+
 // performs standard matrix multiplication on a matrix
 // that is located somewhere inside a larger tensor
 void mul_mat(
