@@ -146,6 +146,11 @@ export class Tensor {
     public min = (): number => ops.min(this);
     public max = (): number => ops.max(this);
     public sum = (): number => ops.sum(this);
+
+    // operations shorthands
+    public get T() {
+        return this.transpose();
+    }
 }
 
 export default function tensor(shape: Shape | number[], data?: number[]): Tensor {

@@ -5,14 +5,14 @@ await core_ready;
 
 console.log("###########\n".repeat(2));
 
-// const t1 = tensor([2, 2, 3], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+const t1 = tensor([2, 2, 3], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
 const t2 = tensor([3, 2],    [1, 2, 3, 4, 5, 6]);
 const t4 = tensor([3],       [-1, 2, 3]);
 const t5 = tensor([2, 2]).rand_int(1, 6);
 const t6 = tensor([2, 2]).rand_int(1, 6);
 
-const t1 = tensor([2, 2, 2, 3], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
-
+t1.print();
+t1.T.print();
 
 // print(t1.add(t4));
 // print(t1.sub(t4));
@@ -27,15 +27,11 @@ const t1 = tensor([2, 2, 2, 3], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 1, 2, 3,
 // print(t2.transpose().matmul(t2));
 // print(t2.matmul(t2.transpose()));
 
-for (const element of t1.transpose(0, 3, 2, 1).get_axis_iterable(0)) {
-    element.print();
-}
-
 // todo:
 //   reintroduce Tensor.get(...location). as a nice way to get tensor views.
 
 // todo:
-//   currently, i matrix multiplication and many other operations would not work on tensor
+//   currently, matrix multiplication and many other operations would not work on tensor
 //   views. we need to update the backend code to accommodate the introduced changes.
 //   maybe i can take this opportunity to do some benchmarks on function call overhead in
 //   the deeply nested loops and see if i cant create a function for accessing indices
