@@ -70,5 +70,5 @@ function mat_to_string(mat: Tensor, n_decimals: number, space_before: number) {
         lines.push(`${padding_left}[ ${vals.join(", ")} ]`);
     }
 
-    return lines.join("\n");
+    return `[${lines.join("\n ")}]`;
 }

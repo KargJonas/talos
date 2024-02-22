@@ -112,3 +112,29 @@ size_t get_index(struct tensor_t* a, size_t linear_index) {
 
     return ia;
 }
+
+// get number of elements of subtensors of the specified axis
+size_t get_nelem_of_axis_elements(struct tensor_t* a, size_t axis) {
+    if (a->rank == 0) return 0;
+    size_t nelem = 1;
+
+    for (size_t dim = axis; dim < a->rank; dim++) {
+        nelem *= a->shape[dim];
+    }
+
+    return nelem;
+}
+
+float get_item(struct tensor_t* a, size_t linear_index) {
+    size_t ia = a->offset;
+    size_t remainder = linear_index;
+    size_t iaxis;
+
+    for (size_t dim = a->rank; dim-- > 0;) {
+        iaxis = remainder % a->shape[dim];
+        ia += iaxis * a->strides[dim];
+        remainder /= a->shape[dim];
+    }
+
+    return a->data[ia];
+}

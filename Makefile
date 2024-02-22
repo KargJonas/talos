@@ -6,7 +6,8 @@ SRC_DIR 	= ./src/core
 EF = [ \
 	_alloc_farr, _alloc_starr, _create_tensor, \
 	_free_farr, _free_starr, _free_tensor, \
-	_copy_farr, _copy_starr, _copy_tensor, _copy_tensor_metadata, \
+	_copy_farr, _copy_starr, \
+	_copy_tensor, _copy_tensor_metadata, _create_view, \
 	\
 	_rand_seed, _rand_f, _rand_i, _fill, \
 	\

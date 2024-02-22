@@ -208,10 +208,16 @@ function validate_permutation(permutation: number[], rank: number): void {
  * @returns a permutation that swaps the last two axes.
  */
 function get_matrix_transpose_permutation(rank: number): number[] {
+    // // swap last two axes
+    // const permutation: number[] = [];
+    // for (let i = 0; i < rank - 2; i++) permutation.push(i);
+    // permutation.push(rank - 1);
+    // permutation.push(rank - 2);
+
+    // NumPy-style default permutation (inverse)
     const permutation: number[] = [];
-    for (let i = 0; i < rank - 2; i++) permutation.push(i);
-    permutation.push(rank - 1);
-    permutation.push(rank - 2);
+    for (let i = 0; i < rank; i++) permutation.push(i);
+    permutation.reverse();
     return permutation;
 }
 
@@ -231,7 +237,7 @@ export function transpose(a: Tensor, permutation?: number[]): Tensor {
     const new_shape   = _permutation.map(i => a.shape[i]);
     const new_strides = _permutation.map(i => a.strides[i]);
 
-    return derive_tensor(a, new_shape, new_strides);
+    return derive_tensor(a, new_shape, new_strides, a.get_offset());
 }
 
 // todo: add pairwise functionality (tensor-valued functions)

@@ -148,7 +148,11 @@ export class Tensor {
 
     // operation shorthands
     public get T() {
-        return this.transpose();
+        return ops.transpose(this);
+    }
+
+    [Symbol.iterator]() {
+        return this.get_axis_iterable(0);
     }
 }
 
@@ -175,5 +179,5 @@ export function tensor_like(other: Tensor) {
 export function derive_tensor(a: Tensor, shape: number[], strides: number[], offset = 0) {
     const _shape = new Shape(shape, true);
     const _strides = new Strides(strides, true);
-    return new Tensor(_shape, _strides, a.data, offset);
+    return new Tensor(_shape, _strides, a.data, offset, true);
 }

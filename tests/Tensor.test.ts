@@ -130,6 +130,8 @@ describe("tensor creation", async () => {
         new_tensor.free();
     });
 
+    // basic tests for tensor address space overlaps
+    // not really tests for views
     test("Tensor referencing/(meta-)data-dependence", () => {
         const old_tensor = tensor([1, 2, 3, 4]).zeros();
         const new_tensor = new Tensor(old_tensor.shape, old_tensor.strides, old_tensor.data);
@@ -148,5 +150,39 @@ describe("tensor creation", async () => {
         expect(old_tensor.data[0]).toEqual(new_tensor.data[0]);
         expect(old_tensor.get_rank()).not.toEqual(new_tensor.get_rank()); // nelem and rank are not dependent (might change this in the future)
         expect(old_tensor.get_nelem()).not.toEqual(new_tensor.get_nelem());
+    });
+
+    const t1 = tensor([2, 2, 3], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+    const t2 = tensor([3, 2], [1, 2, 3, 4, 5, 6]);
+    const t3 = tensor([3, 2], [-100, 2, 3, 2, 4, 2]);
+    const t4 = tensor([3, 2], [7.5, 5.5, -2, 3.5, 0, 3]);
+    const t5 = tensor([3], [-1, 2, 3]);
+    const t6 = tensor([2, 3], [-100, 2, 3, 2, 4, 2]);
+    const t7 = tensor([2, 3, 4], [8, 4, 4, 2, 3, 1, 4, 9, 2, 0, 9, 0, 4, 5, 1, 3, 2, 3, 4, 5, 8, 1, 2, 3]);
+
+    function expect_shape(t: Tensor, ...shape: number[]) {
+        expect([...t.shape]).toEqual(shape);
+    }
+
+    describe("views", () => {
+        test("get_axis_iterable", () => {
+            // check that subtensors have appropriate shapes
+            for (const e of t1.get_axis_iterable(0)) {
+                expect_shape(e, 2, 3);
+                expect_shape(e.T, 3, 2);
+            }
+
+            for (const e of t1.get_axis_iterable(1)) {
+                expect_shape(e, 3);
+            }
+
+            // todo stride
+
+            // things we should test:
+            // - proper handling of strides of axis_iterable
+            // - proper offsets in get_axis_iterable
+            // - transposition correctness (shape, stride, offset)
+            // - views of views
+        });
     });
 });

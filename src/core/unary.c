@@ -12,12 +12,7 @@
 #define UNARY_OP(NAME, OP) \
     void NAME(struct tensor_t* a, struct tensor_t* res) { \
         for (size_t i = 0; i < a->nelem; i++) { \
-            res->data[res->offset + i] = OP(a->data[a->offset + i]); }}
-
-// "tns" should signify that these are oparations
-// on tensors, not scalars
-
-UNARY_OP(negate_tns, -);
+            res->data[res->offset + i] = OP(get_item(a, i)); }}
 
 UNARY_OP(sin_tns, sin);
 UNARY_OP(cos_tns, cos);
@@ -42,23 +37,26 @@ UNARY_OP(ceil_tns, ceil);
 UNARY_OP(floor_tns, floor);
 UNARY_OP(abs_tns, fabsf);
 
+UNARY_OP(negate_tns, -);
 UNARY_OP(reciprocal_tns, 1./);
 
 void relu_tns(struct tensor_t* a, struct tensor_t* res) {
+    float item;
     for (size_t i = 0; i < a->nelem; i++) {
-        res->data[res->offset + i] = a->data[a->offset + i] < 0 ? 0 : a->data[a->offset + i];
+        item = get_item(a, i);
+        res->data[get_index(res, i)] = item < 0 ? 0 : item;
     }
 }
 
 void binstep_tns(struct tensor_t* a, struct tensor_t* res) {
     for (size_t i = 0; i < a->nelem; i++) {
-        res->data[res->offset + i] = a->data[a->offset + i] < 0 ? 0 : 1;
+        res->data[get_index(res, i)] = get_item(a, i) < 0 ? 0 : 1;
     }
 }
 
 void logistic_tns(struct tensor_t* a, struct tensor_t* res) {
     for (size_t i = 0; i < a->nelem; i++) {
-        res->data[res->offset + i] = 1. / (exp(-a->data[a->offset + i]) + 1.);
+        res->data[get_index(res, i)] = 1. / (exp(-get_item(a, i)) + 1.);
     }
 }
 

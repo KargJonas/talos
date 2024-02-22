@@ -3,24 +3,39 @@ import tensor from "../src/Tensor";
 
 await core_ready;
 
-console.log("###########\n".repeat(2));
+const print = console.log;
+print("###########\n".repeat(2));
 
 const t1 = tensor([2, 2, 3], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
 const t2 = tensor([3, 2],    [1, 2, 3, 4, 5, 6]);
-const t4 = tensor([3],       [-1, 2, 3]);
-const t5 = tensor([2, 2]).rand_int(1, 6);
-const t6 = tensor([2, 2]).rand_int(1, 6);
+const t3 = tensor([2, 3],    [1, 2, 3, 4, 5, 6]);
+const t5 = tensor([3], [-1, 2, 3]);
 
-// t2.T.matmul(t2).print();
 
-// t2.print();
-// t2.T.div(.9).print();
+// t2.matmul(t2.T).print();
 
-for (const e of t1.get_axis_iterable(0)) {
-    e.T.add(t2, true);
-}
 
-t1.print();
+// const a = t1.clone();
+// for (const e of a) {
+//     // print("e:");
+//     // e.print();
+//     // print("t2:");
+//     // t2.print();
+//     // print("t2.T:");
+//     // t2.T.print();
+//     // print("e + t2.T:");
+//     // e.add(t2.T).print();
+
+//     // e.T.print();
+//     e.T.add(e.T).print();
+// }
+
+// a.print();
+
+
+// const t4 = tensor([3],       [-1, 2, 3]);
+// const t5 = tensor([2, 2]).rand_int(1, 6);
+// const t6 = tensor([2, 2]).rand_int(1, 6);
 
 // print(t1.add(t4));
 // print(t1.sub(t4));
@@ -34,6 +49,9 @@ t1.print();
 
 // print(t2.transpose().matmul(t2));
 // print(t2.matmul(t2.transpose()));
+
+// todo:
+//   create some diagrams of the architecture
 
 // todo:
 //   reintroduce Tensor.get(...location). as a nice way to get tensor views.

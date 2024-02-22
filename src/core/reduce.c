@@ -8,7 +8,7 @@ float max_red(struct tensor_t* a) {
     float val, max = FLT_MIN;
     
     for (size_t ires = 0; ires < a->nelem; ires++) {
-        val = a->data[get_index(a, ires)];
+        val = get_item(a, ires);
         if (val > max) max = val;
     }
 
@@ -19,7 +19,7 @@ float min_red(struct tensor_t* a) {
     float val, min = FLT_MAX;
     
     for (size_t ires = 0; ires < a->nelem; ires++) {
-        val = a->data[get_index(a, ires)];
+        val = get_item(a, ires);
         if (val < min) min = val;
     }
 
@@ -30,7 +30,7 @@ float sum_red(struct tensor_t* a) {
     float sum = 0;
     
     for (size_t ires = 0; ires < a->nelem; ires++) {
-        sum += a->data[get_index(a, ires)];
+        sum += get_item(a, ires);
     }
 
     return sum;

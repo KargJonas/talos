@@ -8,18 +8,28 @@ struct tensor_t* create_tensor() {
 }
 
 // todo
-// struct tensor_t* create_view(struct tensor_t* source, size_t axis, size_t offset) {
-//     struct tensor_t* new_tensor = create_tensor();
-//     new_tensor->data = source->data;
-//     new_tensor->offset = source->offset + offset;
+struct tensor_t* create_view(struct tensor_t* source, size_t axis, size_t offset) {
+    struct tensor_t* new_tensor = create_tensor();
 
-//     // the new shape/strides will be the source shape/strides but without
-//     // the first n (=axis) elements
+    // assertion: axis may not be larger than rank - 1
 
-//     // assertion: axis may not be larger than rank - 1
+    new_tensor->data = source->data;
+    new_tensor->shape   = alloc_starr(source->rank - axis - 2);
+    new_tensor->strides = alloc_starr(source->rank - axis - 2);
 
-//     new_tensor->shape = alloc_starr();
-// }
+    // the new shape/strides are the source shape/strides but without the first n (=axis) elements
+
+    size_t new_rank = source->rank - axis;
+    memcpy(new_tensor->shape,   source->shape   + axis, (new_rank - 1) * sizeof(size_t));
+    memcpy(new_tensor->strides, source->strides + axis, (new_rank - 1) * sizeof(size_t));
+
+    new_tensor->rank = source->rank;
+    new_tensor->nelem = get_nelem_of_axis_elements(source, axis);
+    new_tensor->offset = source->offset + offset;
+    new_tensor->isview = true;
+
+    return new_tensor;
+}
 
 void copy_tensor_metadata(struct tensor_t* source, struct tensor_t* dest) {
     copy_starr(source->shape, dest->shape, source->rank);
