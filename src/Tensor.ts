@@ -3,10 +3,10 @@ import Strides from "./Strides";
 import core from "./core/build";
 import { get_row_major } from "./stride_operations";
 import tensor_to_string from "./to_string";
-import { create_farr, ordinal_str } from "./util";
+import { ordinal_str } from "./util";
 import * as ops from "./tensor_operations";
 
-enum  STRUCT_LAYOUT { DATA, SHAPE, STRIDES, RANK, NELEM, OFFSET, ISVIEW }
+enum  STRUCT_LAYOUT { DATA, SHAPE, STRIDES, RANK, NELEM, NDATA, OFFSET, ISVIEW }
 const STRUCT_SIZE = Object.entries(STRUCT_LAYOUT).length / 2;
 
 export class Tensor {
@@ -15,54 +15,12 @@ export class Tensor {
     shape: Shape;
     strides: Strides;
 
-    // constructor(
-    //     shape: Shape, strides: Strides, data: Float32Array,
-    //     offset: number = 0, isview: boolean = false
-    // ) {
-    //     // todo remove after complete implementation. this is just a safeguard
-    //     if (offset !== 0 && !isview) throw new Error("This cant be right.");
-
-    //     const ptr = core._create_tensor();
-    //     this.view = new Int32Array(core.memory.buffer, ptr, STRUCT_SIZE);
-
-    //     this.shape = shape;
-    //     this.strides = strides;
-    //     this.data = data;
-
-    //     this.view[STRUCT_LAYOUT.DATA] = this.data.byteOffset;
-    //     this.view[STRUCT_LAYOUT.SHAPE] = this.shape.byteOffset;
-    //     this.view[STRUCT_LAYOUT.STRIDES] = this.strides.byteOffset;
-
-    //     this.set_rank(shape.length);
-    //     this.set_nelem(shape.get_nelem()); // previously used data.length but this causes issues with subtensors
-    //     this.set_offset(offset);
-    //     this.set_isview(isview ? 1 : 0);
-    // }
-
     constructor(ptr: number) {
-
-        // todo remove after complete implementation. this is just a safeguard
-        // if (offset !== 0 && !isview) throw new Error("This cant be right.");
-
-        // const ptr = core._create_tensor();
+        // set up typed arrays for data access
         this.view = new Int32Array(core.memory.buffer, ptr, STRUCT_SIZE);
-
-        this.shape   = new Shape  (new Int32Array(core.memory.buffer, this.get_shape_ptr(), this.get_rank()));
-        this.strides = new Strides(new Int32Array(core.memory.buffer, this.get_strides_ptr(), this.get_rank()));
-        this.data    = new Float32Array(core.memory.buffer, this.get_data_ptr(), this.get_nelem());
-
-        // this.shape = shape;
-        // this.strides = strides;
-        // this.data = data;
-
-        // this.view[STRUCT_LAYOUT.DATA] = this.data.byteOffset;
-        // this.view[STRUCT_LAYOUT.SHAPE] = this.shape.byteOffset;
-        // this.view[STRUCT_LAYOUT.STRIDES] = this.strides.byteOffset;
-
-        // this.set_rank(shape.length);
-        // this.set_nelem(shape.get_nelem()); // previously used data.length but this causes issues with subtensors
-        // this.set_offset(offset);
-        // this.set_isview(isview ? 1 : 0);
+        this.shape   = new Shape  (new Int32Array(core.memory.buffer, this.get_shape_ptr(), this.get_rank()), true);
+        this.strides = new Strides(new Int32Array(core.memory.buffer, this.get_strides_ptr(), this.get_rank()), true);
+        this.data    = new Float32Array(core.memory.buffer, this.get_data_ptr(), this.get_ndata());
     }
 
     public set_rank     = (rank:   number) => this.view[STRUCT_LAYOUT.RANK]   = rank;
@@ -73,6 +31,7 @@ export class Tensor {
     public get_rank         = () => this.view[STRUCT_LAYOUT.RANK];
     public get_nelem        = () => this.view[STRUCT_LAYOUT.NELEM];
     public get_offset       = () => this.view[STRUCT_LAYOUT.OFFSET];
+    public get_ndata        = () => this.view[STRUCT_LAYOUT.NDATA];
     public get_isview       = () => this.view[STRUCT_LAYOUT.ISVIEW];
     public get_rows         = () => this.get_axis_size(this.get_rank() - 2);
     public get_cols         = () => this.get_axis_size(this.get_rank() - 1);
@@ -93,6 +52,7 @@ export class Tensor {
         `  is view: ${this.get_isview() ? "true" : "false"}\n` +
         `  shape:   [${this.shape}]\n` +
         `  strides: [${this.strides}]\n` +
+        `  rank:    ${this.get_rank()}\n` +
         `  nelem:   ${this.get_nelem()}\n` +
         `  offset:  ${this.get_offset()}\n` +
         `  data: [${this.data}]\n`
@@ -114,10 +74,10 @@ export class Tensor {
         // shape.set(new_shape);
         // strides.set(new_strides);
 
-        const view = create_view(this, n);
+        const view = create_view(this, n + 1);
         const nelem = this.shape.flatten(this.get_rank() - n)[0];
 
-        view.print_info()
+        // todo: fix nelem = 0 problem
 
         for (let index = 0; index < nelem; index++) {
             const offset = index * this.strides[n];
@@ -200,34 +160,24 @@ export class Tensor {
     }
 }
 
-export default function tensor(shape: Shape | number[], data?: number[]): Tensor {
-    // @ts-expect-error Obscure signature incompatibility between Int32Array.reduce() and Array.reduce()
+export default function tensor(shape: number[], data?: number[]): Tensor {
     const nelem = shape.reduce((acc: number, val: number) => acc * val, 1);
-
-    // const _data = create_farr(nelem);
-    // const _shape   = new Shape  (core._alloc_starr(shape.length), true);
-    // const _strides = new Strides(core._alloc_starr(shape.length), true);
-    // _shape.set([...shape]);
-    // _strides.set(get_row_major(_shape));
-
-    // return new Tensor(_shape, _strides, _data);
-
 
     if (data !== undefined && data.length !== nelem)
         throw new Error(`Cannot cast array of size ${data.length} into tensor of shape [${shape}]`);
 
-    const ptr   = core._create_tensor(shape.length, nelem);
+    const ptr = core._create_tensor(shape.length, nelem);
     const new_tensor = new Tensor(ptr);
 
     if (data !== undefined) new_tensor.data.set(data);
-    new_tensor.shape.set([...shape]);
+    new_tensor.shape.set(shape);
     new_tensor.strides.set(get_row_major(shape));
 
     return new_tensor;
 }
 
 export function tensor_like(other: Tensor) {
-    return tensor(other.shape);
+    return tensor([...other.shape]);
 }
 
 // returns a view of an element in the desired axis

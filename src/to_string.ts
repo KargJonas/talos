@@ -8,11 +8,10 @@ export default function tensor_to_string(a: Tensor, num_width = 5, space_before 
         case 2: return mat_to_string(a, num_width, space_before);
     }
 
-    // hidim tensors
     const strings: string[] = [];
 
     for (const element of a.get_axis_iterable(0)) {
-        // element.print_info();
+        element.print_info();
         strings.push(tensor_to_string(element, num_width, space_before + 2)!);
     }
 

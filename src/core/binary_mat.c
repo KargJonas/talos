@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include "./util.h"
+#include "./tensor.h"
 
 // todo:
 //         YOU LEFT OFF HERE
@@ -37,59 +38,59 @@
 //     }
 // }
 
-void mul_mat(
-    struct tensor_t* a, size_t base_a, size_t nrow_a, size_t ncol_a,
-    struct tensor_t* b, size_t base_b, size_t nrow_b, size_t ncol_b,
-    struct tensor_t* res, size_t base_res
-) {
-    register size_t r, c, i, ires, offset_row, ib;
-
-    // todo optimization potential: replace multiplications by looped increments
-
-    for (r = 0; r < nrow_a; r++) {
-        for (c = 0; c < ncol_b; c++) {
-            ires       = r * ncol_b + c;
-            offset_row = r * ncol_a;
-
-            for (i = 0; i < ncol_a; i++) {
-                ib = i * ncol_b + c;
-                res->data[res->offset + base_res + ires] +=
-                    a->data[a->offset + base_a   + offset_row + i] *
-                    b->data[b->offset + base_b   + ib];
-            }
-        }
-    }
-}
-
-// void mul_mat(struct tensor_t* a, struct tensor_t* b, struct tensor_t* res, size_t offset_a, size_t offset_b, bool dot) {
-//     size_t nrow_a = dot ? 1 : get_nrows(a);
-//     size_t ncol_a = get_ncols(a);
-//     size_t nvec_a = get_nsubtns(a, 1);
-
-//     size_t nrow_b = get_nrows(b);
-//     size_t ncol_b = get_ncols(b);
-//     size_t nmat_b = get_nsubtns(b, 2);
-
-//     register size_t c, i, ires, offset_row, ib;
+// void mul_mat(
+//     struct tensor_t* a, size_t base_a, size_t nrow_a, size_t ncol_a,
+//     struct tensor_t* b, size_t base_b, size_t nrow_b, size_t ncol_b,
+//     struct tensor_t* res, size_t base_res
+// ) {
+//     register size_t r, c, i, ires, offset_row, ib;
 
 //     // todo optimization potential: replace multiplications by looped increments
 
-//     for (size_t r = 0; r < nrow_a; r++) {
+//     for (r = 0; r < nrow_a; r++) {
 //         for (c = 0; c < ncol_b; c++) {
 //             ires       = r * ncol_b + c;
 //             offset_row = r * ncol_a;
 
 //             for (i = 0; i < ncol_a; i++) {
 //                 ib = i * ncol_b + c;
-//                 // result[ires] += a[offset_row + i] * b[ib];
-                
-//                 res->data[ires] +=
-//                     a->data[offset_a + a->offset + offset_row + i] *
-//                     b->data[offset_b + b->offset + ib];
+//                 res->data[res->offset + base_res + ires] +=
+//                     a->data[a->offset + base_a   + offset_row + i] *
+//                     b->data[b->offset + base_b   + ib];
 //             }
 //         }
 //     }
 // }
+
+void mul_mat(struct tensor_t* a, struct tensor_t* b, struct tensor_t* res, bool dot) {
+    size_t nrow_a = dot ? 1 : get_nrows(a);
+    size_t ncol_a = get_ncols(a);
+    size_t nvec_a = get_nsubtns(a, 1);
+
+    size_t nrow_b = get_nrows(b);
+    size_t ncol_b = get_ncols(b);
+    size_t nmat_b = get_nsubtns(b, 2);
+
+    register size_t c, i, ires, offset_row, ib;
+
+    // todo optimization potential: replace multiplications by looped increments
+
+    for (size_t r = 0; r < nrow_a; r++) {
+        for (c = 0; c < ncol_b; c++) {
+            ires       = r * ncol_b + c;
+            offset_row = r * ncol_a;
+
+            for (i = 0; i < ncol_a; i++) {
+                ib = i * ncol_b + c;
+                // result[ires] += a[offset_row + i] * b[ib];
+                
+                res->data[ires] +=
+                    a->data[a->offset + offset_row + i] *
+                    b->data[b->offset + ib];
+            }
+        }
+    }
+}
 
 // pairwise multiplication of the matrices in two tensors
 void mul_tns(struct tensor_t* a, struct tensor_t* b, struct tensor_t* result) {
@@ -109,18 +110,28 @@ void mul_tns(struct tensor_t* a, struct tensor_t* b, struct tensor_t* result) {
 
     fill(result->data, result->nelem, 0);
 
+    struct tensor_t* view_a = create_view(a, 1, 0);
+    struct tensor_t* view_b = create_view(b, 1, 0);
+    struct tensor_t* view_res = create_view(result, 1, 0);
+
     for (size_t i = 0; i < nmat_max; i++) {
-        mul_mat(
-            a, ia, nrow_a, ncol_a,
-            b, ib, nrow_b, ncol_b,
-            result, ires);
+        // mul_mat(
+        //     a, ia, nrow_a, ncol_a,
+        //     b, ib, nrow_b, ncol_b,
+        //     result, ires);
 
-        // mul_mat(a, b, result, ia, ib, false);
+        mul_mat(view_a, view_b, view_res, false);
 
-        ia += stride_a; // todo: minimal optimization potential (if stride = 0, add useless)
-        ib += stride_b;
-        ires += stride_res;
+        view_a->offset += stride_a;
+        view_b->offset += stride_b;
+        view_res->offset += stride_res;
+
+        // ia += stride_a; // todo: minimal optimization potential (if stride = 0, add useless)
+        // ib += stride_b;
+        // ires += stride_res;
     }
+
+    // todo: dispose of view !!!!!!!!
 }
 
 void dot_tns(struct tensor_t* a, struct tensor_t* b, struct tensor_t* result) {

@@ -1,6 +1,8 @@
 import { core_ready } from "../src/util";
 import tensor from "../src/Tensor";
 
+// if your runtime does not support top-level await,
+// you'll have to use core_ready.then(() => { ... }) instead
 await core_ready;
 
 const print = console.log;
@@ -11,10 +13,10 @@ const t2 = tensor([3, 2],    [1, 2, 3, 4, 5, 6]);
 const t3 = tensor([2, 3],    [1, 2, 3, 4, 5, 6]);
 const t5 = tensor([3], [-1, 2, 3]);
 
+t1.T.print();
+
 
 // t2.matmul(t2.T).print();
-
-t1.print();
 
 // const a = t1.clone();
 // for (const e of a) {

@@ -15,13 +15,16 @@ struct tensor_t* create_tensor(size_t rank, size_t nelem) {
     // set default values for other metadata
     new_tensor->rank = rank;
     new_tensor->nelem = nelem;
+    new_tensor->ndata = nelem;
     new_tensor->offset = 0;
     new_tensor->isview = false;
 
     return new_tensor;
 }
 
-
+// creates a new tensor that references the data of another tensor
+// nice feature of this function - automatically resizes view tensor to size of elements
+// of the desired axis so you can use this to e.g. iterate over larger tensors
 struct tensor_t* create_view(struct tensor_t* source, size_t axis, size_t offset) {
     // allocate memory for the struct
     struct tensor_t* new_tensor = (struct tensor_t*)malloc(sizeof(struct tensor_t));
@@ -32,17 +35,18 @@ struct tensor_t* create_view(struct tensor_t* source, size_t axis, size_t offset
     new_tensor->data    = source->data;
 
     // allocate memory for shape/strides
-    new_tensor->shape   = alloc_starr(source->rank - axis - 2);
-    new_tensor->strides = alloc_starr(source->rank - axis - 2);
+    new_tensor->shape   = alloc_starr(source->rank - axis);
+    new_tensor->strides = alloc_starr(source->rank - axis);
 
     // copy shape/strides from source but omit first n (=axis) elements
     size_t new_rank = source->rank - axis;
-    memcpy(new_tensor->shape,   source->shape   + axis, (new_rank - 1) * sizeof(size_t));
-    memcpy(new_tensor->strides, source->strides + axis, (new_rank - 1) * sizeof(size_t));
+    memcpy(new_tensor->shape,   &source->shape[axis],   new_rank * sizeof(size_t));
+    memcpy(new_tensor->strides, &source->strides[axis], new_rank * sizeof(size_t));
 
     // set default values for view
-    new_tensor->rank = source->rank;
+    new_tensor->rank = source->rank - axis;
     new_tensor->nelem = get_nelem_of_axis_elements(source, axis);
+    new_tensor->ndata = source->ndata;
     new_tensor->offset = source->offset + offset;
     new_tensor->isview = true;
 
@@ -70,8 +74,9 @@ void clone_tensor(struct tensor_t* source, struct tensor_t* dest) {
     copy_starr(source->strides, dest->strides, source->rank);
     dest->rank = source->rank;
     dest->nelem = source->nelem;
+    dest->ndata = source->ndata;
     dest->offset = source->offset;
-    dest->isview = false; // todo: validate
+    dest->isview = false;
 
     // source tensor is not a view, so we can naively copy the data
     if (!source->isview) {
@@ -85,7 +90,7 @@ void clone_tensor(struct tensor_t* source, struct tensor_t* dest) {
 
     // iterating over every element in the destination tensor
     for (size_t ires = 0; ires < source->nelem; ires++) {
-        ia = source->offset; // todo validate
+        ia = source->offset;
         remainder = ires;
 
         // iterating over every dimension to obtain the index
@@ -105,4 +110,3 @@ void clone_tensor(struct tensor_t* source, struct tensor_t* dest) {
     dest->offset = 0;
     set_row_major(dest);
 }
-

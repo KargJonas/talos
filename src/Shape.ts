@@ -5,15 +5,11 @@ export default class Shape extends Int32Array {
     constructor(shape: Int32Array | number[] | Shape, attached = false) {
         if (attached) {
             if (!(shape instanceof Int32Array)) throw new Error("Shape must be Int32Array!");
-
-            // bind shape to a memory location (usually inside a tensor)
-            // const ptr = core._alloc_starr(shape.length);
             super(core.memory.buffer, shape.byteOffset, shape.length);
-            // this.set([...shape]);
         } else {
             // create a detatched shape (not bound to a tensor)
             super(shape.length);
-            this.set([...shape]);
+            this.set(shape);
         }
     }
     
