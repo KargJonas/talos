@@ -1,43 +1,52 @@
 #include "./tensor.h"
 #include "./util.h"
 
-struct tensor_t* create_tensor() {
-    // allocate memory for struct itself
-    struct tensor_t* new_tensor = (struct tensor_t*)malloc(sizeof(struct tensor_t));    
+// creates a tensor and allocates all necessary memory
+// this is how "base-tensors" are created, this means data will be allocated.
+struct tensor_t* create_tensor(size_t rank, size_t nelem) {
+    // allocate memory for the struct
+    struct tensor_t* new_tensor = (struct tensor_t*)malloc(sizeof(struct tensor_t));
+
+    // allocate memory for data/shape/strides
+    new_tensor->data = alloc_farr(nelem);
+    new_tensor->shape = alloc_starr(rank);
+    new_tensor->strides = alloc_starr(rank);
+
+    // set default values for other metadata
+    new_tensor->rank = rank;
+    new_tensor->nelem = nelem;
+    new_tensor->offset = 0;
+    new_tensor->isview = false;
+
     return new_tensor;
 }
 
-// todo
+
 struct tensor_t* create_view(struct tensor_t* source, size_t axis, size_t offset) {
-    struct tensor_t* new_tensor = create_tensor();
+    // allocate memory for the struct
+    struct tensor_t* new_tensor = (struct tensor_t*)malloc(sizeof(struct tensor_t));
 
     // assertion: axis may not be larger than rank - 1
 
-    new_tensor->data = source->data;
+    // reference data of source tensor
+    new_tensor->data    = source->data;
+
+    // allocate memory for shape/strides
     new_tensor->shape   = alloc_starr(source->rank - axis - 2);
     new_tensor->strides = alloc_starr(source->rank - axis - 2);
 
-    // the new shape/strides are the source shape/strides but without the first n (=axis) elements
-
+    // copy shape/strides from source but omit first n (=axis) elements
     size_t new_rank = source->rank - axis;
     memcpy(new_tensor->shape,   source->shape   + axis, (new_rank - 1) * sizeof(size_t));
     memcpy(new_tensor->strides, source->strides + axis, (new_rank - 1) * sizeof(size_t));
 
+    // set default values for view
     new_tensor->rank = source->rank;
     new_tensor->nelem = get_nelem_of_axis_elements(source, axis);
     new_tensor->offset = source->offset + offset;
     new_tensor->isview = true;
 
     return new_tensor;
-}
-
-void copy_tensor_metadata(struct tensor_t* source, struct tensor_t* dest) {
-    copy_starr(source->shape, dest->shape, source->rank);
-    copy_starr(source->strides, dest->strides, source->rank);
-    dest->rank = source->rank;
-    dest->nelem = source->nelem;
-    dest->offset = source->offset;
-    dest->isview = source->isview; // todo: validate
 }
 
 /**
@@ -56,7 +65,7 @@ void copy_tensor_metadata(struct tensor_t* source, struct tensor_t* dest) {
  * when necessary
  */
 
-void copy_tensor(struct tensor_t* source, struct tensor_t* dest) {
+void clone_tensor(struct tensor_t* source, struct tensor_t* dest) {
     copy_starr(source->shape, dest->shape, source->rank);
     copy_starr(source->strides, dest->strides, source->rank);
     dest->rank = source->rank;

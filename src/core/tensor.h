@@ -16,7 +16,7 @@ struct tensor_t {
     bool isview;
 };
 
-struct tensor_t* create_tensor();
-void copy_tensor(struct tensor_t* a, struct tensor_t* res);
+struct tensor_t* create_tensor(size_t rank, size_t nelem);
+void clone_tensor(struct tensor_t* a, struct tensor_t* res);
 
 #endif//CORE_TENSOR

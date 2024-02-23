@@ -15,28 +15,54 @@ export class Tensor {
     shape: Shape;
     strides: Strides;
 
-    constructor(
-        shape: Shape, strides: Strides, data: Float32Array,
-        offset: number = 0, isview: boolean = false
-    ) {
-        // todo remove after complete implementation. this is just a safeguard
-        if (offset !== 0 && !isview) throw new Error("This cant be right.");
+    // constructor(
+    //     shape: Shape, strides: Strides, data: Float32Array,
+    //     offset: number = 0, isview: boolean = false
+    // ) {
+    //     // todo remove after complete implementation. this is just a safeguard
+    //     if (offset !== 0 && !isview) throw new Error("This cant be right.");
 
-        const ptr = core._create_tensor();
+    //     const ptr = core._create_tensor();
+    //     this.view = new Int32Array(core.memory.buffer, ptr, STRUCT_SIZE);
+
+    //     this.shape = shape;
+    //     this.strides = strides;
+    //     this.data = data;
+
+    //     this.view[STRUCT_LAYOUT.DATA] = this.data.byteOffset;
+    //     this.view[STRUCT_LAYOUT.SHAPE] = this.shape.byteOffset;
+    //     this.view[STRUCT_LAYOUT.STRIDES] = this.strides.byteOffset;
+
+    //     this.set_rank(shape.length);
+    //     this.set_nelem(shape.get_nelem()); // previously used data.length but this causes issues with subtensors
+    //     this.set_offset(offset);
+    //     this.set_isview(isview ? 1 : 0);
+    // }
+
+    constructor(ptr: number) {
+
+        // todo remove after complete implementation. this is just a safeguard
+        // if (offset !== 0 && !isview) throw new Error("This cant be right.");
+
+        // const ptr = core._create_tensor();
         this.view = new Int32Array(core.memory.buffer, ptr, STRUCT_SIZE);
 
-        this.shape = shape;
-        this.strides = strides;
-        this.data = data;
+        this.shape   = new Shape  (new Int32Array(core.memory.buffer, this.get_shape_ptr(), this.get_rank()));
+        this.strides = new Strides(new Int32Array(core.memory.buffer, this.get_strides_ptr(), this.get_rank()));
+        this.data    = new Float32Array(core.memory.buffer, this.get_data_ptr(), this.get_nelem());
 
-        this.view[STRUCT_LAYOUT.DATA] = this.data.byteOffset;
-        this.view[STRUCT_LAYOUT.SHAPE] = this.shape.byteOffset;
-        this.view[STRUCT_LAYOUT.STRIDES] = this.strides.byteOffset;
+        // this.shape = shape;
+        // this.strides = strides;
+        // this.data = data;
 
-        this.set_rank(shape.length);
-        this.set_nelem(shape.get_nelem()); // previously used data.length but this causes issues with subtensors
-        this.set_offset(offset);
-        this.set_isview(isview ? 1 : 0);
+        // this.view[STRUCT_LAYOUT.DATA] = this.data.byteOffset;
+        // this.view[STRUCT_LAYOUT.SHAPE] = this.shape.byteOffset;
+        // this.view[STRUCT_LAYOUT.STRIDES] = this.strides.byteOffset;
+
+        // this.set_rank(shape.length);
+        // this.set_nelem(shape.get_nelem()); // previously used data.length but this causes issues with subtensors
+        // this.set_offset(offset);
+        // this.set_isview(isview ? 1 : 0);
     }
 
     public set_rank     = (rank:   number) => this.view[STRUCT_LAYOUT.RANK]   = rank;
@@ -51,14 +77,16 @@ export class Tensor {
     public get_rows         = () => this.get_axis_size(this.get_rank() - 2);
     public get_cols         = () => this.get_axis_size(this.get_rank() - 1);
     public get_view_ptr     = () => this.view.byteOffset;
-    public get_data_ptr     = () => this.data.byteOffset;
-    public get_shape_ptr    = () => this.shape.byteOffset;
-    public get_strides_ptr  = () => this.strides.byteOffset;
+    // public get_data_ptr     = () => this.data.byteOffset;
+    // public get_shape_ptr    = () => this.shape.byteOffset;
+    // public get_strides_ptr  = () => this.strides.byteOffset;
+    public get_data_ptr     = () => this.view[STRUCT_LAYOUT.DATA];
+    public get_shape_ptr    = () => this.view[STRUCT_LAYOUT.SHAPE];
+    public get_strides_ptr  = () => this.view[STRUCT_LAYOUT.STRIDES];
+
     public get_axis_size    = (axis_index: number) => this.shape.get_axis_size(axis_index);
 
-    public toString = () => tensor_to_string(this);
-
-    public print = () => console.log(this.toString() + "\n---");
+    public print = () => console.log(tensor_to_string(this) + "\n---");
     public print_info = (title: string = "TENSOR INFO") => console.log(
         `${title}\n` +
         `  address: 0x${this.get_view_ptr().toString(16)}\n` +
@@ -66,7 +94,8 @@ export class Tensor {
         `  shape:   [${this.shape}]\n` +
         `  strides: [${this.strides}]\n` +
         `  nelem:   ${this.get_nelem()}\n` +
-        `  offset:  ${this.get_offset()}\n`
+        `  offset:  ${this.get_offset()}\n` +
+        `  data: [${this.data}]\n`
     );
 
     *get_axis_iterable(n: number): Generator<Tensor> {
@@ -74,13 +103,28 @@ export class Tensor {
             throw new Error(`Cannot iterate over ${ordinal_str(n)} axis.`);
 
         // todo: add get_axis_strides() and extract superclass from Shape and Strides
-        const shape = new Shape(this.shape.get_axis_shape(n + 1), true);
-        const strides = new Strides([...this.strides].slice(n - this.get_rank() + 1), true);
+        // const shape = new Shape(this.shape.get_axis_shape(n + 1), true);
+        // const strides = new Strides([...this.strides].slice(n - this.get_rank() + 1), true);
+
+        // const new_shape   = this.shape.get_axis_shape(n + 1);
+        // const new_strides = [...this.strides].slice(n - this.get_rank() + 1);
+
+        // const shape   = new Shape  (core._alloc_starr(new_shape.length), true);
+        // const strides = new Strides(core._alloc_starr(new_strides.length), true);
+        // shape.set(new_shape);
+        // strides.set(new_strides);
+
+        const view = create_view(this, n);
         const nelem = this.shape.flatten(this.get_rank() - n)[0];
+
+        view.print_info()
 
         for (let index = 0; index < nelem; index++) {
             const offset = index * this.strides[n];
-            yield new Tensor(shape, strides, this.data, offset, true);
+            // new_tensor.set_offset(new_tensor.get_offset() + offset); // todo could reduce call overhead
+            // yield new Tensor(shape, strides, this.data, offset, true);
+            // yield new_tensor.clone();
+            yield create_view(view, 0, offset);
         }
     }
 
@@ -160,24 +204,34 @@ export default function tensor(shape: Shape | number[], data?: number[]): Tensor
     // @ts-expect-error Obscure signature incompatibility between Int32Array.reduce() and Array.reduce()
     const nelem = shape.reduce((acc: number, val: number) => acc * val, 1);
 
-    const _data = create_farr(nelem);
-    const _shape = new Shape(shape, true);
-    const _strides = new Strides(get_row_major(_shape), true);
+    // const _data = create_farr(nelem);
+    // const _shape   = new Shape  (core._alloc_starr(shape.length), true);
+    // const _strides = new Strides(core._alloc_starr(shape.length), true);
+    // _shape.set([...shape]);
+    // _strides.set(get_row_major(_shape));
 
-    if (data !== undefined) {
-        if (data.length !== nelem) throw new Error(`Cannot cast array of size ${data.length} into tensor of shape [${shape}]`);
-        _data.set(data);
-    }
+    // return new Tensor(_shape, _strides, _data);
 
-    return new Tensor(_shape, _strides, _data);
+
+    if (data !== undefined && data.length !== nelem)
+        throw new Error(`Cannot cast array of size ${data.length} into tensor of shape [${shape}]`);
+
+    const ptr   = core._create_tensor(shape.length, nelem);
+    const new_tensor = new Tensor(ptr);
+
+    if (data !== undefined) new_tensor.data.set(data);
+    new_tensor.shape.set([...shape]);
+    new_tensor.strides.set(get_row_major(shape));
+
+    return new_tensor;
 }
 
 export function tensor_like(other: Tensor) {
     return tensor(other.shape);
 }
 
-export function derive_tensor(a: Tensor, shape: number[], strides: number[], offset = 0) {
-    const _shape = new Shape(shape, true);
-    const _strides = new Strides(strides, true);
-    return new Tensor(_shape, _strides, a.data, offset, true);
+// returns a view of an element in the desired axis
+export function create_view(a: Tensor, axis = 0, offset = 0) {
+    const ptr = core._create_view(a.get_view_ptr(), axis, offset);
+    return new Tensor(ptr);
 }

@@ -1,6 +1,6 @@
 import core from "./core/build";
 import { check_row_col_compat } from "./util";
-import tensor, { Tensor, derive_tensor } from "./Tensor";
+import tensor, { Tensor, create_view } from "./Tensor";
 import Shape from "./Shape";
 
 // types for high level operations
@@ -57,7 +57,7 @@ export const free  = (a: Tensor) => core._free_tensor(a.get_view_ptr());
  */
 export const clone = (a: Tensor) => {
     const new_tensor = tensor(a.shape);
-    core._copy_tensor(a.get_view_ptr(), new_tensor.get_view_ptr());
+    core._clone_tensor(a.get_view_ptr(), new_tensor.get_view_ptr());
     return new_tensor;
 };
 
@@ -237,7 +237,11 @@ export function transpose(a: Tensor, permutation?: number[]): Tensor {
     const new_shape   = _permutation.map(i => a.shape[i]);
     const new_strides = _permutation.map(i => a.strides[i]);
 
-    return derive_tensor(a, new_shape, new_strides, a.get_offset());
+    const new_tensor = create_view(a);
+    new_tensor.shape.set(new_shape);
+    new_tensor.strides.set(new_strides);
+
+    return new_tensor;
 }
 
 // todo: add pairwise functionality (tensor-valued functions)

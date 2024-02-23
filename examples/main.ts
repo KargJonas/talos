@@ -14,6 +14,7 @@ const t5 = tensor([3], [-1, 2, 3]);
 
 // t2.matmul(t2.T).print();
 
+t1.print();
 
 // const a = t1.clone();
 // for (const e of a) {
