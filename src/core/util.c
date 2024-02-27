@@ -32,13 +32,6 @@ void free_starr(size_t* ptr) {
     free(ptr);
 }
 
-void free_tensor(struct tensor_t* tensor) {
-    free_farr(tensor->data);
-    free_starr(tensor->shape);
-    free_starr(tensor->strides);
-    free(tensor);
-}
-
 
 // misc utility functions
 
@@ -54,15 +47,6 @@ float fast_inv_sqrt(float number) {
     y  = y * (threehalfs - (x2 * y * y));   // 1st iteration
     // y  = y * ( threehalfs - ( x2 * y * y ) );   // 2nd iteration, this can be removed
     return y;
-}
-
-size_t get_ncols(struct tensor_t* a) {
-    return a->shape[a->rank - 1];
-}
-
-size_t get_nrows(struct tensor_t* a) {
-    if (a->rank < 2) return 1;
-    return a->shape[a->rank - 2];
 }
 
 // get number of subtensors at a certain level
@@ -99,6 +83,19 @@ void set_row_major(struct tensor_t* a) {
     }
 }
 
+// get number of elements of subtensors of the specified axis
+size_t get_nelem_of_axis_elements(struct tensor_t* a, size_t axis) {
+    if (a->rank == 0) return 0;
+    size_t nelem = 1;
+
+    for (size_t dim = axis; dim < a->rank; dim++) {
+        nelem *= a->shape[dim];
+    }
+
+    return nelem;
+}
+
+// get index of element in data array from linear index
 size_t get_index(struct tensor_t* a, size_t linear_index) {
     size_t ia = a->offset;
     size_t remainder = linear_index;
@@ -111,18 +108,6 @@ size_t get_index(struct tensor_t* a, size_t linear_index) {
     }
 
     return ia;
-}
-
-// get number of elements of subtensors of the specified axis
-size_t get_nelem_of_axis_elements(struct tensor_t* a, size_t axis) {
-    if (a->rank == 0) return 0;
-    size_t nelem = 1;
-
-    for (size_t dim = axis; dim < a->rank; dim++) {
-        nelem *= a->shape[dim];
-    }
-
-    return nelem;
 }
 
 float get_item(struct tensor_t* a, size_t linear_index) {

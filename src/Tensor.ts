@@ -1,7 +1,7 @@
 import Shape from "./Shape";
 import Strides from "./Strides";
 import core from "./core/build";
-import { get_row_major } from "./stride_operations";
+import { get_row_major } from "./util";
 import tensor_to_string from "./to_string";
 import { ordinal_str } from "./util";
 import * as ops from "./tensor_operations";
@@ -23,26 +23,19 @@ export class Tensor {
         this.data    = new Float32Array(core.memory.buffer, this.get_data_ptr(), this.get_ndata());
     }
 
-    public set_rank     = (rank:   number) => this.view[STRUCT_LAYOUT.RANK]   = rank;
-    public set_nelem    = (nelem:  number) => this.view[STRUCT_LAYOUT.NELEM]  = nelem;
     public set_offset   = (offset: number) => this.view[STRUCT_LAYOUT.OFFSET] = offset;
-    public set_isview   = (isview: number) => this.view[STRUCT_LAYOUT.ISVIEW] = isview;
 
+    public get_view_ptr     = () => this.view.byteOffset;
     public get_rank         = () => this.view[STRUCT_LAYOUT.RANK];
     public get_nelem        = () => this.view[STRUCT_LAYOUT.NELEM];
     public get_offset       = () => this.view[STRUCT_LAYOUT.OFFSET];
     public get_ndata        = () => this.view[STRUCT_LAYOUT.NDATA];
     public get_isview       = () => this.view[STRUCT_LAYOUT.ISVIEW];
-    public get_rows         = () => this.get_axis_size(this.get_rank() - 2);
-    public get_cols         = () => this.get_axis_size(this.get_rank() - 1);
-    public get_view_ptr     = () => this.view.byteOffset;
-    // public get_data_ptr     = () => this.data.byteOffset;
-    // public get_shape_ptr    = () => this.shape.byteOffset;
-    // public get_strides_ptr  = () => this.strides.byteOffset;
     public get_data_ptr     = () => this.view[STRUCT_LAYOUT.DATA];
     public get_shape_ptr    = () => this.view[STRUCT_LAYOUT.SHAPE];
     public get_strides_ptr  = () => this.view[STRUCT_LAYOUT.STRIDES];
-
+    public get_rows         = () => this.get_axis_size(this.get_rank() - 2);
+    public get_cols         = () => this.get_axis_size(this.get_rank() - 1);
     public get_axis_size    = (axis_index: number) => this.shape.get_axis_size(axis_index);
 
     public print = () => console.log(tensor_to_string(this) + "\n---");
@@ -54,6 +47,7 @@ export class Tensor {
         `  strides: [${this.strides}]\n` +
         `  rank:    ${this.get_rank()}\n` +
         `  nelem:   ${this.get_nelem()}\n` +
+        `  ndata:   ${this.get_ndata()}\n` +
         `  offset:  ${this.get_offset()}\n` +
         `  data: [${this.data}]\n`
     );
@@ -62,28 +56,15 @@ export class Tensor {
         if (n > this.get_rank() - 2)
             throw new Error(`Cannot iterate over ${ordinal_str(n)} axis.`);
 
-        // todo: add get_axis_strides() and extract superclass from Shape and Strides
-        // const shape = new Shape(this.shape.get_axis_shape(n + 1), true);
-        // const strides = new Strides([...this.strides].slice(n - this.get_rank() + 1), true);
-
-        // const new_shape   = this.shape.get_axis_shape(n + 1);
-        // const new_strides = [...this.strides].slice(n - this.get_rank() + 1);
-
-        // const shape   = new Shape  (core._alloc_starr(new_shape.length), true);
-        // const strides = new Strides(core._alloc_starr(new_strides.length), true);
-        // shape.set(new_shape);
-        // strides.set(new_strides);
-
         const view = create_view(this, n + 1);
         const nelem = this.shape.flatten(this.get_rank() - n)[0];
 
-        // todo: fix nelem = 0 problem
-
         for (let index = 0; index < nelem; index++) {
             const offset = index * this.strides[n];
-            // new_tensor.set_offset(new_tensor.get_offset() + offset); // todo could reduce call overhead
-            // yield new Tensor(shape, strides, this.data, offset, true);
-            // yield new_tensor.clone();
+            // creating separate views instead of using a single one and
+            // incrementing the offset, because the user might access
+            // the views even after the iteration process is done
+            // todo: this leaves us with the problem of deallocation, however
             yield create_view(view, 0, offset);
         }
     }
@@ -108,6 +89,7 @@ export class Tensor {
     public ones  = () => this.fill(1);
     public free  = () => ops.free(this);
     public clone = () => ops.clone(this);
+    public create_view = (axis = 0, offset = 0) => create_view(this, axis, offset);
 
     // metadata operations
     public transpose  = (...permutation: number[]) => ops.transpose(this, permutation);

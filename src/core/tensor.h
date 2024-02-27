@@ -18,6 +18,8 @@ struct tensor_t {
 };
 
 struct tensor_t* create_tensor(size_t rank, size_t nelem);
+struct tensor_t* create_view(struct tensor_t* source, size_t axis, size_t offset);
+void free_tensor(struct tensor_t* a);
 void clone_tensor(struct tensor_t* a, struct tensor_t* res);
 
 #endif//CORE_TENSOR

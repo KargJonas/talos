@@ -1,3 +1,4 @@
+import Shape from "./Shape";
 import { Tensor } from "./Tensor";
 import core from "./core/build";
 
@@ -52,4 +53,16 @@ export function ordinal_str(n: number): string {
             last_digit == 3 && last_two_digits != 13 ? "rd" : "th");
 
     return `${n}${suffix}`;
+}
+
+export function get_row_major(shape: number[]): number[] {
+    let stride = 1;
+    const strides = new Array(shape.length);
+    strides.fill(1);
+
+    for (let i = shape.length - 2; i >= 0; i--) {
+        strides[i] = stride *= shape[i + 1];
+    }
+
+    return strides;
 }

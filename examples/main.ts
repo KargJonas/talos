@@ -11,12 +11,14 @@ print("###########\n".repeat(2));
 const t1 = tensor([2, 2, 3], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
 const t2 = tensor([3, 2],    [1, 2, 3, 4, 5, 6]);
 const t3 = tensor([2, 3],    [1, 2, 3, 4, 5, 6]);
-const t5 = tensor([3], [-1, 2, 3]);
+const t5 = tensor([3],       [-1, 2, 3]);
 
-t1.T.print();
+// t1.T.print();
 
+// t2.print_info();
+// t2.T.print_info();
 
-// t2.matmul(t2.T).print();
+t2.matmul(t2.T).print();
 
 // const a = t1.clone();
 // for (const e of a) {

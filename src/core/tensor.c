@@ -53,6 +53,13 @@ struct tensor_t* create_view(struct tensor_t* source, size_t axis, size_t offset
     return new_tensor;
 }
 
+void free_tensor(struct tensor_t* a) {
+    if (!a->isview) free(a->data);
+    free(a->shape);
+    free(a->strides);
+    free(a);
+}
+
 /**
  * with tensor views we can no longer just copy the data segment
  * naively because the elements of a subtensor may be distributed

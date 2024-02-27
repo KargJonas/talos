@@ -6,8 +6,8 @@
 #include <string.h>
 #include "./tensor.h"
 
-#define MAX_DIM 16
 #define MAX(A, B) A > B ? A : B
+#define print_js(msg, var) EM_ASM({ console.log(msg, $0); }, var);
 
 // allocation functions
 
@@ -25,14 +25,11 @@ void copy_starr(size_t* source, size_t* dest, size_t nelem);
 
 void free_farr(float* ptr);
 void free_starr(size_t* ptr);
-void free_tensor(struct tensor_t* tensor);
 
 
 // misc utility functions
 
 float fast_inv_sqrt(float number);
-size_t get_ncols(struct tensor_t* a);
-size_t get_nrows(struct tensor_t* a);
 size_t get_nsubtns(struct tensor_t *a, size_t n);
 
 #endif //CORE_UTIL
