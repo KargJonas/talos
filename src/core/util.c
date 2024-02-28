@@ -78,7 +78,7 @@ void set_row_major(struct tensor_t* a) {
         return;
     }
 
-    for (size_t i = a->rank - 2; i >= 0; i--) {
+    for (size_t i = a->rank - 1; i-- > 0;) {
         a->strides[i] = stride *= a->shape[i + 1];
     }
 }

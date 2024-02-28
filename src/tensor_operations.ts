@@ -1,6 +1,6 @@
 import core from "./core/build";
 import { check_row_col_compat } from "./util";
-import tensor, { Tensor, create_view } from "./Tensor";
+import tensor, { Tensor, create_view, tensor_like } from "./Tensor";
 import Shape from "./Shape";
 
 // types for high level operations
@@ -56,7 +56,7 @@ export const free  = (a: Tensor) => core._free_tensor(a.get_view_ptr());
  * @returns A copy of the original tensor.
  */
 export const clone = (a: Tensor) => {
-    const new_tensor = tensor(a.shape);
+    const new_tensor = tensor([...a.shape]);
     core._clone_tensor(a.get_view_ptr(), new_tensor.get_view_ptr());
     return new_tensor;
 };

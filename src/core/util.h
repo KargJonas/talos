@@ -6,6 +6,8 @@
 #include <string.h>
 #include "./tensor.h"
 
+#include <emscripten.h>
+
 #define MAX(A, B) A > B ? A : B
 #define print_js(msg, var) EM_ASM({ console.log(msg, $0); }, var);
 

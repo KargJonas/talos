@@ -13,12 +13,26 @@ const t2 = tensor([3, 2],    [1, 2, 3, 4, 5, 6]);
 const t3 = tensor([2, 3],    [1, 2, 3, 4, 5, 6]);
 const t5 = tensor([3],       [-1, 2, 3]);
 
+
+t2.T.matmul(t2).clone().print();
+
+// const t4 = tensor([3, 2], [7.5, 5.5, -2, 3.5, 0, 3]);
+// const t6 = tensor([2, 3], [-100, 2, 3, 2, 4, 2]);
+
+// t1.dot(t2).print();
+// t1.matmul(t2).print();
+
 // t1.T.print();
 
 // t2.print_info();
 // t2.T.print_info();
 
-t2.matmul(t2.T).print();
+// t2.matmul(t2.T).print();
+
+// t1.matmul(t2).print();
+
+// t1.dot(t2).print_info();
+// t1.dot(t2).print();
 
 // const a = t1.clone();
 // for (const e of a) {

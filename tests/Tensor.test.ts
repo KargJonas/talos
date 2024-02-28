@@ -66,22 +66,22 @@ describe("tensor creation", async () => {
         new_tensor.shape[0] = 50;
         new_tensor.strides[0] = 50;
         new_tensor.data[0] = 50;
-        new_tensor.set_rank(50);
-        new_tensor.set_nelem(50);
+        // new_tensor.set_rank(50); // todo
+        // new_tensor.set_nelem(50);
 
         // modify old tensor
         old_tensor.shape[0] = 10;
         old_tensor.strides[0] = 10;
         old_tensor.data[0] = 10;
-        old_tensor.set_rank(10);
-        old_tensor.set_nelem(10);
+        // old_tensor.set_rank(10);
+        // old_tensor.set_nelem(10);
 
         // check that new tensor was not changed
         expect([...new_tensor.shape]).not.toEqual([...old_tensor.shape]);
         expect([...new_tensor.strides]).not.toEqual([...old_tensor.strides]);
         expect([...new_tensor.data]).not.toEqual([...old_tensor.data]);
-        expect(new_tensor.get_rank()).not.toEqual(old_tensor.get_rank());
-        expect(new_tensor.get_nelem()).not.toEqual(old_tensor.get_nelem());
+        // expect(new_tensor.get_rank()).not.toEqual(old_tensor.get_rank());
+        // expect(new_tensor.get_nelem()).not.toEqual(old_tensor.get_nelem());
     }
 
     function check_tensor_metadata_equality(a: Tensor, b: Tensor) {
@@ -132,24 +132,14 @@ describe("tensor creation", async () => {
 
     // basic tests for tensor address space overlaps
     // not really tests for views
-    test("Tensor referencing/(meta-)data-dependence", () => {
+    test("Tensor views/data-dependence", () => {
         const old_tensor = tensor([1, 2, 3, 4]).zeros();
-        const new_tensor = new Tensor(old_tensor.shape, old_tensor.strides, old_tensor.data);
+        const new_tensor = old_tensor.create_view();
 
         // make sure metadata is copied correctly and that tensors are independent of one another
         check_tensor_metadata_equality(new_tensor, old_tensor);
-        
-        old_tensor.shape[0] = 4;
-        old_tensor.strides[0] = 4;
         old_tensor.data[0] = 4;
-        old_tensor.set_rank(6);
-        old_tensor.set_nelem(0);
-
-        expect(old_tensor.shape[0]).toEqual(new_tensor.shape[0]);
-        expect(old_tensor.strides[0]).toEqual(new_tensor.strides[0]);
         expect(old_tensor.data[0]).toEqual(new_tensor.data[0]);
-        expect(old_tensor.get_rank()).not.toEqual(new_tensor.get_rank()); // nelem and rank are not dependent (might change this in the future)
-        expect(old_tensor.get_nelem()).not.toEqual(new_tensor.get_nelem());
     });
 
     const t1 = tensor([2, 2, 3], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);

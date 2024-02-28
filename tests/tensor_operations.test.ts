@@ -30,6 +30,13 @@ describe("tensor operations", async () => {
     const t16 = tensor([1, 3], [7, 3, 1]);
     const t17 = tensor([8, 1], [9, 8, 7, 6, 5, 4, 3, 2]);
 
+    function expect_arrays_closeto(a: number[] | Float32Array, b: number[] | Float32Array) {
+        [...a].map((v, i) => {
+            if (Number.isNaN(v)) expect(b[i]).toBeNaN();
+            else expect(v).toBeCloseTo(b[i]);
+        });
+    }
+
     function unary(unary_op: ops.UnaryOp, a: Tensor, expectation: (v: number) => number, in_place = false) {
         let t = a.clone();
         const input = [...t.data];
@@ -59,7 +66,7 @@ describe("tensor operations", async () => {
         t = binary_op(t, b, in_place);
         expect([...t.shape]).toEqual([...expected_shape]);
 
-        [...t.data].map((v, i) => {
+        [...t.clone().data].map((v, i) => {
             if (Number.isNaN(v)) expect(expected_data[i]).toBeNaN();
             else expect(v).toBeCloseTo(expected_data[i], 3);
         });
@@ -244,6 +251,35 @@ describe("tensor operations", async () => {
             binary(ops.dot, t7, t8, [2, 3, 3], [22, 60, 62, 29, 55, 36, 45, 67, 33, 8, 36, 48, 25, 51, 41, 13, 39, 39]);
             binary(ops.dot, t9, t10, [2, 2, 4, 1], [0.548, 0.409, 0.752, 0.404, 0.984, 0.663, 0.417, 0.239, 0.419, 0.878, 0.814, 0.756, 0.996, 0.168, 0.232, 0.604]);
             binary(ops.dot, t11, t13, [3, 4, 2, 2, 2], [0.929, 1.13, 0.464, 0.934, 0.791, 1.08, 1.132, 0.973, 1.596, 1.011, 0.718, 0.8, 0.536, 1.644, 1.868, 1.111, 1.964, 2.061, 0.869, 1.747, 1.315, 2.312, 2.301, 1.549, 0.957, 1.038, 0.389, 0.902, 0.76, 1.027, 0.968, 0.904, 1.266, 1.949, 0.67, 1.625, 1.047, 1.66, 1.836, 1.446, 0.975, 1.3, 0.489, 1.081, 0.754, 1.112, 1.262, 1.183, 0.479, 0.492, 0.231, 0.404, 0.355, 0.543, 0.563, 0.431, 1.493, 1.421, 0.821, 1.093, 0.875, 1.815, 2.069, 1.189, 1.558, 0.939, 0.612, 0.798, 0.69, 1.686, 1.598, 0.735, 1.118, 1.379, 0.652, 1.079, 0.693, 1.313, 1.676, 1.336, 2.17, 2.219, 1.018, 1.836, 1.266, 2.463, 2.688, 1.931, 1.521, 2.049, 0.765, 1.71, 1.167, 1.955, 2.075, 1.469]);
+        });
+
+        test("transpose", () => {
+            expect_arrays_closeto(t1.T.clone().data, [1, 7, 4, 10, 2, 8, 5, 11, 3, 9, 6, 12]);
+            expect_arrays_closeto(t2.T.clone().data, [1, 3, 5, 2, 4, 6]);
+
+            // transposition is its own inverse operation,
+            // this means transposing twice should yield the original tensor
+            expect_arrays_closeto(t1.T.T.clone().data, t1.data);
+            expect_arrays_closeto(t2.T.T.clone().data, t2.data);
+            expect_arrays_closeto(t1.T.clone().T.clone().data, t1.data);
+            expect_arrays_closeto(t2.T.clone().T.clone().data, t2.data);
+
+            expect(() => t1.transpose(1, 2, 3)).toThrow();
+            expect(() => t1.transpose(0, 1, 1)).toThrow();
+            expect(() => t1.transpose(0, 1, 2, 3)).toThrow();
+            expect(() => t1.transpose(0, 1)).toThrow();
+
+            expect_arrays_closeto(t1.transpose(0, 2, 1).clone().data, [1, 4, 2, 5, 3, 6, 7, 10, 8, 11, 9, 12]);
+            expect_arrays_closeto(t1.transpose(1, 0, 2).clone().data, [1, 2, 3, 7, 8, 9, 4, 5, 6, 10, 11, 12]);
+        
+            // todo: test shapes/strides
+        });
+
+        test("transpose + other ops", () =>  {
+            expect_arrays_closeto(t2.T.matmul(t2).clone().data, [ 35, 44, 44, 56 ]);
+            expect_arrays_closeto(t2.matmul(t2.T).clone().data, [ 5, 11, 17, 11, 25, 39, 17, 39, 61 ]);
+        
+            // todo: test shapes/strides
         });
     });
 

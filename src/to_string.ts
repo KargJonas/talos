@@ -11,7 +11,6 @@ export default function tensor_to_string(a: Tensor, num_width = 5, space_before 
     const strings: string[] = [];
 
     for (const element of a.get_axis_iterable(0)) {
-        element.print_info();
         strings.push(tensor_to_string(element, num_width, space_before + 2)!);
     }
 
@@ -60,10 +59,11 @@ function mat_to_string(mat: Tensor, n_decimals: number, space_before: number) {
             // if value is integer, omit trailing zeros, otherwise use fixed nr of digits
             const str = val === val_floor ? val.toString() : val.toFixed(n_decimals);
 
-            // compute amount of left padding
-            const padding_amount = Math.max(n_integer - val_floor.toString().length, 0);
+            // compute amount of padding
+            const left_padding  = Math.max(n_integer - val_floor.toString().length, 0);
+            const right_padding = n_integer + n_decimals - str.length - left_padding + 1;
 
-            vals.push(" ".repeat(padding_amount) + str);
+            vals.push(`${" ".repeat(left_padding)}${str}${" ".repeat(right_padding)}`);
         }
 
         const padding_left = r !== 0 ? " ".repeat(space_before) : "";
