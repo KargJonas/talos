@@ -38,37 +38,58 @@ function vec_to_string(vec: Tensor, n_decimals: number) {
 }
 
 function mat_to_string(mat: Tensor, n_decimals: number, space_before: number) {
-    // largest amount of digits in the integer part of the number
+    // amount of digits in the integer part of the largest number
     const n_integer = Math.floor(mat.max()).toString().length;
-
     const lines: string[] = [];
     const cols = mat.get_cols();
     const rows = mat.get_rows();
     const col_stride = mat.strides[1];
     const row_stride = mat.strides[0];
     const offset = mat.get_offset();
+    const exp = Math.pow(10, n_decimals);
+
+    let max_decimal = 0;
+    const m = mat.clone();
+
+    for (let i = 0; i < m.data.length; i++) {
+        const len = m.data[i].toString().split(".")[1]?.length || 0;
+        max_decimal = Math.max(max_decimal, len);
+    }
+
+    m.free();
 
     for (let r = 0; r < rows; r++) {
         const vals: string[] = [];
 
         for (let c = 0; c < cols; c++) {
             const index = offset + r * row_stride + c * col_stride;
-            const val = mat.data[index];
+            const val = Math.floor(mat.data[index] * exp) / exp;
             const val_floor = Math.floor(val);
 
             // if value is integer, omit trailing zeros, otherwise use fixed nr of digits
-            const str = val === val_floor ? val.toString() : val.toFixed(n_decimals);
+            // const str = val === val_floor ? val.toString() : val.toFixed(n_decimals);
+            // const str = val.toFixed(n_decimals).toString();
+            const str = val.toString();
+            const separator = c < cols - 1 ? ", " : "";
+            
+            const split = str.split(".");
+            const len_left = split[0].length;
+            const len_right = split[1]?.length || 0;
 
-            // compute amount of padding
-            const left_padding  = Math.max(n_integer - val_floor.toString().length, 0);
-            const right_padding = n_integer + n_decimals - str.length - left_padding + 1;
+            const padding_left = n_integer - len_left - val < 0 ? 1 : 0;
 
-            vals.push(`${" ".repeat(left_padding)}${str}${" ".repeat(right_padding)}`);
+            // vals.push(`${" ".repeat(left_padding)}${str}${c < cols - 1 ? ", " : ""}${" ".repeat(right_padding)}`);
+            vals.push(`${" ".repeat(padding_left)}${str}${separator}`);
         }
 
         const padding_left = r !== 0 ? " ".repeat(space_before) : "";
-        lines.push(`${padding_left}[ ${vals.join(", ")} ]`);
+        // lines.push(`${padding_left}[ ${vals.join(", ")} ]`);
+        lines.push(`${padding_left}[ ${vals.join("")} ]`);
     }
 
     return `[${lines.join("\n ")}]`;
+}
+
+function pad_text(text, width) {
+    return `${text}${" ".repeat(Math.max(0, width - text.length))}`;
 }

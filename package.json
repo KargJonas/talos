@@ -11,7 +11,7 @@
     "typescript": "^5.0.0"
   },
   "scripts": {
-    "dev": "bun --watch examples/main.ts",
+    "dev": "bun --watch examples/dev.ts",
     "test": "bun test",
     "lint": "eslint . ; tsc",
     "build-core": "make main",

@@ -125,6 +125,10 @@ describe("tensor operations", async () => {
             expected = expected.map(v => v / 4);
             expect([...t.data]).toEqual(expected);
 
+            t.pow(Math.PI, true);
+            expected = expected.map(v => Math.pow(v, Math.PI));
+            expect_arrays_closeto(t.data, expected);
+
             expect([...t1.shape]).toEqual([...t.shape]);
         });
 
@@ -135,20 +139,23 @@ describe("tensor operations", async () => {
 
             t.add(t3, true);
             expected = expected.map((v, i) => v + t3.data[i]);
-            expect([...t.data]).toEqual(expected);
+            expect_arrays_closeto(t.data, expected);
 
             t.sub(t4, true);
             expected = expected.map((v, i) => v - t4.data[i]);
-            expect([...t.data]).toEqual(expected);
+            expect_arrays_closeto(t.data, expected);
 
             t.mul(t3, true);
             expected = expected.map((v, i) => v * t3.data[i]);
-            // expect([...t.data]).toEqual(expected);
-            t.data.forEach((v, i) => expect(v).toBeCloseTo(expected[i]));
+            expect_arrays_closeto(t.data, expected);
 
             t.div(t2, true);
             expected = expected.map((v, i) => v / t2.data[i]);
-            t.data.forEach((v, i) => expect(v).toBeCloseTo(expected[i]));
+            expect_arrays_closeto(t.data, expected);
+
+            t.pow(t2, true);
+            expected = expected.map((v, i) => Math.pow(v, t2.data[i]));
+            expect_arrays_closeto(t.data, expected);
         });
 
         test("broadcasting ops", () => {
@@ -156,6 +163,7 @@ describe("tensor operations", async () => {
             binary(ops.sub, t1, t5, t1.shape, [2, 0, 0, 5, 3, 3, 8, 6, 6, 11, 9, 9]);
             binary(ops.mul, t1, t5, t1.shape, [-1, 4, 9, -4, 10, 18, -7, 16, 27, -10, 22, 36], true);
             binary(ops.div, t1, t5, t1.shape, [-1, 1, 1, -4, 2.5, 2, -7, 4, 3, -10, 5.5, 4], true);
+            binary(ops.pow, t1, t6, t1.shape, [1, 4, 27, 16, 625, 36, 0, 64, 729, 100, 14641, 144]);
         });
 
         test("matmul", () => {
@@ -212,6 +220,7 @@ describe("tensor operations", async () => {
             binary(ops.sub, t1, 2.5, t1.shape, [...t1.data].map(v => v - 2.5));
             binary(ops.mul, t1, 2, t1.shape, [...t1.data].map(v => v * 2));
             binary(ops.div, t1, 4, t1.shape, [...t1.data].map(v => v / 4));
+            binary(ops.pow, t1, 4, t1.shape, [...t1.data].map(v => Math.pow(v, 4)));
         });
 
         // warning: this test can cause precision-based errors!
@@ -220,6 +229,7 @@ describe("tensor operations", async () => {
             binary(ops.sub, t2, t4, t2.shape, [...t2.data].map((v, i) => v - t4.data[i]));
             binary(ops.mul, t2, t3, t2.shape, [...t2.data].map((v, i) => v * t3.data[i]));
             binary(ops.div, t2, t4, t2.shape, [...t2.data].map((v, i) => v / t4.data[i]));
+            binary(ops.pow, t2, t4, t2.shape, [...t2.data].map((v, i) => Math.pow(v, t4.data[i])));
         });
 
         test("broadcasting ops", () => {
@@ -228,6 +238,7 @@ describe("tensor operations", async () => {
             binary(ops.mul, t1, t5, t1.shape, [-1, 4, 9, -4, 10, 18, -7, 16, 27, -10, 22, 36]);
             binary(ops.div, t1, t5, t1.shape, [-1, 1, 1, -4, 2.5, 2, -7, 4, 3, -10, 5.5, 4]);
             binary(ops.add, t16, t17, [8, 3], [16, 12, 10, 15, 11, 9, 14, 10, 8, 13, 9, 7, 12, 8, 6, 11, 7, 5, 10, 6, 4, 9, 5, 3]);
+            binary(ops.pow, t1, t6, [2, 2, 3], [1, 4, 27, 16, 625, 36, 0, 64, 729, 100, 14641, 144]);
         });
 
         test("matmul", () => {

@@ -1,6 +1,6 @@
 import core from "./core/build";
 import { check_row_col_compat } from "./util";
-import tensor, { Tensor, create_view, tensor_like } from "./Tensor";
+import tensor, { Tensor, create_view } from "./Tensor";
 import Shape from "./Shape";
 
 // types for high level operations
@@ -16,6 +16,7 @@ export const add        = create_binary_op(core._add_scl, core._add_prw, core._a
 export const sub        = create_binary_op(core._sub_scl, core._sub_prw, core._sub_prw_brc);
 export const mul        = create_binary_op(core._mul_scl, core._mul_prw, core._mul_prw_brc);
 export const div        = create_binary_op(core._div_scl, core._div_prw, core._div_prw_brc);
+export const pow        = create_binary_op(core._pow_scl, core._pow_prw, core._pow_prw_brc);
 
 // unary operations
 export const relu       = create_unary_op(core._relu_tns);

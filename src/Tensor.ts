@@ -124,6 +124,7 @@ export class Tensor {
     public sub        = (other: Tensor | number, in_place = false) => ops.sub(this, other, in_place);
     public mul        = (other: Tensor | number, in_place = false) => ops.mul(this, other, in_place);
     public div        = (other: Tensor | number, in_place = false) => ops.div(this, other, in_place);
+    public pow        = (other: Tensor | number, in_place = false) => ops.pow(this, other, in_place);
     public dot        = (other: Tensor, in_place = false) => ops.dot(this, other, in_place);
     public matmul     = (other: Tensor, in_place = false) => ops.matmul(this, other, in_place);
 
@@ -143,8 +144,9 @@ export class Tensor {
     }
 }
 
-export default function tensor(shape: number[], data?: number[]): Tensor {
-    const nelem = shape.reduce((acc: number, val: number) => acc * val, 1);
+export default function tensor(shape: number[] | Shape, data?: number[]): Tensor {
+    const _shape = [...shape];
+    const nelem = _shape.reduce((acc: number, val: number) => acc * val, 1);
 
     if (data !== undefined && data.length !== nelem)
         throw new Error(`Cannot cast array of size ${data.length} into tensor of shape [${shape}]`);
@@ -154,7 +156,7 @@ export default function tensor(shape: number[], data?: number[]): Tensor {
 
     if (data !== undefined) new_tensor.data.set(data);
     new_tensor.shape.set(shape);
-    new_tensor.strides.set(get_row_major(shape));
+    new_tensor.strides.set(get_row_major(_shape));
 
     return new_tensor;
 }

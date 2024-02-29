@@ -1,9 +1,15 @@
+/**
+ * This file is used for validation and debugging during development. 
+ */
+
 import { core_ready } from "../src/util";
 import tensor from "../src/Tensor";
 
 // if your runtime does not support top-level await,
 // you'll have to use core_ready.then(() => { ... }) instead
 await core_ready;
+
+console.log("###########\n".repeat(2));
 
 const t1 = tensor([2, 2, 3], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
 const t2 = tensor([3, 2],    [1, 2, 3, 4, 5, 6]);
