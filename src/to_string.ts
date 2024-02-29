@@ -48,15 +48,16 @@ function mat_to_string(mat: Tensor, n_decimals: number, space_before: number) {
     const offset = mat.get_offset();
     const exp = Math.pow(10, n_decimals);
 
-    let max_decimal = 0;
     const m = mat.clone();
-
+    let only_integers = true;
     for (let i = 0; i < m.data.length; i++) {
-        const len = m.data[i].toString().split(".")[1]?.length || 0;
-        max_decimal = Math.max(max_decimal, len);
+        if (m.data[i] !== Math.floor(m.data[i])) {
+            only_integers = false;
+            break;
+        }
     }
 
-    m.free();
+    const max_length = n_integer + 1 + (only_integers ? 0 : n_decimals);
 
     for (let r = 0; r < rows; r++) {
         const vals: string[] = [];
@@ -64,32 +65,17 @@ function mat_to_string(mat: Tensor, n_decimals: number, space_before: number) {
         for (let c = 0; c < cols; c++) {
             const index = offset + r * row_stride + c * col_stride;
             const val = Math.floor(mat.data[index] * exp) / exp;
-            const val_floor = Math.floor(val);
-
-            // if value is integer, omit trailing zeros, otherwise use fixed nr of digits
-            // const str = val === val_floor ? val.toString() : val.toFixed(n_decimals);
-            // const str = val.toFixed(n_decimals).toString();
             const str = val.toString();
             const separator = c < cols - 1 ? ", " : "";
-            
-            const split = str.split(".");
-            const len_left = split[0].length;
-            const len_right = split[1]?.length || 0;
+            const padding_right = " ".repeat(max_length - str.length);
 
-            const padding_left = n_integer - len_left - val < 0 ? 1 : 0;
-
-            // vals.push(`${" ".repeat(left_padding)}${str}${c < cols - 1 ? ", " : ""}${" ".repeat(right_padding)}`);
-            vals.push(`${" ".repeat(padding_left)}${str}${separator}`);
+            vals.push(`${str}${separator}${padding_right}`);
         }
 
         const padding_left = r !== 0 ? " ".repeat(space_before) : "";
         // lines.push(`${padding_left}[ ${vals.join(", ")} ]`);
-        lines.push(`${padding_left}[ ${vals.join("")} ]`);
+        lines.push(`${padding_left}[ ${vals.join("")}]`);
     }
 
     return `[${lines.join("\n ")}]`;
-}
-
-function pad_text(text, width) {
-    return `${text}${" ".repeat(Math.max(0, width - text.length))}`;
 }
