@@ -6,14 +6,17 @@ SRC_DIR 	= ./src/core
 EF = [ \
 	_alloc_farr, _alloc_starr, _create_tensor, \
 	_free_farr, _free_starr, _free_tensor, \
-	_copy_farr, _copy_starr, _copy_tensor, _copy_tensor_metadata, \
+	_copy_farr, _copy_starr, \
+	_clone_tensor, _create_view, \
 	\
 	_rand_seed, _rand_f, _rand_i, _fill, \
 	\
 	_add_scl, _sub_scl, _mul_scl, _div_scl, _pow_scl, \
-	_add_prw, _sub_prw, _mul_prw, _div_prw, \
-	_add_prw_brc, _sub_prw_brc, _mul_prw_brc, _div_prw_brc, \
+	_add_prw, _sub_prw, _mul_prw, _div_prw, _pow_prw, \
+	_add_prw_brc, _sub_prw_brc, _mul_prw_brc, _div_prw_brc, _pow_prw_brc, \
 	_mul_tns, _dot_tns, \
+	\
+	_max_red, _min_red, _sum_red, _mean_red, \
 	\
 	_negate_tns, _reciprocal_tns, \
 	_sin_tns, _cos_tns, _tan_tns, \
@@ -23,7 +26,6 @@ EF = [ \
 	_log_tns, _log10_tns, _log2_tns, \
 	_invsqrt_tns, _sqrt_tns, \
 	_ceil_tns, _floor_tns, _abs_tns, \
-	_identity_tns, \
 	\
 	_relu_tns, _binstep_tns, _logistic_tns \
 ]

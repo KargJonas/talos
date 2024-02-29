@@ -32,13 +32,6 @@ void free_starr(size_t* ptr) {
     free(ptr);
 }
 
-void free_tensor(struct tensor_t* tensor) {
-    free_farr(tensor->data);
-    free_starr(tensor->shape);
-    free_starr(tensor->strides);
-    free(tensor);
-}
-
 
 // misc utility functions
 
@@ -56,19 +49,10 @@ float fast_inv_sqrt(float number) {
     return y;
 }
 
-size_t get_ncols(struct tensor_t* a) {
-    return a->shape[a->rank - 1];
-}
-
-size_t get_nrows(struct tensor_t* a) {
-    if (a->rank < 2) return 1;
-    return a->shape[a->rank - 2];
-}
-
 // get number of subtensors at a certain level
 //   e.g.: n=1 will return the number of vectors in the tensor
 //         n=2 will return the number of matrices in the tensor
-size_t get_nsubtns(struct tensor_t *a, size_t n)
+size_t get_nsubtns(struct tensor_t* a, size_t n)
 {
     size_t end = a->rank - n;
     size_t nsubtns = 1;
@@ -78,4 +62,64 @@ size_t get_nsubtns(struct tensor_t *a, size_t n)
     }
 
     return nsubtns;
+}
+
+void set_row_major(struct tensor_t* a) {
+    size_t stride = 1;
+
+    for (size_t i = 0; i < a->rank; i++) {
+        a->strides[i] = 1;
+    }
+
+    if (a->rank < 2) return;
+    if (a->rank == 2) {
+        a->strides[1] = 1;
+        a->strides[0] = a->shape[1];
+        return;
+    }
+
+    for (size_t i = a->rank - 1; i-- > 0;) {
+        a->strides[i] = stride *= a->shape[i + 1];
+    }
+}
+
+// get number of elements of subtensors of the specified axis
+size_t get_nelem_of_axis_elements(struct tensor_t* a, size_t axis) {
+    if (a->rank == 0) return 0;
+    size_t nelem = 1;
+
+    for (size_t dim = axis; dim < a->rank; dim++) {
+        nelem *= a->shape[dim];
+    }
+
+    return nelem;
+}
+
+// get index of element in data array from linear index
+size_t get_index(struct tensor_t* a, size_t linear_index) {
+    size_t ia = a->offset;
+    size_t remainder = linear_index;
+    size_t iaxis;
+
+    for (size_t dim = a->rank; dim-- > 0;) {
+        iaxis = remainder % a->shape[dim];
+        ia += iaxis * a->strides[dim];
+        remainder /= a->shape[dim];
+    }
+
+    return ia;
+}
+
+float get_item(struct tensor_t* a, size_t linear_index) {
+    size_t ia = a->offset;
+    size_t remainder = linear_index;
+    size_t iaxis;
+
+    for (size_t dim = a->rank; dim-- > 0;) {
+        iaxis = remainder % a->shape[dim];
+        ia += iaxis * a->strides[dim];
+        remainder /= a->shape[dim];
+    }
+
+    return a->data[ia];
 }

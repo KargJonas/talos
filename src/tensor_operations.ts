@@ -1,6 +1,6 @@
 import core from "./core/build";
 import { check_row_col_compat } from "./util";
-import tensor, { Tensor } from "./Tensor";
+import tensor, { Tensor, create_view } from "./Tensor";
 import Shape from "./Shape";
 
 // types for high level operations
@@ -16,6 +16,7 @@ export const add        = create_binary_op(core._add_scl, core._add_prw, core._a
 export const sub        = create_binary_op(core._sub_scl, core._sub_prw, core._sub_prw_brc);
 export const mul        = create_binary_op(core._mul_scl, core._mul_prw, core._mul_prw_brc);
 export const div        = create_binary_op(core._div_scl, core._div_prw, core._div_prw_brc);
+export const pow        = create_binary_op(core._pow_scl, core._pow_prw, core._pow_prw_brc);
 
 // unary operations
 export const relu       = create_unary_op(core._relu_tns);
@@ -23,7 +24,6 @@ export const tanh       = create_unary_op(core._tanh_tns);
 export const binstep    = create_unary_op(core._binstep_tns);
 export const logistic   = create_unary_op(core._logistic_tns);
 export const negate     = create_unary_op(core._negate_tns);
-export const identity   = create_unary_op(core._identity_tns);
 export const sin        = create_unary_op(core._sin_tns);
 export const cos        = create_unary_op(core._cos_tns);
 export const tan        = create_unary_op(core._tan_tns);
@@ -46,9 +46,19 @@ export const reciprocal = create_unary_op(core._reciprocal_tns);
 // be aware of tensor data dependencies when deallocating tensors !!
 export const free  = (a: Tensor) => core._free_tensor(a.get_view_ptr());
 
+/**
+ * Creates a deep copy of a tensor.
+ * This means all data and metadata is copied to a new tensor without 
+ * referencing the original.
+ * If the original tensor is a view of another tensor,
+ * we will only copy the elements in the tensor that actually
+ * occur in the view. This prevents allocating more memory than needed
+ * @param a Original tensor to copy
+ * @returns A copy of the original tensor.
+ */
 export const clone = (a: Tensor) => {
-    const new_tensor = tensor(a.shape);
-    core._copy_tensor(a.get_view_ptr(), new_tensor.get_view_ptr());
+    const new_tensor = tensor([...a.shape]);
+    core._clone_tensor(a.get_view_ptr(), new_tensor.get_view_ptr());
     return new_tensor;
 };
 
@@ -179,3 +189,64 @@ function in_place_cpy(source: Tensor, dest: Tensor) {
     source.free();
     return dest;
 }
+
+function validate_permutation(permutation: number[], rank: number): void {
+    if (permutation.length !== rank)
+        throw new Error(`The provided permutation [${permutation}] does not match the rank of the tensor (rank = ${rank}).`);
+
+    const _permutation = [...permutation].sort();
+
+    for (let i = 0; i < permutation.length; i++) {
+        if (_permutation[i] !== i)
+            throw new Error(`The provided permutation [${permutation}] is not valid.`);
+    }
+}
+
+/**
+ * This function generates a permutation that swaps the
+ * last (rightmost) two axes of a rank-n tensor.
+ * @param rank Rank of tensor
+ * @returns a permutation that swaps the last two axes.
+ */
+function get_matrix_transpose_permutation(rank: number): number[] {
+    // // swap last two axes
+    // const permutation: number[] = [];
+    // for (let i = 0; i < rank - 2; i++) permutation.push(i);
+    // permutation.push(rank - 1);
+    // permutation.push(rank - 2);
+
+    // NumPy-style default permutation (inverse)
+    const permutation: number[] = [];
+    for (let i = 0; i < rank; i++) permutation.push(i);
+    permutation.reverse();
+    return permutation;
+}
+
+export function transpose(a: Tensor, permutation?: number[]): Tensor {
+    let _permutation: number[];
+
+    // todo: handle rank=1: shape should be 1-extended to the right
+
+    if (!permutation || permutation.length === 0) {
+        _permutation = get_matrix_transpose_permutation(a.get_rank());
+    }
+    else {
+        _permutation = [...permutation];
+        validate_permutation(permutation, a.get_rank());
+    }
+
+    const new_shape   = _permutation.map(i => a.shape[i]);
+    const new_strides = _permutation.map(i => a.strides[i]);
+
+    const new_tensor = create_view(a);
+    new_tensor.shape.set(new_shape);
+    new_tensor.strides.set(new_strides);
+
+    return new_tensor;
+}
+
+// todo: add pairwise functionality (tensor-valued functions)
+export const max  = (a: Tensor) => core._max_red(a.get_view_ptr());
+export const min  = (a: Tensor) => core._min_red(a.get_view_ptr());
+export const sum  = (a: Tensor) => core._sum_red(a.get_view_ptr());
+export const mean = (a: Tensor) => core._mean_red(a.get_view_ptr());

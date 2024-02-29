@@ -1,12 +1,12 @@
 import Shape from "./Shape";
 import Strides from "./Strides";
 import core from "./core/build";
-import { get_column_major } from "./stride_operations";
+import { get_row_major } from "./util";
 import tensor_to_string from "./to_string";
-import { create_farr } from "./util";
+import { ordinal_str } from "./util";
 import * as ops from "./tensor_operations";
 
-enum  STRUCT_LAYOUT { DATA, SHAPE, STRIDES, RANK, NELEM }
+enum  STRUCT_LAYOUT { DATA, SHAPE, STRIDES, RANK, NELEM, NDATA, OFFSET, ISVIEW }
 const STRUCT_SIZE = Object.entries(STRUCT_LAYOUT).length / 2;
 
 export class Tensor {
@@ -15,45 +15,57 @@ export class Tensor {
     shape: Shape;
     strides: Strides;
 
-    constructor(shape: Shape, strides: Strides, data: Float32Array) {
-        const ptr = core._create_tensor();
+    constructor(ptr: number) {
+        // set up typed arrays for data access
         this.view = new Int32Array(core.memory.buffer, ptr, STRUCT_SIZE);
-
-        this.shape = shape;
-        this.strides = strides;
-        this.data = data;
-
-        this.view[STRUCT_LAYOUT.DATA] = this.data.byteOffset;
-        this.view[STRUCT_LAYOUT.SHAPE] = this.shape.byteOffset;
-        this.view[STRUCT_LAYOUT.STRIDES] = this.strides.byteOffset;
-
-        this.set_rank(shape.length);
-        this.set_nelem(data.length);
+        this.shape   = new Shape  (new Int32Array(core.memory.buffer, this.get_shape_ptr(), this.get_rank()), true);
+        this.strides = new Strides(new Int32Array(core.memory.buffer, this.get_strides_ptr(), this.get_rank()), true);
+        this.data    = new Float32Array(core.memory.buffer, this.get_data_ptr(), this.get_ndata());
     }
 
-    public set_rank     = (rank: number) => this.view[STRUCT_LAYOUT.RANK] = rank;
-    public set_nelem    = (nelem: number) => this.view[STRUCT_LAYOUT.NELEM] = nelem;
+    public set_offset   = (offset: number) => this.view[STRUCT_LAYOUT.OFFSET] = offset;
 
+    public get_view_ptr     = () => this.view.byteOffset;
     public get_rank         = () => this.view[STRUCT_LAYOUT.RANK];
     public get_nelem        = () => this.view[STRUCT_LAYOUT.NELEM];
+    public get_offset       = () => this.view[STRUCT_LAYOUT.OFFSET];
+    public get_ndata        = () => this.view[STRUCT_LAYOUT.NDATA];
+    public get_isview       = () => this.view[STRUCT_LAYOUT.ISVIEW];
+    public get_data_ptr     = () => this.view[STRUCT_LAYOUT.DATA];
+    public get_shape_ptr    = () => this.view[STRUCT_LAYOUT.SHAPE];
+    public get_strides_ptr  = () => this.view[STRUCT_LAYOUT.STRIDES];
     public get_rows         = () => this.get_axis_size(this.get_rank() - 2);
     public get_cols         = () => this.get_axis_size(this.get_rank() - 1);
-    public get_view_ptr     = () => this.view.byteOffset;
-    public get_data_ptr     = () => this.data.byteOffset;
-    public get_shape_ptr    = () => this.shape.byteOffset;
-    public get_strides_ptr  = () => this.strides.byteOffset;
     public get_axis_size    = (axis_index: number) => this.shape.get_axis_size(axis_index);
 
-    public toString = () => tensor_to_string(this);
+    public print = () => console.log(tensor_to_string(this) + "\n---");
+    public print_info = (title: string = "TENSOR INFO") => console.log(
+        `${title}\n` +
+        `  address: 0x${this.get_view_ptr().toString(16)}\n` +
+        `  is view: ${this.get_isview() ? "true" : "false"}\n` +
+        `  shape:   [${this.shape}]\n` +
+        `  strides: [${this.strides}]\n` +
+        `  rank:    ${this.get_rank()}\n` +
+        `  nelem:   ${this.get_nelem()}\n` +
+        `  ndata:   ${this.get_ndata()}\n` +
+        `  offset:  ${this.get_offset()}\n` +
+        `  data: [${this.data}]\n`
+    );
 
-    *get_axis_iterable(n: number) {
-        const axis_stride = this.strides[n];
-        const n_elem = this.get_nelem();
-        const shape = new Shape(this.shape.get_axis_shape(n + 1), true);
-        const strides = new Strides(get_column_major(shape), true);
+    *get_axis_iterable(n: number): Generator<Tensor> {
+        if (n > this.get_rank() - 2)
+            throw new Error(`Cannot iterate over ${ordinal_str(n)} axis.`);
 
-        for (let index = 0; index < n_elem; index += axis_stride) {
-            yield new Tensor(shape, strides, this.data.subarray(index, index + axis_stride));
+        const view = create_view(this, n + 1);
+        const nelem = this.shape.flatten(this.get_rank() - n)[0];
+
+        for (let index = 0; index < nelem; index++) {
+            const offset = index * this.strides[n];
+            // creating separate views instead of using a single one and
+            // incrementing the offset, because the user might access
+            // the views even after the iteration process is done
+            // todo: this leaves us with the problem of deallocation, however
+            yield create_view(view, 0, offset);
         }
     }
 
@@ -72,15 +84,21 @@ export class Tensor {
         return this;
     }
 
+    // init/free operations
     public zeros = () => this.fill(0);
-    public ones = () => this.fill(1);
+    public ones  = () => this.fill(1);
+    public free  = () => ops.free(this);
+    public clone = () => ops.clone(this);
+    public create_view = (axis = 0, offset = 0) => create_view(this, axis, offset);
+
+    // metadata operations
+    public transpose  = (...permutation: number[]) => ops.transpose(this, permutation);
 
     // unary operations
     public relu       = (in_place = false) => ops.relu(this, in_place);
     public binstep    = (in_place = false) => ops.binstep(this, in_place);
     public logistic   = (in_place = false) => ops.logistic(this, in_place);
     public negate     = (in_place = false) => ops.negate(this, in_place);
-    public identity   = (in_place = false) => ops.identity(this, in_place);
     public sin        = (in_place = false) => ops.sin(this, in_place);
     public cos        = (in_place = false) => ops.cos(this, in_place);
     public tan        = (in_place = false) => ops.tan(this, in_place);
@@ -100,40 +118,55 @@ export class Tensor {
     public floor      = (in_place = false) => ops.floor(this, in_place);
     public abs        = (in_place = false) => ops.abs(this, in_place);
     public reciprocal = (in_place = false) => ops.reciprocal(this, in_place);
-    public free       = ()                 => ops.free(this);
-    public clone      = ()                 => ops.clone(this);
 
     // binary operations
     public add        = (other: Tensor | number, in_place = false) => ops.add(this, other, in_place);
     public sub        = (other: Tensor | number, in_place = false) => ops.sub(this, other, in_place);
     public mul        = (other: Tensor | number, in_place = false) => ops.mul(this, other, in_place);
     public div        = (other: Tensor | number, in_place = false) => ops.div(this, other, in_place);
+    public pow        = (other: Tensor | number, in_place = false) => ops.pow(this, other, in_place);
     public dot        = (other: Tensor, in_place = false) => ops.dot(this, other, in_place);
     public matmul     = (other: Tensor, in_place = false) => ops.matmul(this, other, in_place);
-}
 
-export default function tensor(shape: Shape | number[], data?: number[]): Tensor {
-    // @ts-expect-error Obscure signature incompatibility between Int32Array.reduce() and Array.reduce()
-    const nelem = shape.reduce((acc: number, val: number) => acc * val, 1);
+    // reduce operations
+    public min  = (): number => ops.min(this);
+    public max  = (): number => ops.max(this);
+    public sum  = (): number => ops.sum(this);
+    public mean = (): number => ops.mean(this);
 
-    const _data = create_farr(nelem);
-    const _shape = new Shape(shape, true);
-    const _strides = new Strides(get_column_major(_shape), true);
-
-    // todo: ensure that tensor() is only called by the user and not used in the backend
-    //       (filling the tensor with zeros is not always necessary)
-    // core._fill(_data.byteOffset, _data.length, 0);
-    //
-    //   user likely expects tensor to be 0-initialized
-
-    if (data !== undefined) {
-        if (data.length !== nelem) throw new Error(`Cannot cast array of size ${data.length} into tensor of shape [${shape}]`);
-        _data.set(data);
+    // operation shorthands
+    public get T() {
+        return ops.transpose(this);
     }
 
-    return new Tensor(_shape, _strides, _data);
+    [Symbol.iterator]() {
+        return this.get_axis_iterable(0);
+    }
+}
+
+export default function tensor(shape: number[] | Shape, data?: number[]): Tensor {
+    const _shape = [...shape];
+    const nelem = _shape.reduce((acc: number, val: number) => acc * val, 1);
+
+    if (data !== undefined && data.length !== nelem)
+        throw new Error(`Cannot cast array of size ${data.length} into tensor of shape [${shape}]`);
+
+    const ptr = core._create_tensor(shape.length, nelem);
+    const new_tensor = new Tensor(ptr);
+
+    if (data !== undefined) new_tensor.data.set(data);
+    new_tensor.shape.set(shape);
+    new_tensor.strides.set(get_row_major(_shape));
+
+    return new_tensor;
 }
 
 export function tensor_like(other: Tensor) {
-    return tensor(other.shape);
+    return tensor([...other.shape]);
+}
+
+// returns a view of an element in the desired axis
+export function create_view(a: Tensor, axis = 0, offset = 0) {
+    const ptr = core._create_view(a.get_view_ptr(), axis, offset);
+    return new Tensor(ptr);
 }

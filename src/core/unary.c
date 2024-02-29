@@ -9,18 +9,10 @@
 #include "./util.h"
 #include "./tensor.h"
 
-// #define UNARY_OP(NAME, OP) \
-//     void NAME(float* a, float* res, size_t size) { \
-//         for (size_t i = 0; i < size; i++) res[i] = OP(a[i]); }
-//
 #define UNARY_OP(NAME, OP) \
     void NAME(struct tensor_t* a, struct tensor_t* res) { \
-        for (size_t i = 0; i < a->nelem; i++) res->data[i] = OP(a->data[i]); }
-
-// "tns" should signify that these are oparations
-// on tensors, not scalars
-
-UNARY_OP(negate_tns, -);
+        for (size_t i = 0; i < a->nelem; i++) { \
+            res->data[res->offset + i] = OP(get_item(a, i)); }}
 
 UNARY_OP(sin_tns, sin);
 UNARY_OP(cos_tns, cos);
@@ -45,23 +37,27 @@ UNARY_OP(ceil_tns, ceil);
 UNARY_OP(floor_tns, floor);
 UNARY_OP(abs_tns, fabsf);
 
+UNARY_OP(negate_tns, -);
 UNARY_OP(reciprocal_tns, 1./);
 
-// somewhat unconventional unary op. equivalent to identity function
-void identity_tns(struct tensor_t* a, struct tensor_t* res) {
-    memcpy(res->data, a->data, a->nelem * sizeof(float));
-}
-
 void relu_tns(struct tensor_t* a, struct tensor_t* res) {
-    for (size_t i = 0; i < a->nelem; i++) res->data[i] = a->data[i] < 0 ? 0 : a->data[i];
+    float item;
+    for (size_t i = 0; i < a->nelem; i++) {
+        item = get_item(a, i);
+        res->data[get_index(res, i)] = item < 0 ? 0 : item;
+    }
 }
 
 void binstep_tns(struct tensor_t* a, struct tensor_t* res) {
-    for (size_t i = 0; i < a->nelem; i++) res->data[i] = a->data[i] < 0 ? 0 : 1;
+    for (size_t i = 0; i < a->nelem; i++) {
+        res->data[get_index(res, i)] = get_item(a, i) < 0 ? 0 : 1;
+    }
 }
 
 void logistic_tns(struct tensor_t* a, struct tensor_t* res) {
-    for (size_t i = 0; i < a->nelem; i++) res->data[i] = 1. / (exp(-a->data[i]) + 1.);
+    for (size_t i = 0; i < a->nelem; i++) {
+        res->data[get_index(res, i)] = 1. / (exp(-get_item(a, i)) + 1.);
+    }
 }
 
 #endif //CORE_UNARY

@@ -1,14 +1,31 @@
+import Shape from "./Shape";
 import { Tensor } from "./Tensor";
 import core from "./core/build";
 
 export const core_ready = new Promise<null>((resolve) => {
+    let loaded = false;
+
     core.onRuntimeInitialized = () => {
         core.memory = new Uint8Array(core.HEAPU8.buffer);
+        loaded = true;
         resolve(null);
     };
-});
 
-export const print = (t: Tensor) => console.log(t?.toString() + "\n---");
+    // todo
+    //   this is a bandaid-fix
+    //   the real solution is to find out why onRuntimeInitialized
+    //   does not reliably trigger.
+    const loaded_check_interval = setInterval(() => {
+        if (!loaded && core.HEAPU8) {
+            core.memory = new Uint8Array(core.HEAPU8.buffer);
+
+            loaded = true;
+            resolve(null);
+        }        
+
+        if (loaded) clearInterval(loaded_check_interval);
+    }, 5);
+});
 
 export const set_rand_seed = (n: number) => core._rand_seed(n);
 
@@ -36,4 +53,16 @@ export function ordinal_str(n: number): string {
             last_digit == 3 && last_two_digits != 13 ? "rd" : "th");
 
     return `${n}${suffix}`;
+}
+
+export function get_row_major(shape: number[]): number[] {
+    let stride = 1;
+    const strides = new Array(shape.length);
+    strides.fill(1);
+
+    for (let i = shape.length - 2; i >= 0; i--) {
+        strides[i] = stride *= shape[i + 1];
+    }
+
+    return strides;
 }

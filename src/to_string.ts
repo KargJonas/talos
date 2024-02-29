@@ -1,14 +1,13 @@
 import { Tensor } from "./Tensor";
 
 // usability methods
-export default function tensor_to_string(a: Tensor, num_width = 10, space_before = 0) {
+export default function tensor_to_string(a: Tensor, num_width = 5, space_before = 0) {   
     switch (a.get_rank()) {
         case 0: return "[]";
-        case 1: return `[ ${a.data.join(", ")} ]`;
+        case 1: return vec_to_string(a, num_width);
         case 2: return mat_to_string(a, num_width, space_before);
     }
 
-    // hidim tensors
     const strings: string[] = [];
 
     for (const element of a.get_axis_iterable(0)) {
@@ -18,51 +17,65 @@ export default function tensor_to_string(a: Tensor, num_width = 10, space_before
     return `[ ${strings.join(",\n\n" + " ".repeat(space_before + 2))} ]`;
 }
 
-function mat_to_string(mat: Tensor, num_width = 10, space_before = 0) {
+function vec_to_string(vec: Tensor, n_decimals: number) {
+    const n_integer = Math.floor(vec.max()).toString().length;
+    const cols = vec.get_cols();
+    const col_stride = vec.strides[0];
+    const offset = vec.get_offset();
+    const vals: string[] = [];
 
-    if (mat.shape.get_ndim() !== 2)
-        throw new Error(`Cannot print tensor of shape [${mat.shape}] as matrix.`);
+    for (let c = 0; c < cols; c++) {
+        const index = offset + c * col_stride;
+        const val = vec.data[index];
+        const val_floor = Math.floor(val);
+        const str = val === val_floor ? val.toString() : val.toFixed(n_decimals);
+        const padding_amount = Math.max(n_integer - val_floor.toString().length, 0);
 
-    const rows = mat.shape.get_rows();
-    const cols = mat.shape.get_cols();
-
-    const decimal_places = num_width - 5;
-    const exp = Math.pow(10, decimal_places);
-
-    // cap number of decimal places 
-    const _mat = mat.clone().mul(exp, true).floor(true).div(exp, true);
-
-    let only_ints = true;
-    let maxlen = 1;
-    for (let i = 0; i < _mat.data.length; i++) {
-        if (_mat.data[i] !== (_mat.data[i] | 0)) only_ints = false;
-        maxlen = Math.max(maxlen, String(_mat.data[i] | 0).length);
+        vals.push(" ".repeat(padding_amount) + str);
     }
 
-    let s = "[";
+    return `[ ${vals.join(", ")} ]`;
+}
+
+function mat_to_string(mat: Tensor, n_decimals: number, space_before: number) {
+    // amount of digits in the integer part of the largest number
+    const n_integer = Math.floor(mat.max()).toString().length;
+    const lines: string[] = [];
+    const cols = mat.get_cols();
+    const rows = mat.get_rows();
+    const col_stride = mat.strides[1];
+    const row_stride = mat.strides[0];
+    const offset = mat.get_offset();
+    const exp = Math.pow(10, n_decimals);
+
+    const m = mat.clone();
+    let only_integers = true;
+    for (let i = 0; i < m.data.length; i++) {
+        if (m.data[i] !== Math.floor(m.data[i])) {
+            only_integers = false;
+            break;
+        }
+    }
+
+    const max_length = n_integer + 1 + (only_integers ? 0 : n_decimals);
 
     for (let r = 0; r < rows; r++) {
-        if (r !== 0) s += " ".repeat(space_before + 1);
-        let row_string = "";
+        const vals: string[] = [];
 
         for (let c = 0; c < cols; c++) {
-            const [index] = _mat.shape.get_index(r, c);
-            const value = _mat.data[index];
+            const index = offset + r * row_stride + c * col_stride;
+            const val = Math.floor(mat.data[index] * exp) / exp;
+            const str = val.toString();
+            const separator = c < cols - 1 ? ", " : "";
+            const padding_right = " ".repeat(max_length - str.length);
 
-            // -5 because of: space, comma, sign, dot, and at least one digit
-            // let p = String(only_ints ? value : value.toFixed(num_width - 5));
-            let p = String(value);
-            if (value > 0) p = ` ${p}`;
-
-            // commas, newlines, padding
-            if (c !== cols - 1) p += ",";
-            if (c !== cols - 1) p = p.padEnd(num_width);
-            row_string += p;
+            vals.push(`${str}${separator}${padding_right}`);
         }
 
-        s += `[${row_string}]`;
-        if (r !== rows - 1) s += "\n";
+        const padding_left = r !== 0 ? " ".repeat(space_before) : "";
+        // lines.push(`${padding_left}[ ${vals.join(", ")} ]`);
+        lines.push(`${padding_left}[ ${vals.join("")}]`);
     }
 
-    return s + "]";
+    return `[${lines.join("\n ")}]`;
 }
