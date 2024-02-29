@@ -16,7 +16,7 @@ EF = [ \
 	_add_prw_brc, _sub_prw_brc, _mul_prw_brc, _div_prw_brc, \
 	_mul_tns, _dot_tns, \
 	\
-	_max_red, _min_red, _sum_red, \
+	_max_red, _min_red, _sum_red, _mean_red, \
 	\
 	_negate_tns, _reciprocal_tns, \
 	_sin_tns, _cos_tns, _tan_tns, \

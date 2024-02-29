@@ -128,9 +128,10 @@ export class Tensor {
     public matmul     = (other: Tensor, in_place = false) => ops.matmul(this, other, in_place);
 
     // reduce operations
-    public min = (): number => ops.min(this);
-    public max = (): number => ops.max(this);
-    public sum = (): number => ops.sum(this);
+    public min  = (): number => ops.min(this);
+    public max  = (): number => ops.max(this);
+    public sum  = (): number => ops.sum(this);
+    public mean = (): number => ops.mean(this);
 
     // operation shorthands
     public get T() {

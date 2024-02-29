@@ -245,6 +245,7 @@ export function transpose(a: Tensor, permutation?: number[]): Tensor {
 }
 
 // todo: add pairwise functionality (tensor-valued functions)
-export const max = (a: Tensor) => core._max_red(a.get_view_ptr());
-export const min = (a: Tensor) => core._min_red(a.get_view_ptr());
-export const sum = (a: Tensor) => core._sum_red(a.get_view_ptr());
+export const max  = (a: Tensor) => core._max_red(a.get_view_ptr());
+export const min  = (a: Tensor) => core._min_red(a.get_view_ptr());
+export const sum  = (a: Tensor) => core._sum_red(a.get_view_ptr());
+export const mean = (a: Tensor) => core._mean_red(a.get_view_ptr());

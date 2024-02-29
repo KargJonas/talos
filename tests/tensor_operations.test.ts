@@ -3,6 +3,7 @@ import tensor, { Tensor } from "../src/Tensor";
 import { core_ready, set_rand_seed } from "../src/util";
 import Shape from "../src/Shape";
 import * as ops from "../src/tensor_operations";
+import Strides from "../src/Strides";
 
 // todo:
 //  - potentially add tests with large identity-matrices (easy to validate without other libraries)
@@ -253,33 +254,194 @@ describe("tensor operations", async () => {
             binary(ops.dot, t11, t13, [3, 4, 2, 2, 2], [0.929, 1.13, 0.464, 0.934, 0.791, 1.08, 1.132, 0.973, 1.596, 1.011, 0.718, 0.8, 0.536, 1.644, 1.868, 1.111, 1.964, 2.061, 0.869, 1.747, 1.315, 2.312, 2.301, 1.549, 0.957, 1.038, 0.389, 0.902, 0.76, 1.027, 0.968, 0.904, 1.266, 1.949, 0.67, 1.625, 1.047, 1.66, 1.836, 1.446, 0.975, 1.3, 0.489, 1.081, 0.754, 1.112, 1.262, 1.183, 0.479, 0.492, 0.231, 0.404, 0.355, 0.543, 0.563, 0.431, 1.493, 1.421, 0.821, 1.093, 0.875, 1.815, 2.069, 1.189, 1.558, 0.939, 0.612, 0.798, 0.69, 1.686, 1.598, 0.735, 1.118, 1.379, 0.652, 1.079, 0.693, 1.313, 1.676, 1.336, 2.17, 2.219, 1.018, 1.836, 1.266, 2.463, 2.688, 1.931, 1.521, 2.049, 0.765, 1.71, 1.167, 1.955, 2.075, 1.469]);
         });
 
+        function test_chained_ops(
+            input_tensor:     Tensor,
+            operations:       (tensor: Tensor) => Tensor,
+            expected_data:    number[] | Float32Array,
+            expected_shape:   number[] | Shape,
+            expected_strides: number[] | Strides
+        ) {
+            const result = operations(input_tensor);
+
+            expect([...result.shape]).toEqual([...expected_shape]);
+            expect([...result.strides]).toEqual([...expected_strides]);
+            expect_arrays_closeto(result.data, expected_data);
+        }
+
         test("transpose", () => {
-            expect_arrays_closeto(t1.T.clone().data, [1, 7, 4, 10, 2, 8, 5, 11, 3, 9, 6, 12]);
-            expect_arrays_closeto(t2.T.clone().data, [1, 3, 5, 2, 4, 6]);
-
-            // transposition is its own inverse operation,
-            // this means transposing twice should yield the original tensor
-            expect_arrays_closeto(t1.T.T.clone().data, t1.data);
-            expect_arrays_closeto(t2.T.T.clone().data, t2.data);
-            expect_arrays_closeto(t1.T.clone().T.clone().data, t1.data);
-            expect_arrays_closeto(t2.T.clone().T.clone().data, t2.data);
-
+            // make sure invalid permutations are caught
             expect(() => t1.transpose(1, 2, 3)).toThrow();
             expect(() => t1.transpose(0, 1, 1)).toThrow();
             expect(() => t1.transpose(0, 1, 2, 3)).toThrow();
             expect(() => t1.transpose(0, 1)).toThrow();
 
-            expect_arrays_closeto(t1.transpose(0, 2, 1).clone().data, [1, 4, 2, 5, 3, 6, 7, 10, 8, 11, 9, 12]);
-            expect_arrays_closeto(t1.transpose(1, 0, 2).clone().data, [1, 2, 3, 7, 8, 9, 4, 5, 6, 10, 11, 12]);
+            // basic testing of transpose functionality
+            test_chained_ops(
+                t2,
+                t => t.T,
+                [1, 2, 3, 4, 5, 6],
+                [2, 3],
+                [1, 2]
+            );
+
+            test_chained_ops(
+                t2,
+                t => t.T.clone(),
+                [1, 3, 5, 2, 4, 6],
+                [2, 3],
+                [3, 1]
+            );
+
+            // transposition is its own inverse operation,
+            // this means transposing twice should yield the original tensor
+            test_chained_ops(
+                t1,
+                t => t.T.T,
+                [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+                [2, 2, 3],
+                [6, 3, 1]
+            );
+
+            test_chained_ops(
+                t1,
+                t => t.T.T.clone(),
+                [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+                [2, 2, 3],
+                [6, 3, 1]
+            );
+
+            // double transpose with interlaced clone (caused some issues during implementation)
+            test_chained_ops(
+                t2,
+                t => t.T.clone().T.clone(),
+                [1, 2, 3, 4, 5, 6],
+                [3, 2],
+                [2, 1]
+            );
+
+            test_chained_ops(
+                t1,
+                t => t.T.clone().T.clone(),
+                [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+                [2, 2, 3],
+                [6, 3, 1]
+            );
+
+            // testing of transpose on rank 3 tensors
+            test_chained_ops(
+                t1,
+                t => t.T,
+                [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+                [3, 2, 2],
+                [1, 3, 6]
+            );
+
+            test_chained_ops(
+                t1,
+                t => t.T.clone(),
+                [1, 7, 4, 10, 2, 8, 5, 11, 3, 9, 6, 12],
+                [3, 2, 2],
+                [4, 2, 1]
+            );
         
-            // todo: test shapes/strides
+            // testing of custom permutations
+            test_chained_ops(
+                t1,
+                t => t.transpose(0, 2, 1),
+                [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+                [2, 3, 2],
+                [6, 1, 3]
+            );
+
+            test_chained_ops(
+                t1,
+                t => t.transpose(0, 2, 1).clone(),
+                [1, 4, 2, 5, 3, 6, 7, 10, 8, 11, 9, 12],
+                [2, 3, 2],
+                [6, 2, 1]
+            );
+
+            test_chained_ops(
+                t1,
+                t => t.transpose(1, 0, 2),
+                [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+                [2, 2, 3],
+                [3, 6, 1]
+            );
+
+            test_chained_ops(
+                t1,
+                t => t.transpose(1, 0, 2).clone(),
+                [1, 2, 3, 7, 8, 9, 4, 5, 6, 10, 11, 12],
+                [2, 2, 3],
+                [6, 3, 1]
+            );
         });
 
         test("transpose + other ops", () =>  {
             expect_arrays_closeto(t2.T.matmul(t2).clone().data, [ 35, 44, 44, 56 ]);
             expect_arrays_closeto(t2.matmul(t2.T).clone().data, [ 5, 11, 17, 11, 25, 39, 17, 39, 61 ]);
         
-            // todo: test shapes/strides
+            test_chained_ops(
+                t2,
+                t => t.T.matmul(t2),
+                [35, 44, 44, 56],
+                [2, 2],
+                [2, 1]
+            );
+
+            test_chained_ops(
+                t2,
+                t => t.clone().T.clone().matmul(t2.clone()),
+                [35, 44, 44, 56],
+                [2, 2],
+                [2, 1]
+            );
+
+            test_chained_ops(
+                t1,
+                t => t.add(t2.T),
+                [2, 5, 8, 6, 9 , 12, 8, 11, 14, 12, 15, 18],
+                [2, 2, 3],
+                [6, 3, 1]
+            );
+
+            test_chained_ops(
+                t1,
+                t => t.clone().transpose(0, 2, 1).add(t2),
+                [2, 6, 5, 9, 8, 12, 8, 12, 11, 15, 14, 18],
+                [2, 3, 2],
+                [6, 2, 1]
+            );
+
+            test_chained_ops(
+                t14,
+                t => t.T.matmul(t14).T.clone(),
+                [2.358, 1.467, 1.159, 1.535, 1.112, 1.467, 1.213, 1.042, 1.045, 0.798, 1.159, 1.042, 1.814, 0.873, 1.486, 1.535, 1.045, 0.873, 1.295, 0.969, 1.112, 0.798, 1.486, 0.969, 1.47],
+                [5, 5],
+                [5, 1]
+            );
+
+            test_chained_ops(
+                t14,
+                t => t.matmul(t14.T).clone(),
+                [2.228, 1.725, 0.568, 1.126, 1.347, 1.725, 2.714, 1.493, 1.44, 1.108, 0.568, 1.493, 0.958, 0.693, 0.406, 1.126, 1.44, 0.693, 1.147, 0.668, 1.347, 1.108, 0.406, 0.668, 1.102],
+                [5, 5],
+                [5, 1]
+            );
+
+            // todo might want to add some tests for in-place ops on views
+        });
+
+        test("reduce operations", () => {
+            expect(t14.sum()).toBeCloseTo(11.958);
+            expect(t13.sum()).toBeCloseTo(18.697);
+            expect(t14.min()).toBeCloseTo(0.013);
+            expect(t13.min()).toBeCloseTo(0.003);
+            expect(t14.max()).toBeCloseTo(0.969);
+            expect(t13.max()).toBeCloseTo(0.985);
+            expect(t14.mean()).toBeCloseTo(0.478);
+            expect(t13.mean()).toBeCloseTo(0.467);
         });
     });
 

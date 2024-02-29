@@ -3,6 +3,7 @@
 # Emscripten build output
 /src/core/build
 dist
+TODO.txt
 
 # Logs
 
