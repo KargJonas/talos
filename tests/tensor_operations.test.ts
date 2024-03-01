@@ -1,9 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import tensor, { Tensor } from "../src/Tensor";
-import { core_ready, set_rand_seed } from "../src/util";
+import { set_rand_seed } from "../src/util";
 import Shape from "../src/Shape";
 import * as ops from "../src/tensor_operations";
 import Strides from "../src/Strides";
+import { core_ready } from "../src/Management";
 
 // todo:
 //  - potentially add tests with large identity-matrices (easy to validate without other libraries)

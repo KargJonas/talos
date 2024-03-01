@@ -6,7 +6,7 @@ import tensor_to_string from "./to_string";
 import { ordinal_str } from "./util";
 import * as ops from "./tensor_operations";
 
-enum  STRUCT_LAYOUT { DATA, SHAPE, STRIDES, RANK, NELEM, NDATA, OFFSET, ISVIEW }
+enum  STRUCT_LAYOUT { DATA, SHAPE, STRIDES, RANK, NELEM, NDATA, OFFSET, SIZE, ISVIEW }
 const STRUCT_SIZE = Object.entries(STRUCT_LAYOUT).length / 2;
 
 export class Tensor {
@@ -30,6 +30,7 @@ export class Tensor {
     public get_nelem        = () => this.view[STRUCT_LAYOUT.NELEM];
     public get_offset       = () => this.view[STRUCT_LAYOUT.OFFSET];
     public get_ndata        = () => this.view[STRUCT_LAYOUT.NDATA];
+    public get_size         = () => this.view[STRUCT_LAYOUT.SIZE];
     public get_isview       = () => this.view[STRUCT_LAYOUT.ISVIEW];
     public get_data_ptr     = () => this.view[STRUCT_LAYOUT.DATA];
     public get_shape_ptr    = () => this.view[STRUCT_LAYOUT.SHAPE];
@@ -39,18 +40,27 @@ export class Tensor {
     public get_axis_size    = (axis_index: number) => this.shape.get_axis_size(axis_index);
 
     public print = () => console.log(tensor_to_string(this) + "\n---");
-    public print_info = (title: string = "TENSOR INFO") => console.log(
-        `${title}\n` +
-        `  address: 0x${this.get_view_ptr().toString(16)}\n` +
-        `  is view: ${this.get_isview() ? "true" : "false"}\n` +
-        `  shape:   [${this.shape}]\n` +
-        `  strides: [${this.strides}]\n` +
-        `  rank:    ${this.get_rank()}\n` +
-        `  nelem:   ${this.get_nelem()}\n` +
-        `  ndata:   ${this.get_ndata()}\n` +
-        `  offset:  ${this.get_offset()}\n` +
-        `  data: [${this.data}]\n`
-    );
+    public print_info(title: string = "TENSOR INFO") {
+        const max_entries = 16;
+        const precision = 3;
+
+        const exp = 10 ** precision;
+        const data = [...this.data.slice(0, max_entries)].map(v => Math.floor(v * exp) / exp);
+
+        console.log(
+            `${title}\n` +
+            `  address: 0x${this.get_view_ptr().toString(16)}\n` +
+            `  is view: ${this.get_isview() ? "true" : "false"}\n` +
+            `  shape:   [${this.shape.join(", ")}]\n` +
+            `  strides: [${this.strides.join(", ")}]\n` +
+            `  rank:    ${this.get_rank()}\n` +
+            `  nelem:   ${this.get_nelem()}\n` +
+            `  ndata:   ${this.get_ndata()}\n` +
+            `  size:    ${this.get_size()} bytes\n` +
+            `  offset:  ${this.get_offset()}\n` +
+            `  data: [${data.join(", ")}${this.data.length > max_entries ? ", ..." : ""}]\n`
+        );
+    }
 
     *get_axis_iterable(n: number): Generator<Tensor> {
         if (n > this.get_rank() - 2)

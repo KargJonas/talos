@@ -7,3 +7,9 @@
 #include "./binary_prw.c"
 #include "./binary_mat.c"
 #include "./tensor.c"
+#include "./mgmt.c"
+
+int main() {
+    init_mgmt();
+    return 0;
+}

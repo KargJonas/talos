@@ -27,7 +27,9 @@ EF = [ \
 	_invsqrt_tns, _sqrt_tns, \
 	_ceil_tns, _floor_tns, _abs_tns, \
 	\
-	_relu_tns, _binstep_tns, _logistic_tns \
+	_relu_tns, _binstep_tns, _logistic_tns, \
+	\
+	_get_mgmt_ptr \
 ]
 
 ##  WARNING  ##
@@ -47,5 +49,5 @@ main: $(SRC_DIR)/main.c
 				-s "EXPORTED_FUNCTIONS=$(EF)" \
 				-s WASM=1 \
 				-s ALLOW_MEMORY_GROWTH=1 \
-				-s SINGLE_FILE=1\
+				-s SINGLE_FILE=1 \
 				-O3 $(SRC_DIR)/main.c -o $(OUT_DIR)/index.js

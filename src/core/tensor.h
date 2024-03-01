@@ -14,6 +14,7 @@ struct tensor_t {
     size_t nelem;       // number of elements in the tensor. product of all elements of the shape array
     size_t ndata;       // number of elements in the data array (of topmost parent tensor)
     size_t offset;      // if view: offset of this view inside the parent tensor in number of elements default 0
+    size_t size;        // total size of tensor in bytes
     bool isview;        // indicates if this tensor is a view of another tensor
 };
 

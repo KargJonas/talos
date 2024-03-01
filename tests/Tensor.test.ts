@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import tensor, { Tensor, tensor_like } from "../src/Tensor";
-import { core_ready } from "../src/util";
+import { core_ready } from "../src/Management";
 import Shape from "../src/Shape";
 import Strides from "../src/Strides";
 

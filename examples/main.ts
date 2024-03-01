@@ -1,5 +1,4 @@
-import { core_ready } from "../src/util";
-import tensor from "../src/Tensor";
+import { core_ready, tensor } from "../index";
 
 // if your runtime does not support top-level await,
 // you'll have to use core_ready.then(() => { ... }) instead
