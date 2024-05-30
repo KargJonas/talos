@@ -4,11 +4,27 @@
   <img src="./talos-logo-big.png" />
 </p>
 
-<br>
-<br>
+## A minimalistic, zero-deps tensor library with a NumPy-like API
+Talos is a recreational programming projects that helps me understand how machine learning works on the lowest levels. The goal for this project is to build a library that provides the basic array features of NumPy (step 1) and to then graft a computation graph and whatever else is necessary for training a basic model, onto it (step 2). Step 1 is now basically complete.
 
-### Talos is a minimalistic, zero-dependencies tensor library with a NumPy-like API.
+Talos uses C/WebAssembly to accelerate operations on tensors. All tensor data and metadata resides within WASM memory and and is accessed by JS only for validating operation parameters, printing and other things of that nature.
 
+Each tensor is represented through this struct. Views of tensors will reference the data array of another tensor (usually along with an offset and different shape/strides).
+```c
+struct tensor_t {
+    float* data;     // array that contains the actual tensor data/values
+    size_t* shape;   // tensor shape of the form [..., n_matrices, n_rows, n_cols]
+    size_t* strides; // strides same length as shape, counted in elements, not bytes like NumPy
+    size_t rank;     // rank of the tensor. dictates length of shape/strides arrays
+    size_t nelem;    // number of elements in the tensor. product of all elements of the shape array
+    size_t ndata;    // number of elements in the data array (of topmost parent tensor)
+    size_t offset;   // if view: offset of this view inside the parent tensor in number of elements default 0
+    bool isview;     // indicates if this tensor is a view of another tensor
+};
+```
+
+Here is a bit of sample code that demonstrates some of the features.
+The full feature list is below.
 ```js
 import { core_ready, tensor } from "../index";
 
@@ -40,7 +56,7 @@ t1.matmul(t2).print();
 t2.dot(t1).print();
 t3.logistic().print();
 t4.matmul(t5, true).print(); // in-place matmul of square matrix
-t4.dot(t5, true).print();
+t4.dot(t5, true).print();    // last parameter of op is always a bool indicating in-place op
 
 t2.transpose().matmul(t2).print();
 t2.matmul(t2.transpose()).print();
@@ -48,7 +64,7 @@ t2.matmul(t2.transpose()).print();
 // in-place operations on views (this is something NumPy does not support)
 // maybe useful for some applications, also saves you one transpose if you
 // were going to to something like my_tensor.T.add(other_tensor).T
-t1.transpose(0, 2, 1).add(t2);
+t1.transpose(0, 2, 1).add(t2, true);
 t1.print();
 
 // manual creation of views
@@ -79,10 +95,16 @@ Basic unary and binary operators, broadcasting, in-place and out-of-place operat
         - Subtraction
         - Multiplication
         - Division
+        - Exponentiation
     - Matrix multiplication
     - Dot product (mimics behavior of NumPy)
 - Unary operations:
-  - relu, binstep, logistic, negate, sin, cos, tan, asin, acos, atan, sinh, cosh, tanh, exp, log, log10, log2, invsqrt, sqrt, ceil, floor, abs, reciprocal, pow, free, clone
+  - relu, binstep, logistic, negate, sin, cos, tan, asin, acos, atan, sinh, cosh, tanh, exp, log, log10, log2, invsqrt, sqrt, ceil, floor, abs, reciprocal, free, clone
+- Reduce operations
+  - Min
+  - Max
+  - Sum
+  - Mean
 - Metadata operations
   - transpose (with arbitrary permutation of axes)
   - view creation
