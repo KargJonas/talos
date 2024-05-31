@@ -5,11 +5,12 @@ import { get_row_major } from "./util";
 import tensor_to_string from "./to_string";
 import { ordinal_str } from "./util";
 import * as ops from "./tensor_operations";
+import ITensor from "./ITensor.ts";
 
 enum  STRUCT_LAYOUT { DATA, SHAPE, STRIDES, RANK, NELEM, NDATA, OFFSET, SIZE, ISVIEW }
 const STRUCT_SIZE = Object.entries(STRUCT_LAYOUT).length / 2;
 
-export class Tensor {
+export class Tensor implements ITensor<Tensor> {
     private view: Int32Array;
     data: Float32Array;
     shape: Shape;

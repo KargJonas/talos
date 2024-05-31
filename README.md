@@ -5,7 +5,7 @@
 </p>
 
 ## A minimalistic, zero-deps tensor library with a NumPy-like API
-Talos is a recreational programming projects that helps me understand how machine learning works on the lowest levels. The goal for this project is to build a library that provides the basic array features of NumPy (step 1) and to then graft a computation graph and whatever else is necessary for training a basic model, onto it (step 2). Step 1 is now basically complete.
+Talos is a recreational programming projects that helps me understand how machine learning works on the lowest levels. The goal for this project is to build a library that provides the basic array features of NumPy (step 1) and to then graft an autograd system and whatever else is necessary for training a basic model, onto it (step 2). Step 1 is now basically complete.
 
 Talos uses C/WebAssembly to accelerate operations on tensors. All tensor data and metadata resides within WASM memory and and is accessed by JS only for validating operation parameters, printing and other things of that nature.
 
