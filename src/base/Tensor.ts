@@ -136,8 +136,8 @@ export class Tensor implements ITensor<Tensor> {
     public mul        = (other: Tensor | number, in_place = false) => ops.mul(this, other, in_place ? this : undefined);
     public div        = (other: Tensor | number, in_place = false) => ops.div(this, other, in_place ? this : undefined);
     public pow        = (other: Tensor | number, in_place = false) => ops.pow(this, other, in_place ? this : undefined);
-    public dot        = (other: Tensor, in_place = false) => ops.dot(this, other, in_place ? this : undefined);
-    public matmul     = (other: Tensor, in_place = false) => ops.matmul(this, other, in_place ? this : undefined);
+    public dot        = (other: Tensor) => ops.dot(this, other);
+    public matmul     = (other: Tensor) => ops.matmul(this, other);
 
     // reduce operations
     public min  = (): number => ops.min(this);

@@ -170,8 +170,16 @@ function binary_op(
 
     const result_shape = src_a.shape.broadcast(src_b.shape);
 
-    if (dest && !dest.shape.equals(result_shape))
-        throw new Error(`Cannot perform broadcasting binary operation. Result tensor [${result_shape}] has different shape than tensor a [${src_a.shape}].`);
+    if (dest) {
+        if (!dest.shape.equals(result_shape))
+            throw new Error(`Cannot perform broadcasting binary operation. Result tensor [${result_shape}] has different shape than tensor a [${src_a.shape}].`);
+
+        // TODO: Check if this can somehow be done safely
+        //       If not it might be worth it to create a tensor that holds
+        //       the interim before the result is written back to the source
+        if (dest == src_a || dest == src_b)
+            throw new Error("In-place broadcasting is not supported.");
+    }
 
     const result = dest || tensor(result_shape);
     core_fn_brc(src_a.get_view_ptr(), src_b.get_view_ptr(), result.get_view_ptr());

@@ -1,5 +1,6 @@
-import {Tensor, tensor_like} from "./base/Tensor.ts";
+import tensor, {Tensor, tensor_like} from "./base/Tensor.ts";
 import * as graph_ops from "./graph_ops.ts";
+import Shape from "./base/Shape.ts";
 
 export default class Node {
     // State of the node
@@ -17,7 +18,7 @@ export default class Node {
     readonly children: Node[];
     readonly operation: string;
 
-    constructor(value: Tensor, operation = "init", fw: graph_ops.ForwardFunc, bw: graph_ops.BackwardFunc, parents: Node[]) {
+    constructor(value: Tensor, operation: string, fw: graph_ops.ForwardFunc, bw: graph_ops.BackwardFunc, parents: Node[]) {
         this.primal = value;
         this.parents = parents;
         this.operation = operation;
@@ -55,6 +56,19 @@ export default class Node {
         //       or it could maybe load new data from the preprocessor
         //       but that should be done by the user by passing in a special fw function
 
+        // todo: this front-to-back approach should be re-thought.
+        //       a common scenario is when we want to read the primal at some output.
+        //       some inputs may not contribute at all to this output.
+        //       currently, the idea is just to call forward on all inputs and hope for the best
+        //       however forward passes overwrite the primal completely, so if we do a forward
+        //       pass starting at input A and then one from input B, we may overwrite some primals
+        //       in some of the graph nodes.
+        //       if we go back to front, we dont have to worry about wasting compute on paths that do not
+        //       end in the output, however we may still have overwriting issues.
+
+        // todo: consider an option for eager execution where forward is called immediately after
+        //       calling op methods (the result will be present right after calling e.g. add())
+
         this.fw(this.parents, this.primal);
         this.children.map(child => child.forward());
     }
@@ -73,6 +87,21 @@ export default class Node {
         this.bw(this.parents, this.grad);
         this.parents.forEach(parent => parent.backward());
     }
+}
+
+// creates an input node
+// this node has no parents (but can have children),
+// it has a NOP (no operation) as forward and backward function,
+// meaning that it will never alter the state of the model
+// (neither forward-, nor backward passes)
+export function node(shape: number[] | Shape, data?: number[]) {
+    return new Node(
+        tensor(shape, data),
+        "init",
+        graph_ops.nop.fw,
+        graph_ops.nop.bw,
+        []
+    );
 }
 
 
