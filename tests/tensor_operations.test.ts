@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import tensor, { Tensor } from "../src/Tensor";
-import { set_rand_seed } from "../src/util";
-import Shape from "../src/Shape";
-import * as ops from "../src/tensor_operations";
-import Strides from "../src/Strides";
-import { core_ready } from "../src/Management";
+import tensor, {Tensor} from "../src/base/Tensor";
+import { set_rand_seed } from "../src/base/util";
+import Shape from "../src/base/Shape";
+import * as ops from "../src/base/tensor_operations.ts";
+import Strides from "../src/base/Strides";
+import { core_ready } from "../src/base/Management";
 
 // todo:
 //  - potentially add tests with large identity-matrices (easy to validate without other libraries)
@@ -43,7 +43,7 @@ describe("tensor operations", async () => {
         let t = a.clone();
         const input = [...t.data];
 
-        t = unary_op(t, in_place);
+        t = unary_op(t, in_place ? t : undefined);
         expect([...t.shape]).toEqual([...a.shape]);
 
         [...t.data].map((v, i) => {
@@ -65,7 +65,7 @@ describe("tensor operations", async () => {
 
         // // @ts-expect-error Incompatibility between type of b. Ugly to fix. Guaranteed to work anyways.
         // todo: fix underlying type issue: should distinguish between binary ops that take tensors and ones that take scalars in tensor_operations.ts
-        t = binary_op(t, b, in_place);
+        t = binary_op(t, b, in_place ? t : undefined);
         expect([...t.shape]).toEqual([...expected_shape]);
 
         [...t.clone().data].map((v, i) => {
@@ -160,26 +160,26 @@ describe("tensor operations", async () => {
         });
 
         test("broadcasting ops", () => {
-            binary(ops.add, t1, t5, t1.shape, [0, 4, 6, 3, 7, 9, 6, 10, 12, 9, 13, 15], true);
+            binary(ops.add, t1, t5, t1.shape, [0, 4, 6, 3, 7, 9, 6, 10, 12, 9, 13, 15]);
             binary(ops.sub, t1, t5, t1.shape, [2, 0, 0, 5, 3, 3, 8, 6, 6, 11, 9, 9]);
-            binary(ops.mul, t1, t5, t1.shape, [-1, 4, 9, -4, 10, 18, -7, 16, 27, -10, 22, 36], true);
-            binary(ops.div, t1, t5, t1.shape, [-1, 1, 1, -4, 2.5, 2, -7, 4, 3, -10, 5.5, 4], true);
+            binary(ops.mul, t1, t5, t1.shape, [-1, 4, 9, -4, 10, 18, -7, 16, 27, -10, 22, 36]);
+            binary(ops.div, t1, t5, t1.shape, [-1, 1, 1, -4, 2.5, 2, -7, 4, 3, -10, 5.5, 4]);
             binary(ops.pow, t1, t6, t1.shape, [1, 4, 27, 16, 625, 36, 0, 64, 729, 100, 14641, 144]);
         });
 
         test("matmul", () => {
-            expect(() => ops.matmul(t1, t2, true)).toThrow();
-            expect(() => ops.matmul(t4, t6, true)).toThrow();
-            expect(() => ops.matmul(t7, t8, true)).toThrow();
-            expect(() => ops.matmul(t9, t10, true)).toThrow();
+            expect(() => ops.matmul(t1, t2, t1)).toThrow();
+            expect(() => ops.matmul(t4, t6, t4)).toThrow();
+            expect(() => ops.matmul(t7, t8, t7)).toThrow();
+            expect(() => ops.matmul(t9, t10, t9)).toThrow();
 
             binary(ops.matmul, t14, t15, [5, 1], [1.49, 2.025, 1.051, 1.394, 1.091]);
             // more thorough testing in out-of-place tests
         });
 
         test("dot", () => {
-            expect(() => ops.dot(t1, t5, true)).toThrow();
-            expect(() => ops.dot(t4, t5, true)).toThrow();
+            expect(() => ops.dot(t1, t5, t1)).toThrow();
+            expect(() => ops.dot(t4, t5, t4)).toThrow();
 
             binary(ops.matmul, t14, t15, [5, 1], [1.49, 2.025, 1.051, 1.394, 1.091]);
             // more thorough testing in out-of-place tests

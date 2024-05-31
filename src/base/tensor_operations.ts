@@ -1,15 +1,15 @@
 import core from "./core/build";
 import { check_row_col_compat } from "./util";
-import tensor, { Tensor, create_view } from "./Tensor";
+import tensor, {Tensor, create_view, tensor_like} from "./Tensor";
 import Shape from "./Shape";
 
 // types for high level operations
-export type UnaryOp = (a: Tensor, in_place: boolean) => Tensor;
-export type BinaryOp<OtherType> = (a: Tensor, b: OtherType, in_place?: boolean) => Tensor;
+export type UnaryOp = (src: Tensor, dest?: Tensor) => Tensor;
+export type BinaryOp<OtherType> = (src_a: Tensor, src_b: OtherType, dest?: Tensor) => Tensor;
 
 // types of core functions
-type CoreUnaryOp =  (a_ptr: number, res_ptr: number) => void;
-type CoreBinaryOp = (a_ptr: number, b_ptr_or_val: number, res_ptr: number) => void;
+type CoreUnaryOp =  (src_ptr: number, dest_ptr: number) => void;
+type CoreBinaryOp = (src_a_ptr: number, src_b_ptr_or_imm: number, dest_ptr: number) => void;
 
 // binary operations                       scalar,        pairwise,      broadcasting
 export const add        = create_binary_op(core._add_scl, core._add_prw, core._add_prw_brc);
@@ -44,22 +44,23 @@ export const abs        = create_unary_op(core._abs_tns);
 export const reciprocal = create_unary_op(core._reciprocal_tns);
 
 // be aware of tensor data dependencies when deallocating tensors !!
-export const free  = (a: Tensor) => core._free_tensor(a.get_view_ptr());
+export const free = (a: Tensor) => core._free_tensor(a.get_view_ptr());
 
 /**
  * Creates a deep copy of a tensor.
- * This means all data and metadata is copied to a new tensor without 
+ * This means all data and metadata is copied to a destination tensor without
  * referencing the original.
  * If the original tensor is a view of another tensor,
  * we will only copy the elements in the tensor that actually
  * occur in the view. This prevents allocating more memory than needed
- * @param a Original tensor to copy
+ * @param src Original tensor to copy
+ * @param dest Destination tensor where data will be copied to
  * @returns A copy of the original tensor.
  */
-export const clone = (a: Tensor) => {
-    const new_tensor = tensor([...a.shape]);
-    core._clone_tensor(a.get_view_ptr(), new_tensor.get_view_ptr());
-    return new_tensor;
+export const clone = (src: Tensor, dest?: Tensor) => {
+    const result = dest || tensor_like(src);
+    core._clone_tensor(src.get_view_ptr(), result.get_view_ptr());
+    return result;
 };
 
 function get_shape_matmul(a: Tensor, b: Tensor): Shape {
@@ -82,28 +83,24 @@ function get_shape_matmul(a: Tensor, b: Tensor): Shape {
     return new Shape([...high_level_shape, a.get_rows(), b.get_cols()]);
 }
 
-function check_in_place_compat(a: Tensor, result: Tensor, in_place: boolean) {
-    if (in_place && !a.shape.equals(result.shape))
-        throw new Error(`Cannot perform in-place operation. Result tensor [${result.shape}] has different shape than tensor a [${a.shape}].`);
-}
-
 // standard matmul on tensors 
-export const matmul: BinaryOp<Tensor> = (a: Tensor, b: Tensor, in_place = false): Tensor => {
-    const result_shape = get_shape_matmul(a, b);
-    const result = tensor(result_shape);
-    check_in_place_compat(a, result, in_place);
+export const matmul: BinaryOp<Tensor> = (src_a: Tensor, src_b: Tensor, dest?: Tensor): Tensor => {
+    const result_shape = get_shape_matmul(src_a, src_b);
+    const result = dest || tensor(result_shape);
+
+    if (dest && !dest.shape.equals(result_shape))
+        throw new Error(`Cannot perform matmul. Result tensor [${result_shape}] has different shape than destination tensor [${dest.shape}].`);
 
     // todo: decide if data should be passed into op from CompGraphNode.forward()
     //   or if we can just pass in the data like here
 
     // perform computation using core
     core._mul_tns(
-        a.get_view_ptr(),
-        b.get_view_ptr(),
+        src_a.get_view_ptr(),
+        src_b.get_view_ptr(),
         result.get_view_ptr()
     );
 
-    if (in_place) return in_place_cpy(result, a);
     return result;
 };
 
@@ -119,24 +116,28 @@ function get_shape_dot(a: Tensor, b: Tensor): Shape {
 }
 
 // numpy-style dot-product
-export const dot = (a: Tensor, b: Tensor, in_place = false): Tensor => {
+export const dot = (a: Tensor, b: Tensor, dest?: Tensor): Tensor => {
     const result_shape = get_shape_dot(a, b);
-    const result = tensor(result_shape);
-    check_in_place_compat(a, result, in_place);
+    const result = dest || tensor(result_shape);
+
+    if (dest && !dest.shape.equals(result_shape))
+        throw new Error(`Cannot compute dot product. Result tensor [${result_shape}] has different shape than destination tensor [${dest.shape}].`);
 
     core._dot_tns(
         a.get_view_ptr(),
         b.get_view_ptr(),
         result.get_view_ptr());
 
-    if (in_place) return in_place_cpy(result, a);
     return result;
 };
 
 function create_unary_op(core_fn: CoreUnaryOp): UnaryOp {
-    return (a: Tensor, in_place = false) => {
-        const result: Tensor = in_place ? a : clone(a);
-        core_fn(a.get_view_ptr(), result.get_view_ptr());
+    return (src: Tensor, dest?: Tensor) => {
+        if (dest && !dest.shape.equals(src.shape))
+            throw new Error(`Cannot perform unary op. Result tensor [${src.shape}] has different shape than destination tensor [${dest.shape}].`);
+
+        const result: Tensor = dest || tensor_like(src);
+        core_fn(src.get_view_ptr(), result.get_view_ptr());
         return result;
     };
 }
@@ -144,50 +145,42 @@ function create_unary_op(core_fn: CoreUnaryOp): UnaryOp {
 // computes a tensor-tensor/tensor-scalar operation and returns a result tensor
 function binary_op(
     core_fn_scl: CoreBinaryOp, core_fn_prw: CoreBinaryOp, core_fn_brc: CoreBinaryOp,
-    a: Tensor, b: Tensor | number,
-    in_place: boolean
+    src_a: Tensor, src_b: Tensor | number, dest?: Tensor
 ): Tensor {
     // perform scalar operation
-    if (typeof b === "number") {
-        const result = in_place ? a : clone(a);
-        core_fn_scl(a.get_view_ptr(), b, result.get_view_ptr());
+    if (typeof src_b === "number") {
+        const result = dest || tensor_like(src_a);
+        core_fn_scl(src_a.get_view_ptr(), src_b, result.get_view_ptr());
         return result;
     }
 
-    if (!(b instanceof Tensor))
+    if (!(src_b instanceof Tensor))
         throw new Error("Type mismatch: Binary operations expect tensors or numbers.");
 
     // perform fast pairwise operation without broadcasting if possible
-    if (a.shape.equals(b.shape)) {
-        const result = in_place ? a : clone(a);
-        core_fn_prw(a.get_view_ptr(), b.get_view_ptr(), result.get_view_ptr());
+    if (src_a.shape.equals(src_b.shape)) {
+        const result = dest || tensor_like(src_a);
+        core_fn_prw(src_a.get_view_ptr(), src_b.get_view_ptr(), result.get_view_ptr());
         return result;
     }
 
     // check if broadcasting is possible
-    if (!a.shape.broadcastable(b.shape))
-        throw new Error(`Shape mismatch: Cannot broadcast tensor of shape [${a.shape}] with [${b.shape}].`);
+    if (!src_a.shape.broadcastable(src_b.shape))
+        throw new Error(`Shape mismatch: Cannot broadcast tensor of shape [${src_a.shape}] with [${src_b.shape}].`);
 
-    const result_shape = a.shape.broadcast(b.shape);
+    const result_shape = src_a.shape.broadcast(src_b.shape);
 
-    if (in_place && !a.shape.equals(result_shape))
-        throw new Error(`Cannot perform in-place operation. Result tensor [${result_shape}] has different shape than tensor a [${a.shape}].`);
+    if (dest && !dest.shape.equals(result_shape))
+        throw new Error(`Cannot perform broadcasting binary operation. Result tensor [${result_shape}] has different shape than tensor a [${src_a.shape}].`);
 
-    const result = in_place ? a : tensor(result_shape);
-    core_fn_brc(a.get_view_ptr(), b.get_view_ptr(), result.get_view_ptr());
+    const result = dest || tensor(result_shape);
+    core_fn_brc(src_a.get_view_ptr(), src_b.get_view_ptr(), result.get_view_ptr());
 
     return result;
 }
 
 function create_binary_op(core_fn_scl: CoreBinaryOp, core_fn_prw: CoreBinaryOp, core_fn_brc: CoreBinaryOp): BinaryOp<Tensor | number> {
-    return (a: Tensor, b: Tensor | number, in_place = false) => binary_op(core_fn_scl, core_fn_prw, core_fn_brc, a, b, in_place);
-}
-
-// copies data from one tensor to another
-function in_place_cpy(source: Tensor, dest: Tensor) {
-    core._copy_farr(source.get_data_ptr(), dest.get_data_ptr(), source.get_nelem());
-    source.free();
-    return dest;
+    return (a: Tensor, b: Tensor | number, dest?: Tensor) => binary_op(core_fn_scl, core_fn_prw, core_fn_brc, a, b, dest);
 }
 
 function validate_permutation(permutation: number[], rank: number): void {

@@ -4,7 +4,7 @@ import core from "./core/build";
 import { get_row_major } from "./util";
 import tensor_to_string from "./to_string";
 import { ordinal_str } from "./util";
-import * as ops from "./tensor_operations";
+import * as ops from "./tensor_operations.ts";
 import ITensor from "./ITensor.ts";
 
 enum  STRUCT_LAYOUT { DATA, SHAPE, STRIDES, RANK, NELEM, NDATA, OFFSET, SIZE, ISVIEW }
@@ -106,38 +106,38 @@ export class Tensor implements ITensor<Tensor> {
     public transpose  = (...permutation: number[]) => ops.transpose(this, permutation);
 
     // unary operations
-    public relu       = (in_place = false) => ops.relu(this, in_place);
-    public binstep    = (in_place = false) => ops.binstep(this, in_place);
-    public logistic   = (in_place = false) => ops.logistic(this, in_place);
-    public negate     = (in_place = false) => ops.negate(this, in_place);
-    public sin        = (in_place = false) => ops.sin(this, in_place);
-    public cos        = (in_place = false) => ops.cos(this, in_place);
-    public tan        = (in_place = false) => ops.tan(this, in_place);
-    public asin       = (in_place = false) => ops.asin(this, in_place);
-    public acos       = (in_place = false) => ops.acos(this, in_place);
-    public atan       = (in_place = false) => ops.atan(this, in_place);
-    public sinh       = (in_place = false) => ops.sinh(this, in_place);
-    public cosh       = (in_place = false) => ops.cosh(this, in_place);
-    public tanh       = (in_place = false) => ops.tanh(this, in_place);
-    public exp        = (in_place = false) => ops.exp(this, in_place);
-    public log        = (in_place = false) => ops.log(this, in_place);
-    public log10      = (in_place = false) => ops.log10(this, in_place);
-    public log2       = (in_place = false) => ops.log2(this, in_place);
-    public invsqrt    = (in_place = false) => ops.invsqrt(this, in_place); // careful - negative input values will produce Infinity, not NaN
-    public sqrt       = (in_place = false) => ops.sqrt(this, in_place);
-    public ceil       = (in_place = false) => ops.ceil(this, in_place);
-    public floor      = (in_place = false) => ops.floor(this, in_place);
-    public abs        = (in_place = false) => ops.abs(this, in_place);
-    public reciprocal = (in_place = false) => ops.reciprocal(this, in_place);
+    public relu       = (in_place = false) => ops.relu(this, in_place ? this : undefined);
+    public binstep    = (in_place = false) => ops.binstep(this, in_place ? this : undefined);
+    public logistic   = (in_place = false) => ops.logistic(this, in_place ? this : undefined);
+    public negate     = (in_place = false) => ops.negate(this, in_place ? this : undefined);
+    public sin        = (in_place = false) => ops.sin(this, in_place ? this : undefined);
+    public cos        = (in_place = false) => ops.cos(this, in_place ? this : undefined);
+    public tan        = (in_place = false) => ops.tan(this, in_place ? this : undefined);
+    public asin       = (in_place = false) => ops.asin(this, in_place ? this : undefined);
+    public acos       = (in_place = false) => ops.acos(this, in_place ? this : undefined);
+    public atan       = (in_place = false) => ops.atan(this, in_place ? this : undefined);
+    public sinh       = (in_place = false) => ops.sinh(this, in_place ? this : undefined);
+    public cosh       = (in_place = false) => ops.cosh(this, in_place ? this : undefined);
+    public tanh       = (in_place = false) => ops.tanh(this, in_place ? this : undefined);
+    public exp        = (in_place = false) => ops.exp(this, in_place ? this : undefined);
+    public log        = (in_place = false) => ops.log(this, in_place ? this : undefined);
+    public log10      = (in_place = false) => ops.log10(this, in_place ? this : undefined);
+    public log2       = (in_place = false) => ops.log2(this, in_place ? this : undefined);
+    public invsqrt    = (in_place = false) => ops.invsqrt(this, in_place ? this : undefined); // careful - negative input values will produce Infinity, not NaN
+    public sqrt       = (in_place = false) => ops.sqrt(this, in_place ? this : undefined);
+    public ceil       = (in_place = false) => ops.ceil(this, in_place ? this : undefined);
+    public floor      = (in_place = false) => ops.floor(this, in_place ? this : undefined);
+    public abs        = (in_place = false) => ops.abs(this, in_place ? this : undefined);
+    public reciprocal = (in_place = false) => ops.reciprocal(this, in_place ? this : undefined);
 
     // binary operations
-    public add        = (other: Tensor | number, in_place = false) => ops.add(this, other, in_place);
-    public sub        = (other: Tensor | number, in_place = false) => ops.sub(this, other, in_place);
-    public mul        = (other: Tensor | number, in_place = false) => ops.mul(this, other, in_place);
-    public div        = (other: Tensor | number, in_place = false) => ops.div(this, other, in_place);
-    public pow        = (other: Tensor | number, in_place = false) => ops.pow(this, other, in_place);
-    public dot        = (other: Tensor, in_place = false) => ops.dot(this, other, in_place);
-    public matmul     = (other: Tensor, in_place = false) => ops.matmul(this, other, in_place);
+    public add        = (other: Tensor | number, in_place = false) => ops.add(this, other, in_place ? this : undefined);
+    public sub        = (other: Tensor | number, in_place = false) => ops.sub(this, other, in_place ? this : undefined);
+    public mul        = (other: Tensor | number, in_place = false) => ops.mul(this, other, in_place ? this : undefined);
+    public div        = (other: Tensor | number, in_place = false) => ops.div(this, other, in_place ? this : undefined);
+    public pow        = (other: Tensor | number, in_place = false) => ops.pow(this, other, in_place ? this : undefined);
+    public dot        = (other: Tensor, in_place = false) => ops.dot(this, other, in_place ? this : undefined);
+    public matmul     = (other: Tensor, in_place = false) => ops.matmul(this, other, in_place ? this : undefined);
 
     // reduce operations
     public min  = (): number => ops.min(this);

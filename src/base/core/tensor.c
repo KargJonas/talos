@@ -86,6 +86,7 @@ void free_tensor(struct tensor_t* a) {
  * so we should mark tensors as view-tensors and only do this
  * when necessary
  */
+ // todo: rename this to copy_tensor
 void clone_tensor(struct tensor_t* source, struct tensor_t* dest) {
     copy_starr(source->shape, dest->shape, source->rank);
     copy_starr(source->strides, dest->strides, source->rank);
