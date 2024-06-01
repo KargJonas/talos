@@ -67,7 +67,7 @@ function mat_to_string(mat: Tensor, n_decimals: number, space_before: number) {
             const val = Math.floor(mat.data[index] * exp) / exp;
             const str = val.toString();
             const separator = c < cols - 1 ? ", " : "";
-            const padding_right = " ".repeat(max_length - str.length);
+            const padding_right = " ".repeat(Math.max(0, max_length - str.length));
 
             vals.push(`${str}${separator}${padding_right}`);
         }
