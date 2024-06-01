@@ -2,7 +2,8 @@
  * This file is used for validation and debugging during development. 
  */
 
-import { core_ready, tensor } from "../index";
+import {core_ready, Tensor, tensor} from "../index";
+import {node} from "../src/Node.ts";
 
 // if your runtime does not support top-level await,
 // you'll have to use core_ready.then(() => { ... }) instead
@@ -10,25 +11,35 @@ await core_ready;
 
 console.log("###########\n".repeat(2));
 
-const dataset_x_0 = tensor([50, 28, 28]).rand();  // 50 images of size 28x28
-const dataset_x_1 = tensor([50, 12]);             // additional information for each image
-const dataset_y = tensor([50, 10]);               // one hot encoding of 10 classes
+const dataset_x_0: Tensor = tensor([50, 4, 4]).rand();    // 50 "images" of size 4x4
+const dataset_x_1: Tensor = tensor([50, 4, 4]).rand();    // additional information for each image
+const dataset_y: Tensor   = tensor([50, 10]);             // one hot encoding of 10 classes
 
-function* preprocessor() {
+function get_provider_from_dataset(dataset: Tensor): () => Tensor {
+    const iterator = dataset.get_axis_iterable(0);
 
-    const iterator_x_0 = dataset_x_0.get_axis_iterable(0);
-    const iterator_x_1 = dataset_x_1.get_axis_iterable(0);
-    const iterator_y = dataset_y.get_axis_iterable(0);
-
-    while (true) {
-        const x_0 = iterator_x_0.next();
-        const x_1 = iterator_x_1.next();
-        const y = iterator_y.next();
-        if (x_0.done || x_1.done || y.done) break;
-        yield [x_0.value, , y.value];
-    }
+    // Data provider
+    return function () {
+        const next = iterator.next();
+        if (next.done) throw new Error("Reached end of dataset.");
+        return next.value;
+    };
 }
 
-for (const sample of preprocessor()) {
+const input_0 = node([4, 4], get_provider_from_dataset(dataset_x_0));
+const input_1 = node([4, 4], get_provider_from_dataset(dataset_x_1));
 
-}
+// Result tensor
+const result = input_0.add(input_1);
+
+// Graph acquisition
+const graph = result.get_computation_graph();
+
+graph.forward();
+graph.backward();
+
+console.log("Result: ");
+result.primal.print();
+
+console.log("Gradient of result: ");
+result.grad.print();
