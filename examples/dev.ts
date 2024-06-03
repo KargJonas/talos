@@ -13,15 +13,14 @@ console.log("###########\n".repeat(2));
 
 const a = tensor([2, 2, 3], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
 const c = tensor([2, 2, 3], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
-const b = tensor([1], [1]);
+const b = tensor([], [1]);
 
 // note: the addition gives the wrong result
 //       should we handle scalar tensors differently (explicit rank 0)
 //       or should we just keep it shape [1]?
 // b.print_info();
 a.print();
-a.add(c).print();
-
+a.add(b).print();
 
 // const dataset_x_0: Tensor = tensor([50, 4, 4]).rand();    // 50 "images" of size 4x4
 // const dataset_x_1: Tensor = tensor([50, 4, 4]).rand();    // additional information for each image
