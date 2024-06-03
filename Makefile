@@ -1,6 +1,6 @@
 EERM		= [ccall, cwrap, getValue, setValue]
-OUT_DIR 	= ./src/core/build
-SRC_DIR 	= ./src/core
+OUT_DIR 	= ./src/base/core/build
+SRC_DIR 	= ./src/base/core
 
 # exported functions
 EF = [ \
@@ -12,7 +12,6 @@ EF = [ \
 	_rand_seed, _rand_f, _rand_i, _fill, \
 	\
 	_add_scl, _sub_scl, _mul_scl, _div_scl, _pow_scl, \
-	_add_prw, _sub_prw, _mul_prw, _div_prw, _pow_prw, \
 	_add_prw_brc, _sub_prw_brc, _mul_prw_brc, _div_prw_brc, _pow_prw_brc, \
 	_mul_tns, _dot_tns, \
 	\

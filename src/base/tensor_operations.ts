@@ -11,12 +11,12 @@ export type BinaryOp<OtherType> = (src_a: Tensor, src_b: OtherType, dest?: Tenso
 type CoreUnaryOp =  (src_ptr: number, dest_ptr: number) => void;
 type CoreBinaryOp = (src_a_ptr: number, src_b_ptr_or_imm: number, dest_ptr: number) => void;
 
-// binary operations                       scalar,        pairwise,      broadcasting
-export const add        = create_binary_op(core._add_scl, core._add_prw, core._add_prw_brc);
-export const sub        = create_binary_op(core._sub_scl, core._sub_prw, core._sub_prw_brc);
-export const mul        = create_binary_op(core._mul_scl, core._mul_prw, core._mul_prw_brc);
-export const div        = create_binary_op(core._div_scl, core._div_prw, core._div_prw_brc);
-export const pow        = create_binary_op(core._pow_scl, core._pow_prw, core._pow_prw_brc);
+// binary operations                       scalar,        broadcasting
+export const add        = create_binary_op(core._add_scl, core._add_prw_brc);
+export const sub        = create_binary_op(core._sub_scl, core._sub_prw_brc);
+export const mul        = create_binary_op(core._mul_scl, core._mul_prw_brc);
+export const div        = create_binary_op(core._div_scl, core._div_prw_brc);
+export const pow        = create_binary_op(core._pow_scl, core._pow_prw_brc);
 
 // unary operations
 export const relu       = create_unary_op(core._relu_tns);
@@ -144,7 +144,7 @@ function create_unary_op(core_fn: CoreUnaryOp): UnaryOp {
 
 // computes a tensor-tensor/tensor-scalar operation and returns a result tensor
 function binary_op(
-    core_fn_scl: CoreBinaryOp, core_fn_prw: CoreBinaryOp, core_fn_brc: CoreBinaryOp,
+    core_fn_scl: CoreBinaryOp, core_fn_brc: CoreBinaryOp,
     src_a: Tensor, src_b: Tensor | number, dest?: Tensor
 ): Tensor {
     // perform scalar operation
@@ -156,13 +156,6 @@ function binary_op(
 
     if (!(src_b instanceof Tensor))
         throw new Error("Type mismatch: Binary operations expect tensors or numbers.");
-
-    // perform fast pairwise operation without broadcasting if possible
-    if (src_a.shape.equals(src_b.shape)) {
-        const result = dest || tensor_like(src_a);
-        core_fn_prw(src_a.get_view_ptr(), src_b.get_view_ptr(), result.get_view_ptr());
-        return result;
-    }
 
     // check if broadcasting is possible
     if (!src_a.shape.broadcastable(src_b.shape))
@@ -177,7 +170,7 @@ function binary_op(
         // TODO: Check if this can somehow be done safely
         //       If not it might be worth it to create a tensor that holds
         //       the interim before the result is written back to the source
-        if (dest == src_a || dest == src_b)
+        if ((dest == src_a && !dest.shape.equals(src_a.shape)) || (dest == src_b && !dest.shape.equals(src_b.shape)))
             throw new Error("In-place broadcasting is not supported.");
     }
 
@@ -187,8 +180,8 @@ function binary_op(
     return result;
 }
 
-function create_binary_op(core_fn_scl: CoreBinaryOp, core_fn_prw: CoreBinaryOp, core_fn_brc: CoreBinaryOp): BinaryOp<Tensor | number> {
-    return (a: Tensor, b: Tensor | number, dest?: Tensor) => binary_op(core_fn_scl, core_fn_prw, core_fn_brc, a, b, dest);
+function create_binary_op(core_fn_scl: CoreBinaryOp, core_fn_brc: CoreBinaryOp): BinaryOp<Tensor | number> {
+    return (a: Tensor, b: Tensor | number, dest?: Tensor) => binary_op(core_fn_scl, core_fn_brc, a, b, dest);
 }
 
 function validate_permutation(permutation: number[], rank: number): void {

@@ -13,7 +13,11 @@ export interface BidirectionalOperation {
     bw: BackwardFunc;
 }
 
-// todo: what about scalar addition?
+// TODO: what about scalar addition?     THIS IS ON TOP OF THE IMPORTANCE LIST PROBABLY
+//       one solution is to add support for scalar tensors      !!!!!!!!!!!!!!!!!
+//       scalar tensors can be broadcast to any shape           !!!!!!!!!!!!!!!!!
+//       this way, the separate scalar binary-ops logic could be removed
+
 // Pairwise tensor addition
 export const add: BidirectionalOperation = {
     name: "add",
