@@ -36,7 +36,6 @@ export default class CompGraph {
 
     /**
      * uses kahn's algorithm to find a topological ordering / a correct execution sequence
-     * NOTE: NOT THREAD SAFE BECAUSE OF DEGREE MODIFICATION
      * @returns An array that represents the topological ordering or the graph execution.
      *          The first op that should be performed is in index 0, and the last is in the last index.
      */
@@ -74,7 +73,7 @@ export default class CompGraph {
 
     backward(): void {
         // Step backward through node execution order and update grads using backward functions
-        for (let i = this.topological_ordering.length - 1; i >= 1; i--) {
+        for (let i = this.topological_ordering.length - 1; i >= 0; i--) {
             const node = this.topological_ordering[i];
             node.bw(node.parents, node);
         }

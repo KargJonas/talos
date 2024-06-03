@@ -28,9 +28,10 @@ export const add: BidirectionalOperation = {
     },
 
     bw(parents: Node[], self: Node) {
+        // todo: ensure that the if's are actually what we need here
         //      src 1            src 2      dest
-        ops.add(parents[0].grad, self.grad, parents[0].grad); // in-place op
-        ops.add(parents[1].grad, self.grad, parents[1].grad); // in-place op
+        if (parents[0]?.requires_grad) ops.add(parents[0].grad, self.grad, parents[0].grad); // in-place op
+        if (parents[1]?.requires_grad) ops.add(parents[1].grad, self.grad, parents[1].grad); // in-place op
     }
 };
 

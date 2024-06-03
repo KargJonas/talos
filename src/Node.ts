@@ -7,7 +7,7 @@ import CompGraph from "./ComputationGraph.ts";
 export default class Node {
     // State of the node
     primal: Tensor;
-    readonly grad: Tensor;
+    readonly grad: Tensor | undefined;
 
     // Function will compute the current value of the primal from the values of the parents a and b
     readonly fw: graph_ops.ForwardFunc; // forward pass
@@ -19,30 +19,37 @@ export default class Node {
     readonly parents: Node[];
     readonly children: Node[];
     readonly operation: string;
+    readonly requires_grad: boolean;
 
-    constructor(value: Tensor, operation: string, fw: graph_ops.ForwardFunc, bw: graph_ops.BackwardFunc, parents: Node[]) {
+    constructor(value: Tensor, operation: string, fw: graph_ops.ForwardFunc, bw: graph_ops.BackwardFunc, parents: Node[], requires_grad: boolean = true) {
         this.primal = value;
         this.parents = parents;
         this.operation = operation;
         this.children = [];
+        this.requires_grad = requires_grad;
 
-        // todo: the following is only necessary when requires_grad is true
+        if (requires_grad) this.grad = tensor_like(this.primal).zeros();
 
         this.fw = fw;
         this.bw = bw;
-
-        this.grad = tensor_like(this.primal).zeros();
     }
 
-    zero_grad = () => this.grad.zeros();
+    zero_grad = () => this.grad?.zeros();
 
-    create_binary_op(graph_op: BidirectionalOperation) {
-        return (other: Node) => {
+    private create_binary_op(graph_op: BidirectionalOperation) {
+        return (_other: Node | number) => {
+
+            // If _other is a scalar, create a rank-0 tensor that holds the scalar value such that it can be referenced in the graph
+            const other = typeof _other === "number"
+                ? new Node(tensor([], [_other]), "scalar-input", graph_ops.nop.fw, graph_ops.nop.bw, [], false)
+                : _other;
+
             const new_node = new Node(
                 tensor_like(this.primal),   // Where the actual tensor data will be stored (a grad tensor of the same shape will be allocated automatically)
                 graph_op.name,                       // Op name for debugging purposes
                 graph_op.fw, graph_op.bw,
-                [this, other]
+                [this, other],
+                true
             );
 
             // Register the new node as a child of its parents. This is necessary because
@@ -104,7 +111,8 @@ export function node(shape: number[] | Shape, producer: () => Tensor) {
         //       do we need to consider de-allocation? (i think no)
         (_parents: Node[], self: Node) => self.primal = producer(),
         graph_ops.nop.bw,
-        []
+        [],
+        false // TODO: some architectures require input gradients (adv. attack, style transfer, ...)
     );
 }
 
@@ -115,7 +123,8 @@ export function const_node(shape: number[] | Shape, data?: number[]) {
         "input",
         graph_ops.nop.fw,
         graph_ops.nop.bw,
-        []
+        [],
+        false,
     );
 }
 

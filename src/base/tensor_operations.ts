@@ -11,12 +11,12 @@ export type BinaryOp<OtherType> = (src_a: Tensor, src_b: OtherType, dest?: Tenso
 type CoreUnaryOp =  (src_ptr: number, dest_ptr: number) => void;
 type CoreBinaryOp = (src_a_ptr: number, src_b_ptr_or_imm: number, dest_ptr: number) => void;
 
-// binary operations                       scalar,        broadcasting
-export const add        = create_binary_op(core._add_scl, core._add_prw_brc);
-export const sub        = create_binary_op(core._sub_scl, core._sub_prw_brc);
-export const mul        = create_binary_op(core._mul_scl, core._mul_prw_brc);
-export const div        = create_binary_op(core._div_scl, core._div_prw_brc);
-export const pow        = create_binary_op(core._pow_scl, core._pow_prw_brc);
+// binary operations                       broadcasting
+export const add        = create_binary_op(core._add_prw_brc);
+export const sub        = create_binary_op(core._sub_prw_brc);
+export const mul        = create_binary_op(core._mul_prw_brc);
+export const div        = create_binary_op(core._div_prw_brc);
+export const pow        = create_binary_op(core._pow_prw_brc);
 
 // unary operations
 export const relu       = create_unary_op(core._relu_tns);
@@ -64,7 +64,6 @@ export const clone = (src: Tensor, dest?: Tensor) => {
 };
 
 function get_shape_matmul(a: Tensor, b: Tensor): Shape {
-    if (!(a instanceof Tensor && b instanceof Tensor)) throw new Error("Tensor.matmul() expects a tensor.");
     check_row_col_compat(a, b);
 
     // flatten tensors to a "list of matrices" and get the size of that list
@@ -105,7 +104,6 @@ export const matmul: BinaryOp<Tensor> = (src_a: Tensor, src_b: Tensor, dest?: Te
 };
 
 function get_shape_dot(a: Tensor, b: Tensor): Shape {
-    if (!(a instanceof Tensor && b instanceof Tensor)) throw new Error("Tensor.dot() expects a tensor.");
     check_row_col_compat(a, b);
 
     const result_shape = new Shape([
@@ -143,20 +141,7 @@ function create_unary_op(core_fn: CoreUnaryOp): UnaryOp {
 }
 
 // computes a tensor-tensor/tensor-scalar operation and returns a result tensor
-function binary_op(
-    core_fn_scl: CoreBinaryOp, core_fn_brc: CoreBinaryOp,
-    src_a: Tensor, src_b: Tensor | number, dest?: Tensor
-): Tensor {
-    // perform scalar operation
-    if (typeof src_b === "number") {
-        const result = dest || tensor_like(src_a);
-        core_fn_scl(src_a.get_view_ptr(), src_b, result.get_view_ptr());
-        return result;
-    }
-
-    if (!(src_b instanceof Tensor))
-        throw new Error("Type mismatch: Binary operations expect tensors or numbers.");
-
+function binary_op(core_fn_brc: CoreBinaryOp, src_a: Tensor, src_b: Tensor, dest?: Tensor): Tensor {
     // check if broadcasting is possible
     if (!src_a.shape.broadcastable(src_b.shape))
         throw new Error(`Shape mismatch: Cannot broadcast tensor of shape [${src_a.shape}] with [${src_b.shape}].`);
@@ -180,8 +165,8 @@ function binary_op(
     return result;
 }
 
-function create_binary_op(core_fn_scl: CoreBinaryOp, core_fn_brc: CoreBinaryOp): BinaryOp<Tensor | number> {
-    return (a: Tensor, b: Tensor | number, dest?: Tensor) => binary_op(core_fn_scl, core_fn_brc, a, b, dest);
+function create_binary_op(core_fn_brc: CoreBinaryOp): BinaryOp<Tensor> {
+    return (a: Tensor, b: Tensor, dest?: Tensor) => binary_op(core_fn_brc, a, b, dest);
 }
 
 function validate_permutation(permutation: number[], rank: number): void {
