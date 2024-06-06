@@ -67,6 +67,8 @@ export default class CompGraph {
         // Step forward through node execution order and update primals using forward functions
         for (let i = 0; i < this.topological_ordering.length; i++) {
             const node = this.topological_ordering[i];
+            console.log(node.operation);
+            node.print();
             node.fw(node.parents, node);
         }
     }

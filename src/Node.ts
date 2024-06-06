@@ -19,14 +19,12 @@ export default class Node {
     readonly parents: Node[];
     readonly children: Node[];
     readonly operation: string;
-    readonly requires_grad: boolean;
 
     constructor(value: Tensor, operation: string, fw: graph_ops.ForwardFunc, bw: graph_ops.BackwardFunc, parents: Node[], requires_grad: boolean = true) {
         this.primal = value;
         this.parents = parents;
         this.operation = operation;
         this.children = [];
-        this.requires_grad = requires_grad;
 
         if (requires_grad) this.grad = tensor_like(this.primal).zeros();
 
@@ -34,6 +32,7 @@ export default class Node {
         this.bw = bw;
     }
 
+    print = () => this.primal.print();
     zero_grad = () => this.grad?.zeros();
 
     private create_binary_op(graph_op: BidirectionalOperation) {
@@ -41,15 +40,17 @@ export default class Node {
 
             // If _other is a scalar, create a rank-0 tensor that holds the scalar value such that it can be referenced in the graph
             const other = typeof _other === "number"
-                ? new Node(tensor([], [_other]), "scalar-input", graph_ops.nop.fw, graph_ops.nop.bw, [], false)
+                ? new Node(tensor([], [_other]), "scalar_input", graph_ops.nop.fw, graph_ops.nop.bw, [], false)
                 : _other;
 
+            const parents = [this, other];
+
             const new_node = new Node(
-                tensor_like(this.primal),   // Where the actual tensor data will be stored (a grad tensor of the same shape will be allocated automatically)
-                graph_op.name,                       // Op name for debugging purposes
-                graph_op.fw, graph_op.bw,
-                [this, other],
-                true
+                graph_op.init_tensor(parents),  // where the actual tensor data will be stored (a grad tensor of the same shape will be allocated automatically)
+                graph_op.name,                  // OP name for debugging purposes
+                graph_op.fw, graph_op.bw,       // forward and backward functions
+                parents,                        // parents
+                true                // TODO: all intermediates require grads for now
             );
 
             // Register the new node as a child of its parents. This is necessary because
@@ -61,7 +62,9 @@ export default class Node {
         };
     }
 
+    // common node operations
     add = this.create_binary_op(graph_ops.add);
+    mse_loss = this.create_binary_op(graph_ops.mse_loss);
 
     // Find all nodes that are directly or transitively connected to this node using DFS
     // i.e. find the set of all nodes in this graph
@@ -103,9 +106,9 @@ export default class Node {
 // it has a NOP (no operation) as forward and backward function,
 // meaning that it will never alter the state of the model
 // (neither forward-, nor backward passes)
-export function node(shape: number[] | Shape, producer: () => Tensor) {
+export function node(producer: () => Tensor) {
     return new Node(
-        tensor(shape),
+        producer(), // todo validate if we can do this. this is an immediate-mode load of the dataset samples (perhaps unexpected)
         "input",
         // TODO: validate. does changing the tensor reference of the primal break things?
         //       do we need to consider de-allocation? (i think no)

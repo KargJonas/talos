@@ -146,8 +146,12 @@ export class Tensor implements ITensor<Tensor> {
     public mean = (): number => ops.mean(this);
 
     // operation shorthands
-    public get T() {
+    public get T(): Tensor {
         return ops.transpose(this);
+    }
+
+    public get size(): number {
+        return this.get_nelem();
     }
 
     [Symbol.iterator]() {
@@ -170,6 +174,10 @@ export default function tensor(shape: number[] | Shape, data?: number[]): Tensor
     new_tensor.strides.set(get_row_major(_shape));
 
     return new_tensor;
+}
+
+export function tensor_scalar(scalar?: number): Tensor {
+    return tensor([], [scalar || 0]);
 }
 
 export function tensor_like(other: Tensor) {

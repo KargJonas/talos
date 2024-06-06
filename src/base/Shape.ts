@@ -51,6 +51,10 @@ export default class Shape extends Int32Array {
     }
 
     broadcast(other: Shape): Shape {
+        // check if broadcasting is possible
+        if (!this.broadcastable(other))
+            throw new Error(`Shape mismatch: Cannot broadcast tensor of shape [${this}] with [${other}].`);
+
         const max_rank = Math.max(this.get_ndim(), other.get_ndim());
         const new_shape: number[] = [];
         const a = new Shape(this.detach().reverse());
