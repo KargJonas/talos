@@ -18,6 +18,8 @@ export default function tensor_to_string(a: Tensor, num_width = 5, space_before 
 }
 
 function vec_to_string(vec: Tensor, n_decimals: number) {
+    if (vec.shape[0] === 1) return `[ ${vec.data[vec.get_offset()]} ]`;
+
     const n_integer = Math.floor(vec.max()).toString().length;
     const cols = vec.get_cols();
     const col_stride = vec.strides[0];

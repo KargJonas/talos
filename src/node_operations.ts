@@ -1,70 +1,92 @@
-import Node from "./Node.ts";
 import * as ops from "./base/tensor_operations.ts";
-import {Tensor, tensor_scalar} from "./base/Tensor.ts";
+import {Tensor, tensor_like, tensor_scalar} from "./base/Tensor.ts";
 import {tensor} from "../index.ts";
+import Shape from "./base/Shape.ts";
+import CompGraphNode from "./CompGraphNode.ts";
 
 // This file contains all operations of the graph-node abstraction-level
 // These are essentially all operations of the tensor level plus their derivatives
 
-export type NodeInitFunc = (parents: Node[], self: Node) => Tensor;
-export type ForwardFunc = (parents: Node[], self: Node) => void;
-export type BackwardFunc = (parents: Node[], self: Node) => void;
+export class ConstScalar extends CompGraphNode {
+    value: Tensor;
 
-export interface BidirectionalOperation {
-    name: string,
-    init: NodeInitFunc;
-    fw: ForwardFunc;
-    bw: BackwardFunc;
+    constructor(scalar: number) {
+        super([]);
+        this.value = tensor_scalar(scalar);
+    }
+}
+
+export class Input extends CompGraphNode {
+    value: Tensor;
+    producer: () => Tensor;
+
+    constructor(shape: Shape | number[], producer: () => Tensor) {
+        super([]);
+
+        this.value = tensor(shape);
+        this.producer = producer;
+    }
+
+    fw() {
+        this.value = this.producer();
+    }
 }
 
 // Pairwise tensor addition
-export const add: BidirectionalOperation = {
-    name: "add",
+export class Add extends CompGraphNode {
+    value: Tensor;
+    grad: Tensor;
 
-    init(parents: Node[], self: Node): Tensor {
-        return tensor(parents[0].primal.shape.broadcast(parents[1].primal.shape));
-    },
-
-    fw(parents: Node[], self: Node) {
-        ops.add(parents[0].primal, parents[1].primal, self.primal);
-    },
-
-    bw(parents: Node[], self: Node) {
-        // todo: ensure that the if's are actually what we need here
-        if (parents[0].grad) ops.add(parents[0].grad, self.grad, parents[0].grad); // in-place op
-        if (parents[1].grad) ops.add(parents[1].grad, self.grad, parents[1].grad); // in-place op
+    constructor(parents: CompGraphNode[]) {
+        super(parents);
+        this.value = tensor(this.parents[0].value.shape.broadcast(this.parents[1].value.shape));
+        this.grad = tensor_like(this.value);
     }
-};
 
-export const mse_loss: BidirectionalOperation = {
-    name: "mse_loss",
+    fw() {
+        ops.add(this.parents[0].value, this.parents[1].value, this.value);
+    }
 
-    init(parents: Node[], self: Node): Tensor {
-        return tensor_scalar(0);
-    },
+    bw() {
+        // todo: ensure that the if's are actually what we need here
+        if (this.parents[0].grad) ops.add(this.parents[0].grad, this.grad, this.parents[0].grad); // in-place op
+        if (this.parents[1].grad) ops.add(this.parents[1].grad, this.grad, this.parents[1].grad); // in-place op
+    }
+}
 
-    fw(parents: Node[], self: Node) {
-        const prediction = parents[0].primal;
-        const target = parents[1].primal; // other is always in parents[1]
+export class MseLoss extends CompGraphNode {
+    value: Tensor;
 
-        // compute MSE loss: (prediction - target)^2 / N
-        ops.sub(prediction, target, self.primal);
-        ops.pow(self.primal, 2, self.primal);
-        const mean_val = ops.mean(self.primal);
-        self.primal.fill(mean_val);
-    },
+    // intermediate values
+    interim: Tensor;
 
-    bw(parents: Node[], self: Node) {
-        const prediction = parents[0];
-        const target = parents[1];
+    constructor(parents: CompGraphNode[]) {
+        // todo: add shape compat check
 
-        // gradient of MSE loss w.r.t. prediction: 2 * (prediction - target) / N
+        super(parents);
+        this.value = tensor_scalar(0);
+        this.interim = tensor_like(parents[0].value);
+    }
 
-        // if (prediction.requires_grad) {
+    fw() {
+        const prediction = this.parents[0].value;
+        const target = this.parents[1].value;
+
+        // compute MSE loss: (prediction - target)^2 / N and store result this.difference
+        ops.sub(prediction, target, this.interim);
+        ops.pow(this.interim, 2, this.interim);
+        this.value.fill(ops.mean(this.interim));
+    }
+
+    bw() {
+        const prediction = this.parents[0];
+        const target = this.parents[1];
+
         if (prediction.grad) {
-            ops.sub(prediction.primal, target.primal, prediction.grad!);
-            ops.mul(prediction.grad, 2 / prediction.primal.size, prediction.grad!);
-            ops.add(prediction.grad, self.grad!, prediction.grad!);
+            // gradient of MSE loss w.r.t. prediction: 2 * (prediction - target) / N
+            ops.sub(prediction.value, target.value, prediction.grad);
+            ops.mul(prediction.grad, 2 / prediction.value.size, prediction.grad);
+            ops.add(prediction.grad, this.grad!, prediction.grad);
         }
     }
-};
+}

@@ -1,4 +1,4 @@
-import Node from "./Node.ts";
+import CompGraphNode from "./CompGraphNode.ts";
 
 /**
  * This is a basic implementation of the computation graph.
@@ -13,13 +13,13 @@ import Node from "./Node.ts";
  * search. We then filter by the number of children/parents.
  */
 export default class CompGraph {
-    inputs: Node[];
-    outputs: Node[];
-    all_nodes: Node[];
+    inputs: CompGraphNode[];
+    outputs: CompGraphNode[];
+    all_nodes: CompGraphNode[];
 
-    topological_ordering: Node[];
+    topological_ordering: CompGraphNode[];
 
-    constructor(inputs: Node[], outputs: Node[], all_nodes: Node[]) {
+    constructor(inputs: CompGraphNode[], outputs: CompGraphNode[], all_nodes: CompGraphNode[]) {
         this.inputs = inputs;
         this.outputs = outputs;
         this.all_nodes = all_nodes;
@@ -39,10 +39,10 @@ export default class CompGraph {
      * @returns An array that represents the topological ordering or the graph execution.
      *          The first op that should be performed is in index 0, and the last is in the last index.
      */
-    find_topological_order(): Node[] {
-        const queue: Node[] = [...this.inputs];
-        const topological_order: Node[] = [];
-        const in_degrees = new Map<Node, number>();
+    find_topological_order(): CompGraphNode[] {
+        const queue: CompGraphNode[] = [...this.inputs];
+        const topological_order: CompGraphNode[] = [];
+        const in_degrees = new Map<CompGraphNode, number>();
 
         for (const node of this.all_nodes) {
             in_degrees.set(node, node.parents.length);
@@ -67,9 +67,8 @@ export default class CompGraph {
         // Step forward through node execution order and update primals using forward functions
         for (let i = 0; i < this.topological_ordering.length; i++) {
             const node = this.topological_ordering[i];
-            console.log(node.operation);
             node.print();
-            node.fw(node.parents, node);
+            node.fw();
         }
     }
 
@@ -77,7 +76,7 @@ export default class CompGraph {
         // Step backward through node execution order and update grads using backward functions
         for (let i = this.topological_ordering.length - 1; i >= 0; i--) {
             const node = this.topological_ordering[i];
-            node.bw(node.parents, node);
+            node.bw();
         }
     }
 }

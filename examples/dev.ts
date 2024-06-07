@@ -2,11 +2,8 @@
  * This file is used for validation and debugging during development. 
  */
 
-import {core_ready, Tensor, tensor} from "../index";
-import {node} from "../src/Node.ts";
-import {pow} from "../src/base/tensor_operations.ts";
-import {get_row_major} from "../src/base/util.ts";
-import {tensor_scalar} from "../src/base/Tensor.ts";
+import {core_ready, tensor} from "../index";
+import {source_node} from "../src/node_factory.ts";
 
 // if your runtime does not support top-level await,
 // you'll have to use core_ready.then(() => { ... }) instead
@@ -15,21 +12,21 @@ await core_ready;
 console.log("###########\n".repeat(2));
 
 const input = tensor([3], [1, 2, 3]);
-const target = tensor([3], [1, 2, 3]);
+const target = tensor([3], [1.01, 2, 3]);
 
-// node a always receives the same input for the sake of demonstration
-const a  = node(() => input);
+// node "a" always receives the same input for the sake of demonstration
+const a  = source_node([3], () => input);
 
 // the last node of this primitive network is the mean squared error loss
 // the value of this node is a scalar tensor
-const nn = a.mse_loss(node(() => target));
+const nn = a.mse_loss(source_node([3], () => target));
 
 const graph = nn.get_computation_graph();
 graph.forward();
 graph.backward();
 
-graph.outputs[0].primal.print();
-graph.outputs[0].grad.print();
+graph.outputs[0].print();
+graph.outputs[0].print_grad();
 
 
 // const dataset_x_0: Tensor = tensor([50, 4, 4]).zeros();    // 50 "images" of size 4x4

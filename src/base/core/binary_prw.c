@@ -25,12 +25,14 @@ PARIWISE_OP(pow_prw, PREFIX_OP(get_item(a, i), get_item(b, i), pow)) // div
     void NAME(struct tensor_t *a, struct tensor_t *b, struct tensor_t *res) { \
         size_t ia = 0, ib = 0, iaxis, remainder, dim; \
         size_t strides_a[res->rank], strides_b[res->rank]; \
+        bool a_scl = a->rank == 1 && a->shape[0] == 1; \
+        bool b_scl = a->rank == 1 && a->shape[0] == 1; \
         /* at least of the two tensors is a scalar */ \
-        if (a->rank == 0 || b->rank == 0) { \
+        if (a_scl || b_scl) { \
             ia = get_index(a, 0); ib = get_index(b, 0); /* scalar value is in 0th index of data array */ \
-            if (a->rank != 0) for (size_t i = 0; i < a->nelem; i++) res->data[get_index(res, i)] = a->data[get_index(a, i)] + b->data[ib]; \
-            if (b->rank != 0) for (size_t i = 0; i < a->nelem; i++) res->data[get_index(res, i)] = a->data[ia] + b->data[get_index(b, i)]; \
-            if (a->rank == 0 && b->rank == 0) res->data[get_index(res, 0)] = a->data[ia] + b->data[ib]; \
+            if (!a_scl) for (size_t i = 0; i < a->nelem; i++) res->data[get_index(res, i)] = a->data[get_index(a, i)] + b->data[ib]; \
+            if (!b_scl) for (size_t i = 0; i < a->nelem; i++) res->data[get_index(res, i)] = a->data[ia] + b->data[get_index(b, i)]; \
+            if (a_scl && b_scl) res->data[get_index(res, 0)] = a->data[ia] + b->data[ib]; \
             return; \
         } \
         /* extend stride arrays of a and b with zeros to match rank of result tensor */ \

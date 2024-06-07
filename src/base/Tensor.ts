@@ -177,7 +177,7 @@ export default function tensor(shape: number[] | Shape, data?: number[]): Tensor
 }
 
 export function tensor_scalar(scalar?: number): Tensor {
-    return tensor([], [scalar || 0]);
+    return tensor([1], scalar ? [scalar] : undefined);
 }
 
 export function tensor_like(other: Tensor) {
