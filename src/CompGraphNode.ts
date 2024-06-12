@@ -1,8 +1,9 @@
 import {Tensor} from "./base/Tensor.ts";
 import * as graph_ops from "./node_operations.ts";
-import type {ConstScalar} from "./node_operations.ts";
 import CompGraph from "./ComputationGraph.ts";
-import {const_scalar_node} from "./node_factory.ts";
+import {const_node} from "./node_factory.ts";
+
+type OperationClass<T> = new (parents: CompGraphNode[], requires_grad: boolean) => T;
 
 export default abstract class CompGraphNode {
     // State of the node
@@ -38,11 +39,11 @@ export default abstract class CompGraphNode {
         else console.log("Tensor has no gradient info to print.");
     };
 
-    private create_binary_op<T extends CompGraphNode>(op_class: new (parents: CompGraphNode[], requires_grad: boolean) => T) {
-        return (_other: CompGraphNode | number) => {
+    private create_binary_op<T extends CompGraphNode>(op_class: OperationClass<T>) {
+        return (_other: CompGraphNode | Tensor | number) => {
 
             // If _other is a scalar, create a tensor that holds the scalar value such that it can be referenced in the graph
-            const other: CompGraphNode = typeof _other === "number" ? const_scalar_node(_other)  : _other;
+            const other: CompGraphNode = _other instanceof CompGraphNode ? _other : const_node(_other);
             const parents: CompGraphNode[] = [this, other];
             const new_node: CompGraphNode = new op_class(parents, true);
 
@@ -55,8 +56,31 @@ export default abstract class CompGraphNode {
         };
     }
 
+    private create_unary_op<T extends CompGraphNode>(op_class: OperationClass<T>) {
+        return () => {
+
+            // If _other is a scalar, create a tensor that holds the scalar value such that it can be referenced in the graph
+            const parents: CompGraphNode[] = [this];
+            const new_node: CompGraphNode = new op_class(parents, true);
+
+            // Register the new node as a child of its parents. This is necessary because
+            // we will need access to each node's children during graph acquisition.
+            this.children.push(new_node);
+
+            return new_node;
+        };
+    }
+
     // common node operations
     add = this.create_binary_op(graph_ops.Add);
+    sub = this.create_binary_op(graph_ops.Sub);
+    mul = this.create_binary_op(graph_ops.Mul);
+    div = this.create_binary_op(graph_ops.Div);
+    pow = this.create_binary_op(graph_ops.Pow);
+
+    // reduce/unary operations
+    sum = this.create_unary_op(graph_ops.Sum);
+    mean = () => this.sum().div(this.value.get_nelem()); // TODO: validate, also: should we instead implement this in a class for better performance?
     mse_loss = this.create_binary_op(graph_ops.MseLoss);
 
     // Find all nodes that are directly or transitively connected to this node using DFS
@@ -93,34 +117,3 @@ export default abstract class CompGraphNode {
         return new CompGraph(inputs, outputs, all_nodes);
     }
 }
-
-// sub(other: Node): Node {
-//     const backwardFunc = () => {
-//         this.grad += 1;
-//         other.grad -= 1;
-//     };
-//     return new Node(this.value - other.value, [this, other], OpType.SUB, backwardFunc);
-// }
-//
-// mul(other: Node): Node {
-//     const backwardFunc = () => {
-//         this.grad += other.value;
-//         other.grad += this.value;
-//     };
-//     return new Node(this.value * other.value, [this, other], OpType.MUL, backwardFunc);
-// }
-//
-// div(other: Node): Node {
-//     const backwardFunc = () => {
-//         this.grad += 1 / other.value;
-//         other.grad -= this.value / (other.value * other.value);
-//     };
-//     return new Node(this.value / other.value, [this, other], OpType.DIV, backwardFunc);
-// }
-//
-// pow(exponent: number): Node {
-//     const backwardFunc = (incoming_grad: number) => {
-//         this.grad += incoming_grad * exponent * Math.pow(this.value, exponent - 1)
-//     }
-//     return new Node(Math.pow(this.value, exponent), [this], OpType.POW, backwardFunc);
-// }

@@ -12,22 +12,22 @@ await core_ready;
 console.log("###########\n".repeat(2));
 
 const input = tensor([3], [1, 2, 3]);
-const target = tensor([3], [1.01, 2, 3]);
+const target = tensor([3], [1, 2, 3]);
 
 // node "a" always receives the same input for the sake of demonstration
 const a  = source_node([3], () => input);
 
 // the last node of this primitive network is the mean squared error loss
 // the value of this node is a scalar tensor
-const nn = a.mse_loss(source_node([3], () => target));
+// const nn = a.mul(3).mse_loss(source_node([3], () => target));
+const nn = a.mul(3).sub(target).pow(2).mean();
 
 const graph = nn.get_computation_graph();
 graph.forward();
 graph.backward();
 
 graph.outputs[0].print();
-graph.outputs[0].print_grad();
-
+a.print_grad();
 
 // const dataset_x_0: Tensor = tensor([50, 4, 4]).zeros();    // 50 "images" of size 4x4
 // const dataset_x_1: Tensor = tensor([50, 4, 4]).zeros();    // additional information for each image

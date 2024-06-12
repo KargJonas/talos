@@ -67,12 +67,19 @@ export default class CompGraph {
         // Step forward through node execution order and update primals using forward functions
         for (let i = 0; i < this.topological_ordering.length; i++) {
             const node = this.topological_ordering[i];
-            node.print();
             node.fw();
         }
     }
 
     backward(): void {
+
+        // TODO: Allow different initializations
+        // Initialize the gradients of all ouputs to 1
+        for (const output of this.outputs) {
+            if (!output.grad) throw new Error("Found an output node without a gradient.");
+            output.grad.ones();
+        }
+
         // Step backward through node execution order and update grads using backward functions
         for (let i = this.topological_ordering.length - 1; i >= 0; i--) {
             const node = this.topological_ordering[i];

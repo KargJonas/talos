@@ -1,6 +1,6 @@
 import Shape from "./base/Shape.ts";
 import {Tensor} from "./base/Tensor.ts";
-import {ConstScalar, Input} from "./node_operations.ts";
+import {Const, Input} from "./node_operations.ts";
 
 /**
  * Creates an input node.
@@ -16,6 +16,6 @@ export function source_node(shape: Shape | number[], producer: () => Tensor): In
     return new Input(shape, producer);
 }
 
-export function const_scalar_node(scalar: number): ConstScalar {
-    return new ConstScalar(scalar);
+export function const_node(scalar: Tensor | number): Const {
+    return new Const(scalar);
 }
