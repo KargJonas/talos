@@ -1,9 +1,9 @@
 import {Tensor} from "./base/Tensor.ts";
 import * as graph_ops from "./node_operations.ts";
 import CompGraph from "./ComputationGraph.ts";
-import {const_node} from "./node_factory.ts";
+import {parameter_node} from "./node_factory.ts";
 
-type OperationClass<T> = new (parents: CompGraphNode[], requires_grad: boolean) => T;
+type OperationClass<T> = new (parents: CompGraphNode[]) => T;
 
 export default abstract class CompGraphNode {
     // State of the node
@@ -40,12 +40,12 @@ export default abstract class CompGraphNode {
     };
 
     private create_binary_op<T extends CompGraphNode>(op_class: OperationClass<T>) {
-        return (_other: CompGraphNode | Tensor | number) => {
+        return (_other: CompGraphNode | Tensor | number, requires_grad = true) => {
 
             // If _other is a scalar, create a tensor that holds the scalar value such that it can be referenced in the graph
-            const other: CompGraphNode = _other instanceof CompGraphNode ? _other : const_node(_other);
+            const other: CompGraphNode = _other instanceof CompGraphNode ? _other : parameter_node(_other, requires_grad);
             const parents: CompGraphNode[] = [this, other];
-            const new_node: CompGraphNode = new op_class(parents, true);
+            const new_node: CompGraphNode = new op_class(parents);
 
             // Register the new node as a child of its parents. This is necessary because
             // we will need access to each node's children during graph acquisition.
@@ -61,7 +61,7 @@ export default abstract class CompGraphNode {
 
             // If _other is a scalar, create a tensor that holds the scalar value such that it can be referenced in the graph
             const parents: CompGraphNode[] = [this];
-            const new_node: CompGraphNode = new op_class(parents, true);
+            const new_node: CompGraphNode = new op_class(parents);
 
             // Register the new node as a child of its parents. This is necessary because
             // we will need access to each node's children during graph acquisition.
@@ -80,7 +80,7 @@ export default abstract class CompGraphNode {
 
     // reduce/unary operations
     sum = this.create_unary_op(graph_ops.Sum);
-    mean = () => this.sum().div(this.value.get_nelem()); // TODO: validate, also: should we instead implement this in a class for better performance?
+    mean = this.create_unary_op(graph_ops.Mean);
     mse_loss = this.create_binary_op(graph_ops.MseLoss);
 
     // Find all nodes that are directly or transitively connected to this node using DFS

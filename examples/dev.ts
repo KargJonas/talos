@@ -11,23 +11,90 @@ await core_ready;
 
 console.log("###########\n".repeat(2));
 
+/**
+ * TODO:
+ *   inputs != inputs
+ *
+ *   we need to distinguish a bit.
+ *   currently all tensor or scalar values passed to node operations
+ *   are treated as constants. this means they do not have gradients.
+ *   this is an issue because it might be nice to be able to use
+ *   such values as parameters.
+ *
+ *
+ *   YOU LEFT OFF HERE:
+ *      you implemented part of the above thing.
+ *      now every tensor or scalar from the outside will receive a
+ *      gradient by default.
+ *      the issue: when we use scalar values, the gradient will also
+ *                 be scalar so when we accumulate the gradient from
+ *                 the children, we might get non-scalar gradients
+ *                 when we try to add these to the scalar we of course
+ *                 get a broadcasting exception.
+ *                 possible solution: introduce an operation that
+ *                   automatically performs gradient accumulation
+ *                   NOTE: for scalars, i think it the way to go
+ *                         is to sum the components of the incoming
+ *                         gradient and add that to the scalar
+ */
+
+// Define a weight tensor
+const weight = tensor([3], [0.5, 0.5, 0.5]);
+
+// Input and target tensors
 const input = tensor([3], [1, 2, 3]);
 const target = tensor([3], [1, 2, 3]);
 
-// node "a" always receives the same input for the sake of demonstration
-const a  = source_node([3], () => input);
+// Create a source node for input
+const a = source_node([3], () => input);
 
-// the last node of this primitive network is the mean squared error loss
-// the value of this node is a scalar tensor
-// const nn = a.mul(3).mse_loss(source_node([3], () => target));
-const nn = a.mul(3).sub(target).pow(2).mean();
+// Modify the computation graph to include the weight
+const nn = a.mul(weight).sub(target).pow(2).mean();
 
 const graph = nn.get_computation_graph();
-graph.forward();
-graph.backward();
 
-graph.outputs[0].print();
-a.print_grad();
+// Define learning rate
+const learningRate = 0.01;
+
+// Training loop
+for (let epoch = 0; epoch < 100; epoch++) {
+    graph.forward();
+    graph.backward();
+
+    // Print loss value
+    console.log(`Epoch ${epoch + 1}: Loss = ${graph.outputs[0].value}`);
+
+    // Update weights using SGD
+    for (let i = 0; i < weight.value.length; i++) {
+        weight.value[i] -= learningRate * weight.grad[i];
+    }
+}
+
+// Print final weight values and their gradients
+weight.print();
+weight.print_grad();
+
+
+
+// const input = tensor([3], [1, 2, 3]);
+// const target = tensor([3], [1, 2, 3]);
+//
+// // node "a" always receives the same input for the sake of demonstration
+// const a  = source_node([3], () => input);
+//
+// // the last node of this primitive network is the mean squared error loss
+// // the value of this node is a scalar tensor
+// // const nn = a.mul(3).mse_loss(source_node([3], () => target));
+// const nn = a.mul(3).sub(target).pow(2).mean();
+//
+// const graph = nn.get_computation_graph();
+// graph.forward();
+// graph.backward();
+//
+// graph.outputs[0].print();
+// graph.outputs[0].print_grad();
+
+
 
 // const dataset_x_0: Tensor = tensor([50, 4, 4]).zeros();    // 50 "images" of size 4x4
 // const dataset_x_1: Tensor = tensor([50, 4, 4]).zeros();    // additional information for each image

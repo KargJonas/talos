@@ -7,16 +7,17 @@ import CompGraphNode from "./CompGraphNode.ts";
 // This file contains all operations of the graph-node abstraction-level
 // These are essentially all operations of the tensor level plus their derivatives
 
-export class Const extends CompGraphNode {
+export class Parameter extends CompGraphNode {
     value: Tensor;
 
-    constructor(value: Tensor | number) {
+    constructor(value: Tensor | number, requires_grad: boolean) {
         super([]);
         this.value = typeof value === "number" ? tensor_scalar(value) : value;
+        if (requires_grad) this.grad = tensor_like(this.value);
     }
 }
 
-export class Input extends CompGraphNode {
+export class Source extends CompGraphNode {
     value: Tensor;
     producer: () => Tensor;
 
@@ -147,33 +148,6 @@ export class Div extends CompGraphNode {
     }
 }
 
-export class Sum extends CompGraphNode {
-    value: Tensor;
-    grad: Tensor;
-
-    constructor(parents: CompGraphNode[]) {
-        super(parents);
-        this.value = tensor_scalar();
-        this.grad = tensor_scalar();
-    }
-
-    fw() {
-        // TODO: Refactor ops.sum to support scalar tensor?
-        this.value.data[0] = ops.sum(this.parents[0].value);
-    }
-
-    bw() {
-        const input = this.parents[0];
-
-        if (!input.grad) return;
-
-        const gradValue = this.grad.data[0];
-        for (let i = 0; i < input.grad.data.length; i++) {
-            ops.add(input.grad, gradValue);
-        }
-    }
-}
-
 export class Pow extends CompGraphNode {
     value: Tensor;
     grad: Tensor;
@@ -212,6 +186,56 @@ export class Pow extends CompGraphNode {
         }
     }
 }
+
+export class Sum extends CompGraphNode {
+    value: Tensor;
+    grad: Tensor;
+
+    constructor(parents: CompGraphNode[]) {
+        super(parents);
+        this.value = tensor_scalar();
+        this.grad = tensor_scalar();
+    }
+
+    fw() {
+        // TODO: Refactor ops.sum to support scalar tensor?
+        this.value.data[this.value.get_offset()] = ops.sum(this.parents[0].value);
+    }
+
+    bw() {
+        const input = this.parents[0];
+        if (!input.grad) return;
+
+        ops.add(input.grad, this.grad, input.grad);
+    }
+}
+
+export class Mean extends CompGraphNode {
+    value: Tensor;
+    grad: Tensor;
+    interim: Tensor;
+
+    constructor(parents: CompGraphNode[]) {
+        super(parents);
+        this.value = tensor_scalar(); // Scalar tensor to hold the mean value
+        this.grad = tensor_like(this.parents[0].value); // Gradient tensor with the same shape as input
+        this.interim = tensor_like(this.parents[0].value);
+    }
+
+    fw() {
+        // todo: fix
+        this.value.data[this.value.get_offset()] = ops.mean(this.parents[0].value); // Compute the mean
+    }
+
+    bw() {
+        const input = this.parents[0];
+        if (!input.grad) return;
+
+        ops.div(this.grad, input.value.size, this.interim);
+        ops.add(input.grad, this.interim, input.grad);
+    }
+}
+
 
 export class MseLoss extends CompGraphNode {
     value: Tensor;

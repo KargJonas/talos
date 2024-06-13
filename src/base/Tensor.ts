@@ -12,7 +12,7 @@ const STRUCT_SIZE = Object.entries(STRUCT_LAYOUT).length / 2;
 
 export class Tensor implements ITensor<Tensor> {
     private view: Int32Array;
-    data: Float32Array;
+    private data: Float32Array;
     shape: Shape;
     strides: Strides;
 
