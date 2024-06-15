@@ -31,7 +31,7 @@ EF = [ \
 	\
 	_get_mgmt_ptr, \
 	\
-	_sum_red_brc, _debroadcast \
+	_add_dbrc, _sub_dbrc, _mul_dbrc, _div_dbrc, _pow_dbrc \
 ]
 
 ##  WARNING  ##

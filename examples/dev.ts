@@ -5,7 +5,7 @@
 import {core_ready, tensor, tensor_like} from "../index";
 import {source_node} from "../src/node_factory.ts";
 import {tensor_scalar} from "../src/base/Tensor.ts";
-import {debroadcast, grad_acc} from "../src/base/tensor_operations.ts";
+import {add_grad, debroadcast, grad_acc} from "../src/base/tensor_operations.ts";
 
 // if your runtime does not support top-level await,
 // you'll have to use core_ready.then(() => { ... }) instead
@@ -42,17 +42,21 @@ console.log("###########\n".repeat(2));
 
 // Define a weight tensor
 
-const t0 = tensor([2, 2, 3], [1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6]);
-const t1 = tensor([3], [0, 0, 0]);
-const broadcasted_tensor = t0.add(t1); // broadcast result: tensor of shape [2, 3]
+const t0 = tensor([2, 3], [1, 2, 3, 4, 5, 6]);
+const t1 = tensor([3], [1, 2, 3]);
+const t2 = tensor_like(t1).zeros();
 
-broadcasted_tensor.print();
+// t0 is debroadcasted to [5, 7, 9]
+// then [1, 2, 3] is added which results in [6, 9, 12]
+// this is then stored in t2
 
-// this should have the same shape as the corresponding parent (in this case t1)
-const debroadcasted_tensor = tensor_like(t1);
+// if t0 is an incoming gradient and t1 is the current node's
+// gradient then we can now efficiently accumulate this gradient
+// without any additional interims
 
-debroadcast(broadcasted_tensor, debroadcasted_tensor);
-debroadcasted_tensor.print();
+add_grad(t0, t1, t2);
+
+t2.print();
 
 // produces [21, 0, 0]
 

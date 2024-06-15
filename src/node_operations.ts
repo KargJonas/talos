@@ -50,15 +50,14 @@ export class Add extends CompGraphNode {
     bw() {
         // d/da (a+b) = 1
         if (this.parents[0].grad) {
-            ops.add(this.parents[0].grad, this.grad, this.parents[0].grad); // parents[0].grad = 1 * this.grad
-
-            //           data       first parent          second parent         destination
-            ops.add_dbcr(this.grad, this.parents[0].grad, this.parents[1].grad, this.parents[0].grad);
+            // ops.add(this.parents[0].grad, this.grad, this.parents[0].grad); // parents[0].grad = 1 * this.grad
+            ops.add_grad(this.grad, this.parents[0].grad, this.parents[0].grad); // parents[0].grad = 1 * this.grad
         }
 
         // d/da (a+b) = 1
         if (this.parents[1].grad) {
-            ops.add(this.parents[1].grad, this.grad, this.parents[1].grad); // parents[1].grad = 1 * this.grad
+            // ops.add(this.parents[1].grad, this.grad, this.parents[1].grad); // parents[1].grad = 1 * this.grad
+            ops.add_grad(this.grad, this.parents[1].grad, this.parents[1].grad); // parents[0].grad = 1 * this.grad
         }
     }
 }

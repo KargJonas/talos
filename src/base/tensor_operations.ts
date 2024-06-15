@@ -18,6 +18,12 @@ export const mul        = create_binary_op(core._mul_scl, core._mul_prw_brc);
 export const div        = create_binary_op(core._div_scl, core._div_prw_brc);
 export const pow        = create_binary_op(core._pow_scl, core._pow_prw_brc);
 
+export const add_grad = create_binary_grad_op(core._add_scl, core._add_prw_brc, core._add_dbrc);
+export const sub_grad = create_binary_grad_op(core._sub_scl, core._sub_prw_brc, core._sub_dbrc);
+export const mul_grad = create_binary_grad_op(core._mul_scl, core._mul_prw_brc, core._mul_dbrc);
+export const div_grad = create_binary_grad_op(core._div_scl, core._div_prw_brc, core._div_dbrc);
+export const pow_grad = create_binary_grad_op(core._pow_scl, core._pow_prw_brc, core._pow_dbrc);
+
 // unary operations
 export const relu       = create_unary_op(core._relu_tns);
 export const tanh       = create_unary_op(core._tanh_tns);
@@ -144,10 +150,6 @@ export function grad_acc(src: Tensor, dest: Tensor) {
     core._sum_red_brc(src.get_view_ptr(), dest.get_view_ptr());
 }
 
-export function debroadcast(src: Tensor, dest: Tensor) {
-    core._debroadcast(src.get_view_ptr(), dest.get_view_ptr());
-}
-
 function create_unary_op(core_fn: CoreUnaryOp): UnaryOp {
     return (src: Tensor, dest?: Tensor) => {
         if (dest && !dest.shape.equals(src.shape))
@@ -170,6 +172,52 @@ function create_reduce_op(core_fn: CoreUnaryOp) {
     };
 }
 
+/**
+ * Creates a binary operations that:
+ * - Uses naive pairwise operations if the shape of the result and destination tensors match
+ * - Uses regular broadcasting if applicable
+ * - "De-broadcasts" the result tensor by summing along appropriate axes,
+ *   if the result tensor is of higher rank than the destination and if de-broadcasting is possible>
+ */
+export function create_binary_grad_op(core_fn_scl: CoreBinaryOp, core_fn_prw: CoreBinaryOp, core_fn_dbrc: CoreBinaryOp) {
+    return (a: Tensor, b: Tensor, dest: Tensor) => {
+
+        // use fast pairwise op if the shapes are identical
+        if (a.shape.equals(b.shape)) {
+            console.log("performing simple pairwise grad op")
+            core_fn_scl(a.get_view_ptr(), b.get_view_ptr(), dest.get_view_ptr());
+            return;
+        }
+
+        if (!a.shape.broadcastable(b.shape))
+            throw new Error(`Cannot perform grad operation. Shape of tensor a [${a.shape}] is not broadcastable with shape of tensor b [${b.shape}]`);
+
+        const result_shape = a.shape.broadcast(b.shape);
+
+        // perform debroadcasting
+        if (dest.get_rank() < result_shape.length) {
+            if (!b.shape.equals(dest.shape))
+                throw new Error(`Cannot perform de-broadcast. Shape of tensor destination tensor [${dest.shape}] does not match required shape [${b.shape}]`);
+
+            console.log("performing debroadcasting grad op")
+
+            // sum tensor a along appropriate axes such that it matches the
+            // shape of tensor b, then apply the desired operation between the two
+            core_fn_dbrc(a.get_view_ptr(), b.get_view_ptr(), dest.get_view_ptr());
+
+            return;
+        }
+
+        console.log("performing broadcasting grad op")
+
+        if (!result_shape.equals(dest.shape))
+            throw new Error(`Cannot perform grad operation. Result tensor [${result_shape}] has different shape than destination tensor [${result_shape}].`);
+
+        // perform regular broadcasting operation
+        core_fn_prw(a.get_view_ptr(), b.get_view_ptr(), dest.get_view_ptr());
+    };
+}
+
 // computes a tensor-tensor/tensor-scalar operation and returns a result tensor
 function binary_op(core_fn_scl: CoreBinaryOp, core_fn_brc: CoreBinaryOp, src_a: Tensor, src_b: Tensor | number, dest?: Tensor): Tensor {
     // perform scalar operation
@@ -183,7 +231,7 @@ function binary_op(core_fn_scl: CoreBinaryOp, core_fn_brc: CoreBinaryOp, src_a: 
 
     if (dest) {
         if (!dest.shape.equals(result_shape))
-            throw new Error(`Cannot perform broadcasting binary operation. Result tensor [${result_shape}] has different shape than tensor a [${src_a.shape}].`);
+            throw new Error(`Cannot perform broadcasting binary operation. Result tensor [${result_shape}] has different shape than the destination tensor [${dest.shape}].`);
 
         // TODO: Check if this can somehow be done safely
         //       If not it might be worth it to create a tensor that holds
