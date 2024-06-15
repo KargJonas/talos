@@ -18,11 +18,11 @@ export const mul        = create_binary_op(core._mul_scl, core._mul_prw_brc);
 export const div        = create_binary_op(core._div_scl, core._div_prw_brc);
 export const pow        = create_binary_op(core._pow_scl, core._pow_prw_brc);
 
-export const add_grad = create_binary_grad_op(core._add_scl, core._add_prw_brc, core._add_dbrc);
-export const sub_grad = create_binary_grad_op(core._sub_scl, core._sub_prw_brc, core._sub_dbrc);
-export const mul_grad = create_binary_grad_op(core._mul_scl, core._mul_prw_brc, core._mul_dbrc);
-export const div_grad = create_binary_grad_op(core._div_scl, core._div_prw_brc, core._div_dbrc);
-export const pow_grad = create_binary_grad_op(core._pow_scl, core._pow_prw_brc, core._pow_dbrc);
+export const add_grad = create_binary_grad_op(core._add_prw, core._add_prw_brc, core._add_dbrc);
+export const sub_grad = create_binary_grad_op(core._sub_prw, core._sub_prw_brc, core._sub_dbrc);
+export const mul_grad = create_binary_grad_op(core._mul_prw, core._mul_prw_brc, core._mul_dbrc);
+export const div_grad = create_binary_grad_op(core._div_prw, core._div_prw_brc, core._div_dbrc);
+export const pow_grad = create_binary_grad_op(core._pow_prw, core._pow_prw_brc, core._pow_dbrc);
 
 // unary operations
 export const relu       = create_unary_op(core._relu_tns);
@@ -179,13 +179,13 @@ function create_reduce_op(core_fn: CoreUnaryOp) {
  * - "De-broadcasts" the result tensor by summing along appropriate axes,
  *   if the result tensor is of higher rank than the destination and if de-broadcasting is possible>
  */
-export function create_binary_grad_op(core_fn_scl: CoreBinaryOp, core_fn_prw: CoreBinaryOp, core_fn_dbrc: CoreBinaryOp) {
+export function create_binary_grad_op(core_fn_prw: CoreBinaryOp, core_fn_brc: CoreBinaryOp, core_fn_dbrc: CoreBinaryOp) {
     return (a: Tensor, b: Tensor, dest: Tensor) => {
 
         // use fast pairwise op if the shapes are identical
         if (a.shape.equals(b.shape)) {
             console.log("performing simple pairwise grad op")
-            core_fn_scl(a.get_view_ptr(), b.get_view_ptr(), dest.get_view_ptr());
+            core_fn_prw(a.get_view_ptr(), b.get_view_ptr(), dest.get_view_ptr());
             return;
         }
 
@@ -194,8 +194,9 @@ export function create_binary_grad_op(core_fn_scl: CoreBinaryOp, core_fn_prw: Co
 
         const result_shape = a.shape.broadcast(b.shape);
 
+        // todo: optimization potential: custom function for scalars
         // perform debroadcasting
-        if (dest.get_rank() < result_shape.length) {
+        if (dest.get_rank() < result_shape.length || dest.shape.is_scalar()) {
             if (!b.shape.equals(dest.shape))
                 throw new Error(`Cannot perform de-broadcast. Shape of tensor destination tensor [${dest.shape}] does not match required shape [${b.shape}]`);
 
@@ -208,13 +209,11 @@ export function create_binary_grad_op(core_fn_scl: CoreBinaryOp, core_fn_prw: Co
             return;
         }
 
-        console.log("performing broadcasting grad op")
-
         if (!result_shape.equals(dest.shape))
-            throw new Error(`Cannot perform grad operation. Result tensor [${result_shape}] has different shape than destination tensor [${result_shape}].`);
+            throw new Error(`Cannot perform grad operation. Result tensor [${result_shape}] has different shape than destination tensor [${dest.shape}].`);
 
         // perform regular broadcasting operation
-        core_fn_prw(a.get_view_ptr(), b.get_view_ptr(), dest.get_view_ptr());
+        core_fn_brc(a.get_view_ptr(), b.get_view_ptr(), dest.get_view_ptr());
     };
 }
 

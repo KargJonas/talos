@@ -3,9 +3,9 @@
  */
 
 import {core_ready, tensor, tensor_like} from "../index";
-import {source_node} from "../src/node_factory.ts";
+import {parameter_node, source_node} from "../src/node_factory.ts";
 import {tensor_scalar} from "../src/base/Tensor.ts";
-import {add_grad, debroadcast, grad_acc} from "../src/base/tensor_operations.ts";
+import {mul, sub} from "../src/base/tensor_operations.ts";
 
 // if your runtime does not support top-level await,
 // you'll have to use core_ready.then(() => { ... }) instead
@@ -13,94 +13,72 @@ await core_ready;
 
 console.log("###########\n".repeat(2));
 
-/**
- * TODO:
- *   inputs != inputs
- *
- *   we need to distinguish a bit.
- *   currently all tensor or scalar values passed to node operations
- *   are treated as constants. this means they do not have gradients.
- *   this is an issue because it might be nice to be able to use
- *   such values as parameters.
- *
- *
- *   YOU LEFT OFF HERE:
- *      you implemented part of the above thing.
- *      now every tensor or scalar from the outside will receive a
- *      gradient by default.
- *      the issue: when we use scalar values, the gradient will also
- *                 be scalar so when we accumulate the gradient from
- *                 the children, we might get non-scalar gradients
- *                 when we try to add these to the scalar we of course
- *                 get a broadcasting exception.
- *                 possible solution: introduce an operation that
- *                   automatically performs gradient accumulation
- *                   NOTE: for scalars, i think it the way to go
- *                         is to sum the components of the incoming
- *                         gradient and add that to the scalar
- */
-
 // Define a weight tensor
 
-const t0 = tensor([2, 3], [1, 2, 3, 4, 5, 6]);
-const t1 = tensor([3], [1, 2, 3]);
-const t2 = tensor_like(t1).zeros();
-
-// t0 is debroadcasted to [5, 7, 9]
-// then [1, 2, 3] is added which results in [6, 9, 12]
-// this is then stored in t2
-
-// if t0 is an incoming gradient and t1 is the current node's
-// gradient then we can now efficiently accumulate this gradient
-// without any additional interims
-
-add_grad(t0, t1, t2);
-
-t2.print();
-
-// produces [21, 0, 0]
-
-// const a = tensor([3], [1, 2, 3]); // this is the tensor that we take the actual data from
-// const b = tensor_scalar(1);            // this is the tensor that we only take the shape from
-// const res = tensor([3]);               // this is the tensor that will hold the sum
-// debroadcast(a, b, res);
+// // t0 is debroadcasted to [5, 7, 9]
+// // then [1, 2, 3] is added which results in [6, 9, 12]
+// // this is then stored in t2
 //
-// res.print(); // produces [6, 0, 0]
+// // if t0 is an incoming gradient and t1 is the current node's
+// // gradient then we can now efficiently accumulate this gradient
+// // without any additional interims
+//
+// const t0 = tensor([2, 3], [1, 2, 3, 4, 5, 6]);
+// const t1 = tensor([3], [1, 2, 3]);
+// const t2 = tensor_like(t1).zeros();
+//
+// add_grad(t0, t1, t2);
+// t2.print();
 
 
-// // Input and target tensors
-// const weight = tensor([3], [1, 2, 3]);
-// const input = tensor([3], [1, 2, 3]);
-// const target = tensor([3], [1, 2, 3]);
+
+// const a = tensor_scalar(5);
+// const b = tensor([3], [1, 2, 3]);
 //
-// // Create a source node for input
-// const a = source_node([3], () => input);
+// const input = source_node([3], () => b);
 //
-// // Modify the computation graph to include the weight
-// const nn = a.mul(weight).sub(target).pow(2).mean();
-//
+// const nn = input.add(a);
 // const graph = nn.get_computation_graph();
 //
-// // Define learning rate
-// const learningRate = 0.01;
-//
-// // Training loop
-// for (let epoch = 0; epoch < 100; epoch++) {
-//     graph.forward();
-//     graph.backward();
-//
-//     // Print loss value
-//     console.log(`Epoch ${epoch + 1}: Loss = ${graph.outputs[0].value}`);
-//
-//     // Update weights using SGD
-//     for (let i = 0; i < weight.value.length; i++) {
-//         weight.value[i] -= learningRate * weight.grad[i];
-//     }
-// }
-//
-// // Print final weight values and their gradients
-// weight.print();
-// weight.print_grad();
+// graph.forward();
+// graph.backward();
+
+
+
+// Input and target tensors
+const weight = parameter_node(tensor([3], [1, 2, 3]), true);
+const input = tensor([3], [1, 2, 3]);
+const target = tensor([3], [1, 2, 3]);
+
+// Create a source node for input
+const a = source_node([3], () => input);
+
+// Modify the computation graph to include the weight
+const nn = a.mul(weight).sub(target).pow(2).mean();
+
+const graph = nn.get_computation_graph();
+
+// Define learning rate
+const learningRate = 0.01;
+
+const interim = tensor_like(weight.value);
+
+// Training loop
+for (let epoch = 0; epoch < 100; epoch++) {
+    graph.forward();
+    graph.backward();
+
+    // Print loss value
+    console.log(`Epoch ${epoch + 1}: Loss = ${graph.outputs[0].value.toString()}`);
+
+    // Update weights using SGD
+    mul(weight.grad!, learningRate, interim);
+    sub(weight.value, interim, weight.value);
+}
+
+// Print final weight values and their gradients
+weight.print();
+weight.print_grad();
 
 
 

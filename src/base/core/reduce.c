@@ -11,7 +11,7 @@
 // can be "de-broadcasted" into a smaller tensor res.
 // e.g. if a is of shape [5, 2, 9] and be of shape [2, 9], then
 // sum tensor a along the axis of size 5 such that we get a tensor [2, 9]
-#define DEBAROADCASTING_UNARY_OP(NAME, RESULT) \
+#define DEBROADCASTING_BINARY_OP(NAME, RESULT) \
 void NAME(struct tensor_t *a, struct tensor_t *b, struct tensor_t *dest) { \
     size_t diff = a->rank - dest->rank, n_elem_var_shape = 1; \
     /* compute number of elements of the source tensor */ \
@@ -47,11 +47,11 @@ void NAME(struct tensor_t *a, struct tensor_t *b, struct tensor_t *dest) { \
     } \
 }
 
-DEBAROADCASTING_UNARY_OP(add_dbrc, INFIX_OP(sum, b->data[dest_coord], +))
-DEBAROADCASTING_UNARY_OP(sub_dbrc, INFIX_OP(sum, b->data[dest_coord], -))
-DEBAROADCASTING_UNARY_OP(mul_dbrc, INFIX_OP(sum, b->data[dest_coord], *))
-DEBAROADCASTING_UNARY_OP(div_dbrc, INFIX_OP(sum, b->data[dest_coord], /))
-DEBAROADCASTING_UNARY_OP(pow_dbrc, PREFIX_OP(sum, b->data[dest_coord], pow)) // div
+DEBROADCASTING_BINARY_OP(add_dbrc, INFIX_OP(sum, b->data[dest_coord], +))
+DEBROADCASTING_BINARY_OP(sub_dbrc, INFIX_OP(sum, b->data[dest_coord], -))
+DEBROADCASTING_BINARY_OP(mul_dbrc, INFIX_OP(sum, b->data[dest_coord], *))
+DEBROADCASTING_BINARY_OP(div_dbrc, INFIX_OP(sum, b->data[dest_coord], /))
+DEBROADCASTING_BINARY_OP(pow_dbrc, PREFIX_OP(sum, b->data[dest_coord], pow)) // div
 
 // these functions return scalar values directly
 // the in-place reduce operations are implemented below

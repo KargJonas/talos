@@ -40,6 +40,7 @@ export class Tensor implements ITensor<Tensor> {
     public get_cols         = () => this.get_axis_size(this.get_rank() - 1);
     public get_axis_size    = (axis_index: number) => this.shape.get_axis_size(axis_index);
 
+    public toString = () => tensor_to_string(this);
     public print = () => console.log(tensor_to_string(this) + "\n---");
     public print_info(title: string = "TENSOR INFO") {
         const max_entries = 16;

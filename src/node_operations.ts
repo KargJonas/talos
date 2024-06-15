@@ -49,16 +49,10 @@ export class Add extends CompGraphNode {
 
     bw() {
         // d/da (a+b) = 1
-        if (this.parents[0].grad) {
-            // ops.add(this.parents[0].grad, this.grad, this.parents[0].grad); // parents[0].grad = 1 * this.grad
-            ops.add_grad(this.grad, this.parents[0].grad, this.parents[0].grad); // parents[0].grad = 1 * this.grad
-        }
+        if (this.parents[0].grad) ops.add_grad(this.grad, this.parents[0].grad, this.parents[0].grad); // parents[0].grad = 1 * this.grad
 
         // d/da (a+b) = 1
-        if (this.parents[1].grad) {
-            // ops.add(this.parents[1].grad, this.grad, this.parents[1].grad); // parents[1].grad = 1 * this.grad
-            ops.add_grad(this.grad, this.parents[1].grad, this.parents[1].grad); // parents[0].grad = 1 * this.grad
-        }
+        if (this.parents[1].grad) ops.add_grad(this.grad, this.parents[1].grad, this.parents[1].grad); // parents[0].grad = 1 * this.grad
     }
 }
 
@@ -78,10 +72,10 @@ export class Sub extends CompGraphNode {
 
     bw() {
         // d/da (a-b) = 1
-        if (this.parents[0].grad) ops.add(this.parents[0].grad, this.grad, this.parents[0].grad); // parents[0].grad = 1 * this.grad
+        if (this.parents[0].grad) ops.add_grad(this.grad, this.parents[0].grad, this.parents[0].grad); // parents[0].grad = 1 * this.grad
 
         // d/db (a-b) = -1
-        if (this.parents[1].grad) ops.sub(this.parents[1].grad, this.grad, this.parents[1].grad); // parents[1].grad parents[0].grad = -1 * this.grad
+        if (this.parents[1].grad) ops.sub_grad(this.grad, this.parents[1].grad, this.parents[1].grad); // parents[1].grad parents[0].grad = -1 * this.grad
     }
 }
 
@@ -108,13 +102,13 @@ export class Mul extends CompGraphNode {
         // d/da (a*b) = a
         if (a.grad) {
             ops.mul(b.value, this.grad, this.interim);
-            ops.add(a.grad, this.interim, a.grad);
+            ops.add_grad(this.interim, a.grad, a.grad);
         }
 
         // d/db (a*b) = b
         if (b.grad) {
             ops.mul(a.value, this.grad, this.interim);
-            ops.add(b.grad, this.interim, b.grad);
+            ops.add_grad(this.interim, b.grad, b.grad);
         }
     }
 }
@@ -142,14 +136,14 @@ export class Div extends CompGraphNode {
         // d/da (a/b) = 1/b
         if (a.grad) {
             ops.div(this.grad, b.value, this.interim);
-            ops.add(a.grad, this.interim, a.grad);
+            ops.add_grad(this.interim, a.grad, a.grad);
         }
 
         // d/db (a/b) = -a/(b^2)
         if (b.grad) {
             ops.pow(b.value, 2, this.interim);
             ops.div(a.value, this.interim, this.interim);
-            b.grad.sub(this.interim);
+            ops.sub_grad(this.interim, b.grad, b.grad);
         }
     }
 }
@@ -157,13 +151,15 @@ export class Div extends CompGraphNode {
 export class Pow extends CompGraphNode {
     value: Tensor;
     grad: Tensor;
-    interim: Tensor;
+    interim_0: Tensor;
+    interim_1: Tensor;
 
     constructor(parents: CompGraphNode[]) {
         super(parents);
         this.value = tensor(this.parents[0].value.shape.broadcast(this.parents[1].value.shape));
         this.grad = tensor_like(this.value);
-        this.interim = tensor_like(this.value);
+        this.interim_0 = tensor_like(this.parents[0].value);
+        this.interim_1 = tensor_like(this.parents[1].value);
     }
 
     fw() {
@@ -180,25 +176,20 @@ export class Pow extends CompGraphNode {
 
         if (this.parents[0].grad) {
             // d/da (a^b) = b * a^(b-1)
-            ops.sub(exponent, 1, this.interim); // interim = b - 1
-            ops.pow(base, this.interim, this.interim); // interim = a^(b-1)
-            ops.mul(exponent, this.interim, this.interim); // interim = b * a^(b-1)
-            ops.mul(this.grad, this.interim, this.interim); // interim = grad * b * a^(b-1)
-            // ops.add(this.parents[0].grad, this.interim, this.parents[0].grad); // parents[0].grad += interim
-
-            // undoes broadcasting by summing the gradient along the appropriate axes if necessary,
-            // then adds the de-broadcasted tensor to the destination tensor
-            ops.grad_acc(this.interim, this.parents[0].grad);
+            ops.sub(exponent, 1, this.interim_1); // interim = b - 1
+            ops.pow(base, this.interim_1, this.interim_0); // interim = a^(b-1)
+            ops.mul(exponent, this.interim_0, this.interim_0); // interim = b * a^(b-1)
+            ops.mul(this.grad, this.interim_0, this.interim_0); // interim = grad * b * a^(b-1)
+            ops.add_grad(this.interim_0, this.parents[0].grad, this.parents[0].grad); // parents[0].grad += interim
         }
 
         if (this.parents[1].grad) {
+            // todo validate
             // d/db (a^b) = a^b * ln(a)
-            ops.log(base, this.interim); // interim = ln(a)
-            ops.mul(this.value, this.interim, this.interim); // interim = a^b * ln(a)
-            ops.mul(this.grad, this.interim, this.interim); // interim = grad * a^b * ln(a)
-            // ops.add(this.parents[1].grad, this.interim, this.parents[1].grad); // parents[1].grad += interim
-
-            ops.grad_acc(this.interim, this.parents[1].grad);
+            ops.log(base, this.interim_0); // interim = ln(a)
+            ops.mul(this.value, this.interim_0, this.interim_0); // interim = a^b * ln(a)
+            ops.mul(this.grad, this.interim_0, this.interim_0); // interim = grad * a^b * ln(a)
+            ops.add_grad(this.interim_0, this.parents[1].grad, this.parents[1].grad); // parents[1].grad += interim
         }
     }
 }
