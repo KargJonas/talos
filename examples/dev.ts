@@ -2,8 +2,10 @@
  * This file is used for validation and debugging during development. 
  */
 
-import {core_ready, tensor} from "../index";
+import {core_ready, tensor, tensor_like} from "../index";
 import {source_node} from "../src/node_factory.ts";
+import {tensor_scalar} from "../src/base/Tensor.ts";
+import {debroadcast, grad_acc} from "../src/base/tensor_operations.ts";
 
 // if your runtime does not support top-level await,
 // you'll have to use core_ready.then(() => { ... }) instead
@@ -39,40 +41,62 @@ console.log("###########\n".repeat(2));
  */
 
 // Define a weight tensor
-const weight = tensor([3], [0.5, 0.5, 0.5]);
 
-// Input and target tensors
-const input = tensor([3], [1, 2, 3]);
-const target = tensor([3], [1, 2, 3]);
+const t0 = tensor([2, 2, 3], [1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6]);
+const t1 = tensor([3], [0, 0, 0]);
+const broadcasted_tensor = t0.add(t1); // broadcast result: tensor of shape [2, 3]
 
-// Create a source node for input
-const a = source_node([3], () => input);
+broadcasted_tensor.print();
 
-// Modify the computation graph to include the weight
-const nn = a.mul(weight).sub(target).pow(2).mean();
+// this should have the same shape as the corresponding parent (in this case t1)
+const debroadcasted_tensor = tensor_like(t1);
 
-const graph = nn.get_computation_graph();
+debroadcast(broadcasted_tensor, debroadcasted_tensor);
+debroadcasted_tensor.print();
 
-// Define learning rate
-const learningRate = 0.01;
+// produces [21, 0, 0]
 
-// Training loop
-for (let epoch = 0; epoch < 100; epoch++) {
-    graph.forward();
-    graph.backward();
+// const a = tensor([3], [1, 2, 3]); // this is the tensor that we take the actual data from
+// const b = tensor_scalar(1);            // this is the tensor that we only take the shape from
+// const res = tensor([3]);               // this is the tensor that will hold the sum
+// debroadcast(a, b, res);
+//
+// res.print(); // produces [6, 0, 0]
 
-    // Print loss value
-    console.log(`Epoch ${epoch + 1}: Loss = ${graph.outputs[0].value}`);
 
-    // Update weights using SGD
-    for (let i = 0; i < weight.value.length; i++) {
-        weight.value[i] -= learningRate * weight.grad[i];
-    }
-}
-
-// Print final weight values and their gradients
-weight.print();
-weight.print_grad();
+// // Input and target tensors
+// const weight = tensor([3], [1, 2, 3]);
+// const input = tensor([3], [1, 2, 3]);
+// const target = tensor([3], [1, 2, 3]);
+//
+// // Create a source node for input
+// const a = source_node([3], () => input);
+//
+// // Modify the computation graph to include the weight
+// const nn = a.mul(weight).sub(target).pow(2).mean();
+//
+// const graph = nn.get_computation_graph();
+//
+// // Define learning rate
+// const learningRate = 0.01;
+//
+// // Training loop
+// for (let epoch = 0; epoch < 100; epoch++) {
+//     graph.forward();
+//     graph.backward();
+//
+//     // Print loss value
+//     console.log(`Epoch ${epoch + 1}: Loss = ${graph.outputs[0].value}`);
+//
+//     // Update weights using SGD
+//     for (let i = 0; i < weight.value.length; i++) {
+//         weight.value[i] -= learningRate * weight.grad[i];
+//     }
+// }
+//
+// // Print final weight values and their gradients
+// weight.print();
+// weight.print_grad();
 
 
 

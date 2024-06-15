@@ -15,7 +15,8 @@ EF = [ \
 	_add_prw_brc, _sub_prw_brc, _mul_prw_brc, _div_prw_brc, _pow_prw_brc, \
 	_mul_tns, _dot_tns, \
 	\
-	_max_red, _min_red, _sum_red, _mean_red, \
+	_max_red_scl, _min_red_scl, _sum_red_scl, _mean_red_scl, \
+	_max_red_tns, _min_red_tns, _sum_red_tns, _mean_red_tns, \
 	\
 	_negate_tns, _reciprocal_tns, \
 	_sin_tns, _cos_tns, _tan_tns, \
@@ -28,7 +29,9 @@ EF = [ \
 	\
 	_relu_tns, _binstep_tns, _logistic_tns, \
 	\
-	_get_mgmt_ptr \
+	_get_mgmt_ptr, \
+	\
+	_sum_red_brc, _debroadcast \
 ]
 
 ##  WARNING  ##

@@ -75,7 +75,7 @@ export class Tensor implements ITensor<Tensor> {
             // creating separate views instead of using a single one and
             // incrementing the offset, because the user might access
             // the views even after the iteration process is done
-            // todo: this leaves us with the problem of deallocation, however
+            // todo: this leaves us with the problem of de-allocation, however
             yield create_view(view, 0, offset);
         }
     }

@@ -1,6 +1,6 @@
 import core from "./core/build";
 import { check_row_col_compat } from "./util";
-import tensor, {Tensor, create_view, tensor_like} from "./Tensor";
+import tensor, {Tensor, create_view, tensor_like, tensor_scalar} from "./Tensor";
 import Shape from "./Shape";
 
 // types for high level operations
@@ -45,6 +45,17 @@ export const reciprocal = create_unary_op(core._reciprocal_tns);
 
 // be aware of tensor data dependencies when deallocating tensors !!
 export const free = (a: Tensor) => core._free_tensor(a.get_view_ptr());
+
+// reduce operations
+// todo: add pairwise functionality (tensor-valued functions)
+export const max  = (a: Tensor) => core._max_red_scl(a.get_view_ptr());
+export const min  = (a: Tensor) => core._min_red_scl(a.get_view_ptr());
+export const sum  = (a: Tensor) => core._sum_red_scl(a.get_view_ptr());
+export const mean = (a: Tensor) => core._mean_red_scl(a.get_view_ptr());
+export const max_tns = create_reduce_op(core._max_red_tns);
+export const min_tns = create_reduce_op(core._min_red_tns);
+export const sum_tns = create_reduce_op(core._sum_red_tns);
+export const mean_tns = create_reduce_op(core._mean_red_tns);
 
 /**
  * Creates a deep copy of a tensor.
@@ -129,12 +140,31 @@ export const dot = (a: Tensor, b: Tensor, dest?: Tensor): Tensor => {
     return result;
 };
 
+export function grad_acc(src: Tensor, dest: Tensor) {
+    core._sum_red_brc(src.get_view_ptr(), dest.get_view_ptr());
+}
+
+export function debroadcast(src: Tensor, dest: Tensor) {
+    core._debroadcast(src.get_view_ptr(), dest.get_view_ptr());
+}
+
 function create_unary_op(core_fn: CoreUnaryOp): UnaryOp {
     return (src: Tensor, dest?: Tensor) => {
         if (dest && !dest.shape.equals(src.shape))
             throw new Error(`Cannot perform unary op. Result tensor [${src.shape}] has different shape than destination tensor [${dest.shape}].`);
 
         const result: Tensor = dest || tensor_like(src);
+        core_fn(src.get_view_ptr(), result.get_view_ptr());
+        return result;
+    };
+}
+
+function create_reduce_op(core_fn: CoreUnaryOp) {
+    return (src: Tensor, dest?: Tensor) => {
+        if (dest && !dest.shape.is_scalar())
+            throw new Error(`Cannot perform reduce operation. Provided destination tensor is not scalar. Destination shape: [${dest.shape}]`);
+
+        const result: Tensor = dest || tensor_scalar();
         core_fn(src.get_view_ptr(), result.get_view_ptr());
         return result;
     };
@@ -226,9 +256,3 @@ export function transpose(a: Tensor, permutation?: number[]): Tensor {
 
     return new_tensor;
 }
-
-// todo: add pairwise functionality (tensor-valued functions)
-export const max  = (a: Tensor) => core._max_red(a.get_view_ptr());
-export const min  = (a: Tensor) => core._min_red(a.get_view_ptr());
-export const sum  = (a: Tensor) => core._sum_red(a.get_view_ptr());
-export const mean = (a: Tensor) => core._mean_red(a.get_view_ptr());

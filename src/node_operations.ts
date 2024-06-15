@@ -49,10 +49,17 @@ export class Add extends CompGraphNode {
 
     bw() {
         // d/da (a+b) = 1
-        if (this.parents[0].grad) ops.add(this.parents[0].grad, this.grad, this.parents[0].grad); // parents[0].grad = 1 * this.grad
+        if (this.parents[0].grad) {
+            ops.add(this.parents[0].grad, this.grad, this.parents[0].grad); // parents[0].grad = 1 * this.grad
+
+            //           data       first parent          second parent         destination
+            ops.add_dbcr(this.grad, this.parents[0].grad, this.parents[1].grad, this.parents[0].grad);
+        }
 
         // d/da (a+b) = 1
-        if (this.parents[1].grad) ops.add(this.parents[1].grad, this.grad, this.parents[1].grad); // parents[1].grad = 1 * this.grad
+        if (this.parents[1].grad) {
+            ops.add(this.parents[1].grad, this.grad, this.parents[1].grad); // parents[1].grad = 1 * this.grad
+        }
     }
 }
 
@@ -168,13 +175,21 @@ export class Pow extends CompGraphNode {
         const base = this.parents[0].value;
         const exponent = this.parents[1].value;
 
+        // TODO: i think this is all wrong
+        //       here, i am trying to store tensors derived from both exponent and
+        //       base in the same interim, even though they may have different shapes
+
         if (this.parents[0].grad) {
             // d/da (a^b) = b * a^(b-1)
             ops.sub(exponent, 1, this.interim); // interim = b - 1
             ops.pow(base, this.interim, this.interim); // interim = a^(b-1)
             ops.mul(exponent, this.interim, this.interim); // interim = b * a^(b-1)
             ops.mul(this.grad, this.interim, this.interim); // interim = grad * b * a^(b-1)
-            ops.add(this.parents[0].grad, this.interim, this.parents[0].grad); // parents[0].grad += interim
+            // ops.add(this.parents[0].grad, this.interim, this.parents[0].grad); // parents[0].grad += interim
+
+            // undoes broadcasting by summing the gradient along the appropriate axes if necessary,
+            // then adds the de-broadcasted tensor to the destination tensor
+            ops.grad_acc(this.interim, this.parents[0].grad);
         }
 
         if (this.parents[1].grad) {
@@ -182,7 +197,9 @@ export class Pow extends CompGraphNode {
             ops.log(base, this.interim); // interim = ln(a)
             ops.mul(this.value, this.interim, this.interim); // interim = a^b * ln(a)
             ops.mul(this.grad, this.interim, this.interim); // interim = grad * a^b * ln(a)
-            ops.add(this.parents[1].grad, this.interim, this.parents[1].grad); // parents[1].grad += interim
+            // ops.add(this.parents[1].grad, this.interim, this.parents[1].grad); // parents[1].grad += interim
+
+            ops.grad_acc(this.interim, this.parents[1].grad);
         }
     }
 }

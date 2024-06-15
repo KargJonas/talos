@@ -19,6 +19,7 @@ export default class Shape extends Int32Array {
     public get_mat_shape = () => new Shape([this.get_rows(), this.get_cols()]);
     public get_axis_size = (axis_index: number) => this[axis_index] === undefined ? 1 : this[axis_index];
     public detach = () => new Shape(this);
+    public is_scalar = () => this.length === 1 && this[0] === 1;
 
     get_nelem(): number {
         if (this.length === 0) return 0;
