@@ -1,0 +1,62 @@
+// pairwise operations on two arrays of identical size
+
+#ifndef CORE_BROADCASTING
+#define CORE_BROADCASTING
+
+#include <stddef.h>
+#include <stdio.h>
+#include "./util.h"
+
+#define BROADCASTING_OP(NAME, RESULT) \
+void NAME(struct tensor_t *_a, struct tensor_t *_b, struct tensor_t *res) { \
+    size_t ia, ib, ires, iaxis, remainder, dim; \
+    size_t strides_a[res->rank], strides_b[res->rank]; \
+    bool a_scl = _a->rank == 1 && _a->shape[0] == 1; \
+    bool b_scl = _a->rank == 1 && _a->shape[0] == 1; \
+    /* at least of the two tensors is a scalar */ \
+    if (a_scl || b_scl) { \
+        ia = get_index(_a, 0); ib = get_index(_b, 0); /* scalar value is in 0th index of data array */ \
+        if (!a_scl) for (size_t i = 0; i < _a->nelem; i++) res->data[get_index(res, i)] = _a->data[get_index(_a, i)] + _b->data[ib]; \
+        if (!b_scl) for (size_t i = 0; i < _a->nelem; i++) res->data[get_index(res, i)] = _a->data[ia] + _b->data[get_index(_b, i)]; \
+        if (a_scl && b_scl) res->data[get_index(res, 0)] = _a->data[ia] + _b->data[ib]; \
+        return; \
+    } \
+    /* extend stride arrays of a and b with zeros to match rank of result tensor */ \
+    for (dim = res->rank; dim-- > 0;) { \
+        /* original condition was (res->rank - a->rank > dim) but we cannot safely do */ \
+        /* subtractions here because size_t would underflow so i reformulated the inequality */ \
+        /*               [pad with zeros to the left]     [when shape[dim] is 1 we can't step to the next element, so set stride to 0]*/ \
+        strides_a[dim] = (res->rank > dim + _a->rank ? 0 : (_a->shape[dim - (res->rank - _a->rank)] == 1 ? 0 : _a->strides[dim - (res->rank - _a->rank)])); \
+        strides_b[dim] = (res->rank > dim + _b->rank ? 0 : (_b->shape[dim - (res->rank - _b->rank)] == 1 ? 0 : _b->strides[dim - (res->rank - _b->rank)])); \
+    } \
+    for (size_t i = 0; i < res->nelem; i++) { \
+        ia = _a->offset; ib = _b->offset; ires = res->offset; remainder = i; \
+        /* get indices of a, b and result */ \
+        for (dim = res->rank; dim-- > 0;) { \
+            /* index of current element on current axis */ \
+            iaxis = remainder % res->shape[dim]; \
+            remainder /= res->shape[dim]; \
+            ia += iaxis * strides_a[dim]; \
+            ib += iaxis * strides_b[dim]; \
+            ires += iaxis * res->strides[dim]; \
+        } \
+        float a = _a->data[_a->offset + ia], b = _b->data[_b->offset + ib]; \
+        res->data[ires] RESULT; \
+    } \
+}
+
+// Regular broadcasting operations
+BROADCASTING_OP(add_brc, = a + b)
+BROADCASTING_OP(sub_brc, = a - b)
+BROADCASTING_OP(mul_brc, = a * b)
+BROADCASTING_OP(div_brc, = a / b)
+BROADCASTING_OP(pow_brc, = pow(a, b))
+
+// Accumulative broadcasting operations
+BROADCASTING_OP(add_brc_acc, += a + b)
+BROADCASTING_OP(sub_brc_acc, += a - b)
+BROADCASTING_OP(mul_brc_acc, += a * b)
+BROADCASTING_OP(div_brc_acc, += a / b)
+BROADCASTING_OP(pow_brc_acc, += pow(a, b))
+
+#endif //CORE_BROADCASTING

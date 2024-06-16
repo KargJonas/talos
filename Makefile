@@ -13,8 +13,15 @@ EF = [ \
 	\
 	_add_scl, _sub_scl, _mul_scl, _div_scl, _pow_scl, \
 	_add_prw, _sub_prw, _mul_prw, _div_prw, _pow_prw, \
-	_add_prw_brc, _sub_prw_brc, _mul_prw_brc, _div_prw_brc, _pow_prw_brc, \
+	_add_brc, _sub_brc, _mul_brc, _div_brc, _pow_brc, \
+	\
+	_add_scl_acc, _sub_scl_acc, _mul_scl_acc, _div_scl_acc, _pow_scl_acc, \
+	_add_prw_acc, _sub_prw_acc, _mul_prw_acc, _div_prw_acc, _pow_prw_acc, \
+	_add_brc_acc, _sub_brc_acc, _mul_brc_acc, _div_brc_acc, _pow_brc_acc, \
+	\
 	_mul_tns, _dot_tns, \
+	\
+	_add_acc_dbrc, _sub_acc_dbrc, _mul_acc_dbrc, _div_acc_dbrc, _pow_acc_dbrc, \
 	\
 	_max_red_scl, _min_red_scl, _sum_red_scl, _mean_red_scl, \
 	_max_red_tns, _min_red_tns, _sum_red_tns, _mean_red_tns, \
@@ -30,9 +37,7 @@ EF = [ \
 	\
 	_relu_tns, _binstep_tns, _logistic_tns, \
 	\
-	_get_mgmt_ptr, \
-	\
-	_add_dbrc, _sub_dbrc, _mul_dbrc, _div_dbrc, _pow_dbrc \
+	_get_mgmt_ptr \
 ]
 
 ##  WARNING  ##

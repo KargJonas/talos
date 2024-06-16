@@ -43,42 +43,45 @@ console.log("###########\n".repeat(2));
 // graph.forward();
 // graph.backward();
 
+const t = tensor([3], [1,2,3]);
+const t1 = tensor([1], [3]);
+t1.add(t).print(); // this should yield [4, 5, 6] but it yields [4, 0, 0]
 
-
-// Input and target tensors
-const weight = parameter_node(tensor([3], [1, 2, 3]), true);
-const input = tensor([3], [1, 2, 3]);
-const target = tensor([3], [1, 2, 3]);
-
-// Create a source node for input
-const a = source_node([3], () => input);
-
-// Modify the computation graph to include the weight
-const nn = a.mul(weight).sub(target).pow(2).mean();
-
-const graph = nn.get_computation_graph();
-
-// Define learning rate
-const learningRate = 0.01;
-
-const interim = tensor_like(weight.value);
-
-// Training loop
-for (let epoch = 0; epoch < 100; epoch++) {
-    graph.forward();
-    graph.backward();
-
-    // Print loss value
-    console.log(`Epoch ${epoch + 1}: Loss = ${graph.outputs[0].value.toString()}`);
-
-    // Update weights using SGD
-    mul(weight.grad!, learningRate, interim);
-    sub(weight.value, interim, weight.value);
-}
-
-// Print final weight values and their gradients
-weight.print();
-weight.print_grad();
+// // Input and target tensors
+// const weight = parameter_node(tensor([3], [1, 2, 3]), true);
+// const input = tensor([3], [1, 2, 3]);
+// const target = tensor([3], [1, 2, 3]);
+//
+// // Create a source node for input
+// const a = source_node([3], () => input);
+//
+// // Modify the computation graph to include the weight
+// // const nn = a.mul(weight).sub(target).pow(2).mean();
+// const nn = a.mul(weight).sum();
+//
+// const graph = nn.get_computation_graph();
+//
+// // Define learning rate
+// const learningRate = 0.01;
+//
+// const interim = tensor_like(weight.value);
+//
+// // Training loop
+// for (let epoch = 0; epoch < 3; epoch++) {
+//     graph.forward();
+//     graph.backward();
+//
+//     // Print loss value
+//     console.log(`Epoch ${epoch + 1}: Loss = ${graph.outputs[0].value.toString()}`);
+//
+//     // Update weights using SGD
+//     mul(weight.grad!, learningRate, interim);
+//     sub(weight.value, interim, weight.value);
+// }
+//
+// // Print final weight values and their gradients
+// weight.print();
+// weight.print_grad();
 
 
 

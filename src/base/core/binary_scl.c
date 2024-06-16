@@ -7,20 +7,24 @@
 #include <math.h>
 #include "./tensor.h"
 
-#define SCALAR_OP(NAME, OP) \
-    void NAME(struct tensor_t* a, float b, struct tensor_t* res) { \
-        for (size_t i = 0; i < a->nelem; i++) { \
-            res->data[res->offset + i] = a->data[a->offset + i] OP b; }}
+#define SCALAR_OP(NAME, RESULT) \
+    void NAME(struct tensor_t* _a, float b, struct tensor_t* res) { \
+        for (size_t i = 0; i < _a->nelem; i++) { \
+            float a = _a->data[_a->offset + i]; \
+            res->data[res->offset + i] RESULT; }}
 
-SCALAR_OP(add_scl, +) // add
-SCALAR_OP(sub_scl, -) // sub
-SCALAR_OP(mul_scl, *) // mul
-SCALAR_OP(div_scl, /) // div
+// Regular scalar operations
+SCALAR_OP(add_scl, = a + b) // add
+SCALAR_OP(sub_scl, = a - b) // sub
+SCALAR_OP(mul_scl, = a * b) // mul
+SCALAR_OP(div_scl, = a / b) // div
+SCALAR_OP(pow_scl, = pow(a, b)) // pow
 
-void pow_scl(struct tensor_t* a, float b, struct tensor_t* res) {
-    for (size_t i = 0; i < a->nelem; i++) {
-        res->data[res->offset + i] = pow(a->data[a->offset + i], b);
-    }
-}
+// Accumulative scalar operations
+SCALAR_OP(add_scl_acc, += a + b) // add
+SCALAR_OP(sub_scl_acc, += a - b) // sub
+SCALAR_OP(mul_scl_acc, += a * b) // mul
+SCALAR_OP(div_scl_acc, += a / b) // div
+SCALAR_OP(pow_scl_acc, += pow(a, b)) // pow
 
 #endif //CORE_SCALAR

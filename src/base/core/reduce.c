@@ -12,22 +12,22 @@
 // e.g. if a is of shape [5, 2, 9] and be of shape [2, 9], then
 // sum tensor a along the axis of size 5 such that we get a tensor [2, 9]
 #define DEBROADCASTING_BINARY_OP(NAME, RESULT) \
-void NAME(struct tensor_t *a, struct tensor_t *b, struct tensor_t *dest) { \
-    size_t diff = a->rank - dest->rank, n_elem_var_shape = 1; \
+void NAME(struct tensor_t *_a, struct tensor_t *_b, struct tensor_t *dest) { \
+    size_t diff = _a->rank - dest->rank, n_elem_var_shape = 1; \
     /* compute number of elements of the source tensor */ \
     /* that sum up to one element of the dest tensor */ \
-    for (size_t i = 0; i < diff; i++) n_elem_var_shape *= a->shape[i]; \
+    for (size_t i = 0; i < diff; i++) n_elem_var_shape *= _a->shape[i]; \
     /* iterate over all elements in the destination tensor */ \
     for (size_t i = 0; i < dest->nelem; i++) { \
-        size_t src_base_coord = a->offset, remainder = i, b_coord = b->offset, dest_coord = dest->offset; \
-        float sum = 0; \
+        size_t src_base_coord = _a->offset, remainder = i, b_coord = _b->offset, dest_coord = dest->offset; \
+        float a = 0; \
         /* find the linear index of the dest component and the base of the linear index */ \
         /* of each of the elements summing up to this destination component */ \
         for (int dim = dest->rank - 1; dim >= 0; dim--) { \
             size_t iaxis = remainder % dest->shape[dim]; \
             remainder = remainder / dest->shape[dim]; \
-            src_base_coord += iaxis * a->strides[diff + dim]; \
-            b_coord += iaxis * b->strides[dim]; \
+            src_base_coord += iaxis * _a->strides[diff + dim]; \
+            b_coord += iaxis * _b->strides[dim]; \
             dest_coord += iaxis * dest->strides[dim]; \
         } \
         /* iterate over all elements in the source tensor that contribute to */ \
@@ -37,21 +37,24 @@ void NAME(struct tensor_t *a, struct tensor_t *b, struct tensor_t *dest) { \
         for (size_t j = 0; j < n_elem_var_shape; j++) { \
             size_t src_coord = src_base_coord, remainder = j; \
             for (int dim = diff - 1; dim >= 0; dim--) { \
-                size_t iaxis = remainder % a->shape[dim]; \
-                remainder = remainder / a->shape[dim]; \
-                src_coord += iaxis * a->strides[dim]; \
+                size_t iaxis = remainder % _a->shape[dim]; \
+                remainder = remainder / _a->shape[dim]; \
+                src_coord += iaxis * _a->strides[dim]; \
             } \
-            sum += a->data[src_coord]; \
+            a += _a->data[src_coord]; \
         } \
-        dest->data[dest_coord] = RESULT; \
+        float b = _b->data[b_coord]; \
+        dest->data[dest_coord] RESULT; \
     } \
 }
 
-DEBROADCASTING_BINARY_OP(add_dbrc, INFIX_OP(sum, b->data[dest_coord], +))
-DEBROADCASTING_BINARY_OP(sub_dbrc, INFIX_OP(sum, b->data[dest_coord], -))
-DEBROADCASTING_BINARY_OP(mul_dbrc, INFIX_OP(sum, b->data[dest_coord], *))
-DEBROADCASTING_BINARY_OP(div_dbrc, INFIX_OP(sum, b->data[dest_coord], /))
-DEBROADCASTING_BINARY_OP(pow_dbrc, PREFIX_OP(sum, b->data[dest_coord], pow)) // div
+// Accumulating debroadcasting operations (for grad accumulation)
+// These work like so: destination_grad += grad_a <operation> grad_b
+DEBROADCASTING_BINARY_OP(add_acc_dbrc, += a + b)
+DEBROADCASTING_BINARY_OP(sub_acc_dbrc, += a - b)
+DEBROADCASTING_BINARY_OP(mul_acc_dbrc, += a * b)
+DEBROADCASTING_BINARY_OP(div_acc_dbrc, += a / b)
+DEBROADCASTING_BINARY_OP(pow_acc_dbrc, += pow(a, b))
 
 // these functions return scalar values directly
 // the in-place reduce operations are implemented below

@@ -49,10 +49,10 @@ export class Add extends CompGraphNode {
 
     bw() {
         // d/da (a+b) = 1
-        if (this.parents[0].grad) ops.add_grad(this.grad, this.parents[0].grad, this.parents[0].grad); // parents[0].grad = 1 * this.grad
+        if (this.parents[0].grad) ops.add_acc(this.grad, this.parents[0].grad, this.parents[0].grad); // parents[0].grad = 1 * this.grad
 
         // d/da (a+b) = 1
-        if (this.parents[1].grad) ops.add_grad(this.grad, this.parents[1].grad, this.parents[1].grad); // parents[0].grad = 1 * this.grad
+        if (this.parents[1].grad) ops.add_acc(this.grad, this.parents[1].grad, this.parents[1].grad); // parents[0].grad = 1 * this.grad
     }
 }
 
@@ -72,10 +72,10 @@ export class Sub extends CompGraphNode {
 
     bw() {
         // d/da (a-b) = 1
-        if (this.parents[0].grad) ops.add_grad(this.grad, this.parents[0].grad, this.parents[0].grad); // parents[0].grad = 1 * this.grad
+        if (this.parents[0].grad) ops.add_acc(this.parents[0].grad, this.grad, this.parents[0].grad); // parents[0].grad = 1 * this.grad
 
         // d/db (a-b) = -1
-        if (this.parents[1].grad) ops.sub_grad(this.grad, this.parents[1].grad, this.parents[1].grad); // parents[1].grad parents[0].grad = -1 * this.grad
+        if (this.parents[1].grad) ops.sub_acc(this.parents[1].grad, this.grad, this.parents[1].grad); // parents[1].grad parents[0].grad = -1 * this.grad
     }
 }
 
@@ -99,16 +99,19 @@ export class Mul extends CompGraphNode {
         const a = this.parents[0];
         const b = this.parents[1];
 
-        // d/da (a*b) = a
+        // d/da (a*b) = b
         if (a.grad) {
-            ops.mul(b.value, this.grad, this.interim);
-            ops.add_grad(this.interim, a.grad, a.grad);
+            // ops.mul(b.value, this.grad, this.interim);
+            // ops.add_grad(this.interim, a.grad, a.grad);
+
+            // a.grad += this.grad * b.value
+            ops.mul_acc(this.grad, b.value, a.grad);
         }
 
-        // d/db (a*b) = b
+        // d/db (a*b) = a
         if (b.grad) {
             ops.mul(a.value, this.grad, this.interim);
-            ops.add_grad(this.interim, b.grad, b.grad);
+            ops.add_acc(this.interim, b.grad, b.grad);
         }
     }
 }
@@ -136,14 +139,14 @@ export class Div extends CompGraphNode {
         // d/da (a/b) = 1/b
         if (a.grad) {
             ops.div(this.grad, b.value, this.interim);
-            ops.add_grad(this.interim, a.grad, a.grad);
+            ops.add_acc(this.interim, a.grad, a.grad);
         }
 
         // d/db (a/b) = -a/(b^2)
         if (b.grad) {
             ops.pow(b.value, 2, this.interim);
             ops.div(a.value, this.interim, this.interim);
-            ops.sub_grad(this.interim, b.grad, b.grad);
+            ops.sub_acc(this.interim, b.grad, b.grad);
         }
     }
 }
@@ -170,17 +173,13 @@ export class Pow extends CompGraphNode {
         const base = this.parents[0].value;
         const exponent = this.parents[1].value;
 
-        // TODO: i think this is all wrong
-        //       here, i am trying to store tensors derived from both exponent and
-        //       base in the same interim, even though they may have different shapes
-
         if (this.parents[0].grad) {
             // d/da (a^b) = b * a^(b-1)
             ops.sub(exponent, 1, this.interim_1); // interim = b - 1
             ops.pow(base, this.interim_1, this.interim_0); // interim = a^(b-1)
             ops.mul(exponent, this.interim_0, this.interim_0); // interim = b * a^(b-1)
             ops.mul(this.grad, this.interim_0, this.interim_0); // interim = grad * b * a^(b-1)
-            ops.add_grad(this.interim_0, this.parents[0].grad, this.parents[0].grad); // parents[0].grad += interim
+            ops.add_acc(this.interim_0, this.parents[0].grad, this.parents[0].grad); // parents[0].grad += interim
         }
 
         if (this.parents[1].grad) {
@@ -189,7 +188,7 @@ export class Pow extends CompGraphNode {
             ops.log(base, this.interim_0); // interim = ln(a)
             ops.mul(this.value, this.interim_0, this.interim_0); // interim = a^b * ln(a)
             ops.mul(this.grad, this.interim_0, this.interim_0); // interim = grad * a^b * ln(a)
-            ops.add_grad(this.interim_0, this.parents[1].grad, this.parents[1].grad); // parents[1].grad += interim
+            ops.add_acc(this.interim_0, this.parents[1].grad, this.parents[1].grad); // parents[1].grad += interim
         }
     }
 }
