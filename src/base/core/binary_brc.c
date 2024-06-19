@@ -7,20 +7,19 @@
 #include <stdio.h>
 #include "./util.h"
 
+#define SCALAR_OP(NAME, RESULT) \
+    void NAME(struct tensor_t* _a, float b, struct tensor_t* res) { \
+        if (_a->isview) for (size_t i = 0; i < _a->nelem; i++) { \
+            float a = _a->data[get_index(_a, i)]; \
+            res->data[get_index(res, i)] RESULT; } \
+        else for (size_t i = 0; i < _a->nelem; i++) { \
+            float a = _a->data[_a->offset + i]; \
+            res->data[res->offset + i] RESULT; }}
+
 #define BROADCASTING_OP(NAME, RESULT) \
 void NAME(struct tensor_t *_a, struct tensor_t *_b, struct tensor_t *res) { \
     size_t ia, ib, ires, iaxis, remainder, dim; \
     size_t strides_a[res->rank], strides_b[res->rank]; \
-    bool a_scl = _a->rank == 1 && _a->shape[0] == 1; \
-    bool b_scl = _a->rank == 1 && _a->shape[0] == 1; \
-    /* at least of the two tensors is a scalar */ \
-    if (a_scl || b_scl) { \
-        ia = get_index(_a, 0); ib = get_index(_b, 0); /* scalar value is in 0th index of data array */ \
-        if (!a_scl) for (size_t i = 0; i < _a->nelem; i++) res->data[get_index(res, i)] = _a->data[get_index(_a, i)] + _b->data[ib]; \
-        if (!b_scl) for (size_t i = 0; i < _a->nelem; i++) res->data[get_index(res, i)] = _a->data[ia] + _b->data[get_index(_b, i)]; \
-        if (a_scl && b_scl) res->data[get_index(res, 0)] = _a->data[ia] + _b->data[ib]; \
-        return; \
-    } \
     /* extend stride arrays of a and b with zeros to match rank of result tensor */ \
     for (dim = res->rank; dim-- > 0;) { \
         /* original condition was (res->rank - a->rank > dim) but we cannot safely do */ \

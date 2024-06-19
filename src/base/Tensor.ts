@@ -12,7 +12,7 @@ const STRUCT_SIZE = Object.entries(STRUCT_LAYOUT).length / 2;
 
 export class Tensor implements ITensor<Tensor> {
     private view: Int32Array;
-    private data: Float32Array;
+    data: Float32Array; // todo: should be private probably
     shape: Shape;
     strides: Strides;
 
@@ -39,6 +39,7 @@ export class Tensor implements ITensor<Tensor> {
     public get_rows         = () => this.get_axis_size(this.get_rank() - 2);
     public get_cols         = () => this.get_axis_size(this.get_rank() - 1);
     public get_axis_size    = (axis_index: number) => this.shape.get_axis_size(axis_index);
+    public is_scalar    = () => this.get_nelem() === 1;
 
     public toString = () => tensor_to_string(this);
     public print = () => console.log(tensor_to_string(this) + "\n---");
@@ -145,6 +146,14 @@ export class Tensor implements ITensor<Tensor> {
     public max  = (): number => ops.max(this);
     public sum  = (): number => ops.sum(this);
     public mean = (): number => ops.mean(this);
+
+    // Returns the value of the tensor as a scalar if the tensor only has one element
+    public item() {
+        if (this.get_nelem() !== 1)
+            throw new Error("Tensor.item() may only be called on scalar tensors.");
+
+        return this.data[this.get_offset()];
+    }
 
     // operation shorthands
     public get T(): Tensor {

@@ -19,11 +19,11 @@ export const div        = create_binary_op(core._div_scl, core._div_brc);
 export const pow        = create_binary_op(core._pow_scl, core._pow_brc);
 
 // binary accumulative operations (dest += a <OP> b)
-export const add_acc = create_binary_acc_op(core._add_prw, core._add_brc, core._add_acc_dbrc);
-export const sub_acc = create_binary_acc_op(core._sub_prw, core._sub_brc, core._sub_acc_dbrc);
-export const mul_acc = create_binary_acc_op(core._mul_prw, core._mul_brc, core._mul_acc_dbrc);
-export const div_acc = create_binary_acc_op(core._div_prw, core._div_brc, core._div_acc_dbrc);
-export const pow_acc = create_binary_acc_op(core._pow_prw, core._pow_brc, core._pow_acc_dbrc);
+export const add_acc = create_binary_acc_op(core._add_scl_acc, core._add_brc, core._add_acc_dbrc);
+export const sub_acc = create_binary_acc_op(core._sub_scl_acc, core._sub_brc, core._sub_acc_dbrc);
+export const mul_acc = create_binary_acc_op(core._mul_scl_acc, core._mul_brc, core._mul_acc_dbrc);
+export const div_acc = create_binary_acc_op(core._div_scl_acc, core._div_brc, core._div_acc_dbrc);
+export const pow_acc = create_binary_acc_op(core._pow_scl_acc, core._pow_brc, core._pow_acc_dbrc);
 
 // unary operations
 export const relu       = create_unary_op(core._relu_tns);
@@ -180,14 +180,27 @@ function create_reduce_op(core_fn: CoreUnaryOp) {
  * - "De-broadcasts" the result tensor by summing along appropriate axes,
  *   if the result tensor is of higher rank than the destination and if de-broadcasting is possible>
  */
-export function create_binary_acc_op(core_fn_prw: CoreBinaryOp, core_fn_brc: CoreBinaryOp, core_fn_dbrc: CoreBinaryOp) {
+export function create_binary_acc_op(core_fn_scl: CoreBinaryOp, core_fn_brc: CoreBinaryOp, core_fn_dbrc: CoreBinaryOp) {
     return (a: Tensor, b: Tensor, dest: Tensor) => {
+        /**
+         * YOU LEFT OFF HERE
+         *   - do we ever use the return values of any of the tensor_operations functions?
+         *     if no - remove them
+         *   - also, i think result tensors should not be implicitly created in these functions
+         *     as that is something we never want in the autograd system and only in the Tensor
+         *     class. maybe we should move result tensor creation to that class.
+         */
 
-        // use fast pairwise op if the shapes are identical
-        if (a.shape.equals(b.shape)) {
-            console.log("performing simple pairwise grad op")
-            core_fn_prw(a.get_view_ptr(), b.get_view_ptr(), dest.get_view_ptr());
+        if (a.is_scalar()) {
+            core_fn_scl(b.get_view_ptr(), a.item(), dest.get_view_ptr());
+            // todo: we need a scalar-tensor op additional to to the tensor-scalar op.
+            //       this could probably best be done by removing actual scalar ops entirely
+            //       and just handling tensors with nelem=1 separately
             return;
+        }
+
+        if (b.is_scalar()) {
+            // todo: debroadcasting to scalar tensors does not work properly.
         }
 
         if (!a.shape.broadcastable(b.shape))

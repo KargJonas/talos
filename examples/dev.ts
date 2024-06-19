@@ -2,10 +2,10 @@
  * This file is used for validation and debugging during development. 
  */
 
-import {core_ready, tensor, tensor_like} from "../index";
+import {core, core_ready, tensor, tensor_like} from "../index";
 import {parameter_node, source_node} from "../src/node_factory.ts";
 import {tensor_scalar} from "../src/base/Tensor.ts";
-import {mul, sub} from "../src/base/tensor_operations.ts";
+import {add_acc, mul, mul_acc, sub} from "../src/base/tensor_operations.ts";
 
 // if your runtime does not support top-level await,
 // you'll have to use core_ready.then(() => { ... }) instead
@@ -15,22 +15,27 @@ console.log("###########\n".repeat(2));
 
 // Define a weight tensor
 
-// // t0 is debroadcasted to [5, 7, 9]
-// // then [1, 2, 3] is added which results in [6, 9, 12]
-// // this is then stored in t2
-//
-// // if t0 is an incoming gradient and t1 is the current node's
-// // gradient then we can now efficiently accumulate this gradient
-// // without any additional interims
-//
+// t0 is debroadcasted to [5, 7, 9]
+// then [1, 2, 3] is added which results in [6, 9, 12]
+// this is then stored in t2
+
+// if t0 is an incoming gradient and t1 is the current node's
+// gradient then we can now efficiently accumulate this gradient
+// without any additional interims
+
 // const t0 = tensor([2, 3], [1, 2, 3, 4, 5, 6]);
 // const t1 = tensor([3], [1, 2, 3]);
 // const t2 = tensor_like(t1).zeros();
 //
-// add_grad(t0, t1, t2);
+// add_acc
 // t2.print();
 
+const a = tensor([2, 3], [1, 2, 3, 4, 5, 6]);
+const b = tensor([3], [1, 1, 1]);
+const res = tensor_like(b);
 
+add_acc(a, b, res);
+res.print();
 
 // const a = tensor_scalar(5);
 // const b = tensor([3], [1, 2, 3]);
@@ -43,9 +48,26 @@ console.log("###########\n".repeat(2));
 // graph.forward();
 // graph.backward();
 
-const t = tensor([3], [1,2,3]);
-const t1 = tensor([1], [3]);
-t1.add(t).print(); // this should yield [4, 5, 6] but it yields [4, 0, 0]
+
+// const t0 = tensor([500, 100]).rand();
+// const t1 = tensor_scalar(5);
+// const t2 = tensor([500, 100]);
+// console.log("Simple Scalar");
+// console.time();
+// for (let i = 0; i < 1000; i++) {
+//     core._add_scl(t0.get_view_ptr(), 5, t2.get_view_ptr());
+// }
+// console.timeEnd();
+// console.log("Broadcasting Scalar");
+// console.time();
+// for (let i = 0; i < 1000; i++) {
+//     core._add_brc(t0.get_view_ptr(), t1.get_view_ptr(), t2.get_view_ptr());
+// }
+// console.timeEnd();
+
+// const t = tensor([3], [1,2,3]);
+// const t1 = tensor([1], [3]);
+// t1.add(t).print(); // this should yield [4, 5, 6] but it yields [4, 0, 0]
 
 // // Input and target tensors
 // const weight = parameter_node(tensor([3], [1, 2, 3]), true);

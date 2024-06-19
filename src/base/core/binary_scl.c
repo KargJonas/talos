@@ -9,7 +9,10 @@
 
 #define SCALAR_OP(NAME, RESULT) \
     void NAME(struct tensor_t* _a, float b, struct tensor_t* res) { \
-        for (size_t i = 0; i < _a->nelem; i++) { \
+        if (_a->isview) for (size_t i = 0; i < _a->nelem; i++) { \
+            float a = _a->data[get_index(_a, i)]; \
+            res->data[get_index(res, i)] RESULT; } \
+        else for (size_t i = 0; i < _a->nelem; i++) { \
             float a = _a->data[_a->offset + i]; \
             res->data[res->offset + i] RESULT; }}
 

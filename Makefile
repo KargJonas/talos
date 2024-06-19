@@ -12,11 +12,9 @@ EF = [ \
 	_rand_seed, _rand_f, _rand_i, _fill, \
 	\
 	_add_scl, _sub_scl, _mul_scl, _div_scl, _pow_scl, \
-	_add_prw, _sub_prw, _mul_prw, _div_prw, _pow_prw, \
 	_add_brc, _sub_brc, _mul_brc, _div_brc, _pow_brc, \
 	\
 	_add_scl_acc, _sub_scl_acc, _mul_scl_acc, _div_scl_acc, _pow_scl_acc, \
-	_add_prw_acc, _sub_prw_acc, _mul_prw_acc, _div_prw_acc, _pow_prw_acc, \
 	_add_brc_acc, _sub_brc_acc, _mul_brc_acc, _div_brc_acc, _pow_brc_acc, \
 	\
 	_mul_tns, _dot_tns, \
