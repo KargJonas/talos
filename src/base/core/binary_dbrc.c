@@ -10,32 +10,11 @@
 // sum tensor a along the axis of size 5 such that we get a tensor [2, 9]
 #define DEBROADCASTING_BINARY_OP(NAME, ASSIGNMENT, RESULT) \
 void NAME(struct tensor_t *_a, struct tensor_t *_b, struct tensor_t *dest) { \
-    size_t diff = _a->rank - dest->rank, n_elem_var_shape = 1; \
+    size_t diff = _b->nelem == 1 ? _b->nelem : _a->rank - dest->rank, n_elem_var_shape = 1; \
     /* compute number of elements of the source tensor */ \
     /* that sum up to one element of the dest tensor */ \
     for (size_t i = 0; i < diff; i++) n_elem_var_shape *= _a->shape[i]; \
     /* iterate over all elements in the destination tensor */ \
-    bool a_scl = _a->nelem == 1, b_scl = _b->nelem == 1; \
-    if (a_scl && b_scl) { \
-        float a = _a->data[_a->offset], b = _b->data[_b->offset]; \
-        dest->data[dest->offset] ASSIGNMENT RESULT; \
-        return; \
-    } else if (a_scl && !b_scl) { \
-        float a = _a->data[_a->offset]; \
-        for (size_t i = 0; i < dest->nelem; i++) { \
-            float b = _b->data[get_index(_b, i)]; \
-            dest->data[get_index(dest, i)] ASSIGNMENT RESULT; \
-        } \
-        return; \
-    } else if (!a_scl && b_scl) { \
-        float sum = 0, b = _b->data[_b->offset]; \
-        for (size_t i = 0; i < _a->nelem; i++) { \
-            float a = _a->data[get_index(_a, i)]; \
-            sum += RESULT; \
-        } \
-        dest->data[dest->offset] ASSIGNMENT sum; \
-        return; \
-    } \
     for (size_t i = 0; i < dest->nelem; i++) { \
         size_t src_base_coord = _a->offset, remainder = i, b_coord = _b->offset, dest_coord = dest->offset; \
         float a = 0; \

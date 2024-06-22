@@ -19,11 +19,11 @@ export const div        = create_binary_op(core._div_scl, core._div_brc);
 export const pow        = create_binary_op(core._pow_scl, core._pow_brc);
 
 // binary accumulative operations (dest += a <OP> b)
-export const add_acc = create_binary_acc_op(core._add_scl_acc, core._add_brc, core._add_acc_dbrc);
-export const sub_acc = create_binary_acc_op(core._sub_scl_acc, core._sub_brc, core._sub_acc_dbrc);
-export const mul_acc = create_binary_acc_op(core._mul_scl_acc, core._mul_brc, core._mul_acc_dbrc);
-export const div_acc = create_binary_acc_op(core._div_scl_acc, core._div_brc, core._div_acc_dbrc);
-export const pow_acc = create_binary_acc_op(core._pow_scl_acc, core._pow_brc, core._pow_acc_dbrc);
+export const add_acc = create_binary_acc_op(core._add_brc, core._add_acc_dbrc);
+export const sub_acc = create_binary_acc_op(core._sub_brc, core._sub_acc_dbrc);
+export const mul_acc = create_binary_acc_op(core._mul_brc, core._mul_acc_dbrc);
+export const div_acc = create_binary_acc_op(core._div_brc, core._div_acc_dbrc);
+export const pow_acc = create_binary_acc_op(core._pow_brc, core._pow_acc_dbrc);
 
 // unary operations
 export const relu       = create_unary_op(core._relu_tns);
@@ -51,14 +51,14 @@ export const abs        = create_unary_op(core._abs_tns);
 export const reciprocal = create_unary_op(core._reciprocal_tns);
 
 // be aware of tensor data dependencies when deallocating tensors !!
-export const free = (a: Tensor) => core._free_tensor(a.get_view_ptr());
+export const free = (a: Tensor) => core._free_tensor(a.ptr);
 
 // reduce operations
 // todo: add pairwise functionality (tensor-valued functions)
-export const max  = (a: Tensor) => core._max_red_scl(a.get_view_ptr());
-export const min  = (a: Tensor) => core._min_red_scl(a.get_view_ptr());
-export const sum  = (a: Tensor) => core._sum_red_scl(a.get_view_ptr());
-export const mean = (a: Tensor) => core._mean_red_scl(a.get_view_ptr());
+export const max  = (a: Tensor) => core._max_red_scl(a.ptr);
+export const min  = (a: Tensor) => core._min_red_scl(a.ptr);
+export const sum  = (a: Tensor) => core._sum_red_scl(a.ptr);
+export const mean = (a: Tensor) => core._mean_red_scl(a.ptr);
 export const max_tns = create_reduce_op(core._max_red_tns);
 export const min_tns = create_reduce_op(core._min_red_tns);
 export const sum_tns = create_reduce_op(core._sum_red_tns);
@@ -77,7 +77,7 @@ export const mean_tns = create_reduce_op(core._mean_red_tns);
  */
 export const clone = (src: Tensor, dest?: Tensor) => {
     const result = dest || tensor_like(src);
-    core._clone_tensor(src.get_view_ptr(), result.get_view_ptr());
+    core._clone_tensor(src.ptr, result.ptr);
     return result;
 };
 
@@ -113,9 +113,9 @@ export const matmul: BinaryOp<Tensor> = (src_a: Tensor, src_b: Tensor, dest?: Te
 
     // perform computation using core
     core._mul_tns(
-        src_a.get_view_ptr(),
-        src_b.get_view_ptr(),
-        result.get_view_ptr()
+        src_a.ptr,
+        src_b.ptr,
+        result.ptr
     );
 
     return result;
@@ -140,15 +140,15 @@ export const dot = (a: Tensor, b: Tensor, dest?: Tensor): Tensor => {
         throw new Error(`Cannot compute dot product. Result tensor [${result_shape}] has different shape than destination tensor [${dest.shape}].`);
 
     core._dot_tns(
-        a.get_view_ptr(),
-        b.get_view_ptr(),
-        result.get_view_ptr());
+        a.ptr,
+        b.ptr,
+        result.ptr);
 
     return result;
 };
 
 export function grad_acc(src: Tensor, dest: Tensor) {
-    core._sum_red_brc(src.get_view_ptr(), dest.get_view_ptr());
+    core._sum_red_brc(src.ptr, dest.ptr);
 }
 
 function create_unary_op(core_fn: CoreUnaryOp): UnaryOp {
@@ -157,7 +157,7 @@ function create_unary_op(core_fn: CoreUnaryOp): UnaryOp {
             throw new Error(`Cannot perform unary op. Result tensor [${src.shape}] has different shape than destination tensor [${dest.shape}].`);
 
         const result: Tensor = dest || tensor_like(src);
-        core_fn(src.get_view_ptr(), result.get_view_ptr());
+        core_fn(src.ptr, result.ptr);
         return result;
     };
 }
@@ -168,7 +168,7 @@ function create_reduce_op(core_fn: CoreUnaryOp) {
             throw new Error(`Cannot perform reduce operation. Provided destination tensor is not scalar. Destination shape: [${dest.shape}]`);
 
         const result: Tensor = dest || tensor_scalar();
-        core_fn(src.get_view_ptr(), result.get_view_ptr());
+        core_fn(src.ptr, result.ptr);
         return result;
     };
 }
@@ -180,56 +180,34 @@ function create_reduce_op(core_fn: CoreUnaryOp) {
  * - "De-broadcasts" the result tensor by summing along appropriate axes,
  *   if the result tensor is of higher rank than the destination and if de-broadcasting is possible>
  */
-export function create_binary_acc_op(core_fn_scl: CoreBinaryOp, core_fn_brc: CoreBinaryOp, core_fn_dbrc: CoreBinaryOp) {
+export function create_binary_acc_op(core_fn_brc: CoreBinaryOp, core_fn_dbrc: CoreBinaryOp) {
     return (a: Tensor, b: Tensor, dest: Tensor) => {
-        /**
-         * YOU LEFT OFF HERE
-         *   - do we ever use the return values of any of the tensor_operations functions?
-         *     if no - remove them
-         *   - also, i think result tensors should not be implicitly created in these functions
-         *     as that is something we never want in the autograd system and only in the Tensor
-         *     class. maybe we should move result tensor creation to that class.
-         */
-
-        if (a.is_scalar()) {
-            core_fn_scl(b.get_view_ptr(), a.item(), dest.get_view_ptr());
-            // todo: we need a scalar-tensor op additional to to the tensor-scalar op.
-            //       this could probably best be done by removing actual scalar ops entirely
-            //       and just handling tensors with nelem=1 separately
-            return;
-        }
-
-        if (b.is_scalar()) {
-            // todo: debroadcasting to scalar tensors does not work properly.
-        }
-
+        // ensure that (de)broadcasting is possible. the direction does not matter
         if (!a.shape.broadcastable(b.shape))
             throw new Error(`Cannot perform grad operation. Shape of tensor a [${a.shape}] is not broadcastable with shape of tensor b [${b.shape}]`);
 
         const result_shape = a.shape.broadcast(b.shape);
 
-        // todo: optimization potential: custom function for scalars
-        // perform debroadcasting
-        if (dest.get_rank() < result_shape.length || dest.shape.is_scalar()) {
-            if (!b.shape.equals(dest.shape))
-                throw new Error(`Cannot perform de-broadcast. Shape of tensor destination tensor [${dest.shape}] does not match required shape [${b.shape}]`);
+        // regular broadcasting (number of elements increases)
+        if (result_shape.get_nelem() > dest.get_nelem()) {
+            if (!result_shape.equals(dest.shape))
+                throw new Error(`Cannot perform grad operation. Result tensor [${result_shape}] has different shape than destination tensor [${dest.shape}].`);
 
-            console.log("performing debroadcasting grad op")
+            // console.log("performing broadcasting grad op")
 
-            // sum tensor a along appropriate axes such that it matches the
-            // shape of tensor b, then apply the desired operation between the two
-            core_fn_dbrc(a.get_view_ptr(), b.get_view_ptr(), dest.get_view_ptr());
-
+            core_fn_brc(a.ptr, b.ptr, dest.ptr);
             return;
         }
 
-        if (!result_shape.equals(dest.shape))
-            throw new Error(`Cannot perform grad operation. Result tensor [${result_shape}] has different shape than destination tensor [${dest.shape}].`);
+        // perform debroadcasting
+        if (!b.shape.equals(dest.shape))
+            throw new Error(`Cannot perform de-broadcast. Shape of tensor destination tensor [${dest.shape}] does not match required shape [${b.shape}]`);
 
-        console.log("performing broadcasting grad op")
+        // console.log("performing debroadcasting grad op")
 
-        // perform regular broadcasting operation
-        core_fn_brc(a.get_view_ptr(), b.get_view_ptr(), dest.get_view_ptr());
+        // sum tensor a along appropriate axes such that it matches the
+        // shape of tensor b, then apply the desired operation between the two
+        core_fn_dbrc(a.ptr, b.ptr, dest.ptr);
     };
 }
 
@@ -238,7 +216,7 @@ function binary_op(core_fn_scl: CoreBinaryOp, core_fn_brc: CoreBinaryOp, src_a: 
     // perform scalar operation
     if (typeof src_b === "number") {
         const result = dest || tensor_like(src_a);
-        core_fn_scl(src_a.get_view_ptr(), src_b, result.get_view_ptr());
+        core_fn_scl(src_a.ptr, src_b, result.ptr);
         return result;
     }
 
@@ -256,7 +234,7 @@ function binary_op(core_fn_scl: CoreBinaryOp, core_fn_brc: CoreBinaryOp, src_a: 
     }
 
     const result = dest || tensor(result_shape);
-    core_fn_brc(src_a.get_view_ptr(), src_b.get_view_ptr(), result.get_view_ptr());
+    core_fn_brc(src_a.ptr, src_b.ptr, result.ptr);
 
     return result;
 }

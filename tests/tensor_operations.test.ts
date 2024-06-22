@@ -478,9 +478,9 @@ describe("tensor operations", async () => {
             const a = tensor([2, 3], [1, 2, 3, 4, 5, 6]);
             let res = tensor_like(t5).zeros();
             ops.add_acc(a, t5, res);
-            expect([...res.data]).toEqual([4, 9, 12]);
+            expect([...res.data]).toEqual([3, 11, 15]);
             ops.add_acc(a, t5, res);
-            expect([...res.data]).toEqual([8, 18, 24]);
+            expect([...res.data]).toEqual([6, 22, 30]);
             res.zeros();
             ops.mul_acc(a, t5, res);
             expect([...res.data]).toEqual([-5, 14, 27]);

@@ -5,7 +5,7 @@
 import {core, core_ready, tensor, tensor_like} from "../index";
 import {parameter_node, source_node} from "../src/node_factory.ts";
 import {tensor_scalar} from "../src/base/Tensor.ts";
-import {add_acc, mul, mul_acc, sub} from "../src/base/tensor_operations.ts";
+import {add, add_acc, mul, mul_acc, sub} from "../src/base/tensor_operations.ts";
 
 // if your runtime does not support top-level await,
 // you'll have to use core_ready.then(() => { ... }) instead
@@ -30,13 +30,6 @@ console.log("###########\n".repeat(2));
 // add_acc
 // t2.print();
 
-const a = tensor([2, 3], [1, 2, 3, 4, 5, 6]);
-const b = tensor([3], [1, 1, 1]);
-const res = tensor_like(b);
-
-add_acc(a, b, res);
-res.print();
-
 // const a = tensor_scalar(5);
 // const b = tensor([3], [1, 2, 3]);
 //
@@ -49,21 +42,28 @@ res.print();
 // graph.backward();
 
 
-// const t0 = tensor([500, 100]).rand();
+// const t0 = tensor([50, 100]).rand();
 // const t1 = tensor_scalar(5);
-// const t2 = tensor([500, 100]);
+// const t2 = tensor([50, 100]);
 // console.log("Simple Scalar");
 // console.time();
-// for (let i = 0; i < 1000; i++) {
+// for (let i = 0; i < 1; i++) {
 //     core._add_scl(t0.get_view_ptr(), 5, t2.get_view_ptr());
 // }
 // console.timeEnd();
 // console.log("Broadcasting Scalar");
 // console.time();
-// for (let i = 0; i < 1000; i++) {
+// for (let i = 0; i < 1; i++) {
 //     core._add_brc(t0.get_view_ptr(), t1.get_view_ptr(), t2.get_view_ptr());
 // }
 // console.timeEnd();
+
+const t0 = tensor([2, 3], [1, 2, 3, 4, 5, 6]);
+const t1 = tensor([3], [1, 1, 1]);
+const t3 = tensor_like(t1).zeros();
+
+add_acc(t0, t1, t3);
+t3.print();
 
 // const t = tensor([3], [1,2,3]);
 // const t1 = tensor([1], [3]);
