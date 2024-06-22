@@ -1,4 +1,5 @@
 include .env
+include $(CORE_OP_NAME_DEFINITIONS)
 
 EERM		= [ccall, cwrap, getValue, setValue]
 
@@ -11,31 +12,13 @@ EF = [ \
 	\
 	_rand_seed, _rand_f, _rand_i, _fill, \
 	\
-	_add_scl, _sub_scl, _mul_scl, _div_scl, _pow_scl, \
-	_add_brc, _sub_brc, _mul_brc, _div_brc, _pow_brc, \
+	_get_mgmt_ptr, \
 	\
-	_add_scl_acc, _sub_scl_acc, _mul_scl_acc, _div_scl_acc, _pow_scl_acc, \
-	_add_brc_acc, _sub_brc_acc, _mul_brc_acc, _div_brc_acc, _pow_brc_acc, \
-	\
-	_mul_tns, _dot_tns, \
-	\
-	_add_dbrc_acc, _sub_dbrc_acc, _mul_dbrc_acc, _div_dbrc_acc, _pow_dbrc_acc, \
-	\
+	_mul_tns, _dot_tns,\
 	_max_red_scl, _min_red_scl, _sum_red_scl, _mean_red_scl, \
 	_max_red_tns, _min_red_tns, _sum_red_tns, _mean_red_tns, \
 	\
-	_negate_tns, _reciprocal_tns, \
-	_sin_tns, _cos_tns, _tan_tns, \
-	_asin_tns, _acos_tns, _atan_tns, \
-	_sinh_tns, _cosh_tns, _tanh_tns, \
-	_exp_tns, \
-	_log_tns, _log10_tns, _log2_tns, \
-	_invsqrt_tns, _sqrt_tns, \
-	_ceil_tns, _floor_tns, _abs_tns, \
-	\
-	_relu_tns, _binstep_tns, _logistic_tns, \
-	\
-	_get_mgmt_ptr \
+	$(EXPORTED_OPS) \
 ]
 
 ##  WARNING  ##
