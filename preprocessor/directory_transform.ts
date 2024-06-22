@@ -7,7 +7,7 @@ import fs from "fs";
  * @param {String} outDir Output folder.
  * @param {Function} convertFunc Function used to convert the content of each file. (convertFunc: (fileContent, fileName) => ({newFileContent, newFileName}))
  */
-export default function transform(
+export default function directory_transform(
     inDir: string,
     outDir: string,
     convertFunc: (content: string, name: string, path: string) => {content: string, name: string}

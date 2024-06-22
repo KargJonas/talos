@@ -7,14 +7,24 @@
 #include <math.h>
 #include "./tensor.h"
 
-#define SCALAR_OP(NAME, RESULT) \
-    void NAME(struct tensor_t* _a, float b, struct tensor_t* res) { \
-        if (_a->isview) for (size_t i = 0; i < _a->nelem; i++) { \
-            float a = _a->data[get_index(_a, i)]; \
-            res->data[get_index(res, i)] RESULT; } \
-        else for (size_t i = 0; i < _a->nelem; i++) { \
-            float a = _a->data[_a->offset + i]; \
-            res->data[res->offset + i] RESULT; }}
+#define SCALAR_OP(NAME, RESULT) [[[
+void NAME(struct tensor_t* _a, float b, struct tensor_t* res) {
+    // use expensive indexing if the tensor is non-contiguous
+    if (_a->isview || res->isview) {
+        for (size_t i = 0; i < _a->nelem; i++) {
+            float a = _a->data[get_index(_a, i)];
+            res->data[get_index(res, i)] RESULT;
+            return;
+        }
+    }
+
+    // use faster indexing if tensor is contiguous
+    for (size_t i = 0; i < _a->nelem; i++) {
+        float a = _a->data[i];
+        res->data[i] RESULT;
+    }
+}
+]]]
 
 // Regular scalar operations
 SCALAR_OP(add_scl, = a + b) // add

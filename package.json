@@ -16,9 +16,10 @@
     "test": "bun test",
     "lint": "eslint . ; tsc",
     "build-ts": "bun build ./index.ts --outdir ./dist",
-    "core-preproc": "bun preprocessor/preprocessor.ts",
-    "core-compile": "make main",
-    "build": "bun core-compile ; bun build-ts"
+    "preproc-core": "bun preprocessor/preprocessor.ts",
+    "compile-core": "make main",
+    "build-core": "bun preproc-core ; bun compile-core",
+    "build": "bun preproc-core ; bun compile-core ; bun build-ts"
   },
   "type": "module",
   "license": "UNLICENSED"

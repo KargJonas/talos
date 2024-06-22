@@ -9,55 +9,48 @@
 #include "./util.h"
 #include "./tensor.h"
 
-#define UNARY_OP(NAME, OP) \
-    void NAME(struct tensor_t* a, struct tensor_t* res) { \
-        for (size_t i = 0; i < a->nelem; i++) { \
-            res->data[res->offset + i] = OP(get_item(a, i)); }}
+#define UNARY_OP(NAME, RESULT) [[[
+void NAME(struct tensor_t* _a, struct tensor_t* res) {
+    if (_a->isview || res->isview) {
+        for (size_t i = 0; i < _a->nelem; i++) {
+            float a = get_index(_a, i);
+            res->data[get_index(res, i)] RESULT;
+        }
 
-UNARY_OP(sin_tns, sin);
-UNARY_OP(cos_tns, cos);
-UNARY_OP(tan_tns, tan);
-UNARY_OP(asin_tns, asin);
-UNARY_OP(acos_tns, acos);
-UNARY_OP(atan_tns, atan);
-UNARY_OP(sinh_tns, sinh);
-UNARY_OP(cosh_tns, cosh);
-UNARY_OP(tanh_tns, tanh);
+        return;
+    }
 
-UNARY_OP(exp_tns, exp);
-UNARY_OP(log_tns, log);
-UNARY_OP(log10_tns, log10);
-UNARY_OP(log2_tns, log2);
-
-// potentially dangerous if user expects precision of (1. / sqrt())
-UNARY_OP(invsqrt_tns, fast_inv_sqrt);
-UNARY_OP(sqrt_tns, sqrt);
-
-UNARY_OP(ceil_tns, ceil);
-UNARY_OP(floor_tns, floor);
-UNARY_OP(abs_tns, fabsf);
-
-UNARY_OP(negate_tns, -);
-UNARY_OP(reciprocal_tns, 1./);
-
-void relu_tns(struct tensor_t* a, struct tensor_t* res) {
-    float item;
-    for (size_t i = 0; i < a->nelem; i++) {
-        item = get_item(a, i);
-        res->data[get_index(res, i)] = item < 0 ? 0 : item;
+    for (size_t i = 0; i < _a->nelem; i++) {
+        float a = _a->data[i];
+        res->data[i] RESULT;
     }
 }
+]]]
 
-void binstep_tns(struct tensor_t* a, struct tensor_t* res) {
-    for (size_t i = 0; i < a->nelem; i++) {
-        res->data[get_index(res, i)] = get_item(a, i) < 0 ? 0 : 1;
-    }
-}
-
-void logistic_tns(struct tensor_t* a, struct tensor_t* res) {
-    for (size_t i = 0; i < a->nelem; i++) {
-        res->data[get_index(res, i)] = 1. / (exp(-get_item(a, i)) + 1.);
-    }
-}
+@GENERATE_UNARY (UNARY_OP) [[[
+    sin_tns:        sin(a)
+    cos_tns:        cos(a)
+    tan_tns:        tan(a)
+    asin_tns:       asin(a)
+    acos_tns:       acos(a)
+    atan_tns:       atan(a)
+    sinh_tns:       sinh(a)
+    cosh_tns:       cosh(a)
+    tanh_tns:       tanh(a)
+    exp_tns:        exp(a)
+    log_tns:        log(a)
+    log2_tns:       log2(a)
+    log10_tns:      log10(a)
+    invsqrt_tns:    fast_inv_sqrt(a)
+    sqrt_tns:       sqrt(a)
+    ceil_tns:       ceil(a)
+    floor_tns:      floor(a)
+    abs_tns:        fabs(a)
+    negate_tns:     -a
+    reciprocal_tns: 1. / a
+    relu_tns:       a < 0 ? 0 : a
+    binstep_tns:    a < 0 ? 0 : 1
+    logistic_tns:   1. / (exp(-a) + 1.)
+]]]
 
 #endif //CORE_UNARY
