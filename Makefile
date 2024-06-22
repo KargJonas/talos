@@ -1,6 +1,6 @@
+include .env
+
 EERM		= [ccall, cwrap, getValue, setValue]
-OUT_DIR 	= ./src/base/core/build
-SRC_DIR 	= ./src/base/core
 
 # exported functions
 EF = [ \
@@ -45,15 +45,15 @@ EF = [ \
 ## Initial memory flag ##
 # -s INITIAL_MEMORY=256MB
 
-clean: $(OUT_DIR)
-	-rm -rf $(OUT_DIR)
+clean: $(CORE_OUT_DIR)
+	-rm -rf $(CORE_OUT_DIR)
 
-main: $(SRC_DIR)/main.c
-	@echo Building WASM executables from $(SRC_DIR)
-	-mkdir -p $(OUT_DIR)
+main: $(CORE_SRC_DIR)/main.c
+	@echo Building WASM executables from $(CORE_SRC_DIR)
+	-mkdir -p $(CORE_OUT_DIR)
 	-emcc -s "EXPORTED_RUNTIME_METHODS=$(EERM)" \
 				-s "EXPORTED_FUNCTIONS=$(EF)" \
 				-s WASM=1 \
 				-s ALLOW_MEMORY_GROWTH=1 \
 				-s SINGLE_FILE=1 \
-				-O3 $(SRC_DIR)/main.c -o $(OUT_DIR)/index.js
+				-O3 $(CORE_PREPROC_OUT_DIR)/main.c -o $(CORE_OUT_DIR)/index.js
