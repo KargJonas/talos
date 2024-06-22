@@ -29,16 +29,16 @@ function macro_invoke_generation(file_content: string): string {
         "+=": "_acc",
     };
 
-    processed = file_content.replace(/@GENERATE_UNARY\s+\S+\s*\[\[\[[\s\S]*?\]\]\]/gm, (match: string) => {
+    processed = file_content.replace(/@GENERATE\s+\S+\s*\[\[\[[\s\S]*?\]\]\]/gm, (match: string) => {
         console.log(match);
 
         const macro_name = match
             .split(/\[\[\[/)[0]
-            .slice(15).trim()
+            .slice(9).trim()
             .slice(1,-1).trim();
     
         const defined_operations = match
-            .replace(/(@GENERATE_UNARY\s+\S+\s*\[\[\[)|(\]\]\])/gm, "")
+            .replace(/(@GENERATE\s+\S+\s*\[\[\[)|(\]\]\])/gm, "")
             .split(/\r\n|\r|\n/gm)
             .filter(op => op.trim().length !== 0)
             .map((op: string) => {
@@ -52,7 +52,7 @@ function macro_invoke_generation(file_content: string): string {
             return Object.keys(assignments)
                 .map((assignment_type) => {
                     const postfix = assignments[assignment_type];
-                    return `${macro_name}(${name}${postfix}, ${assignment_type} ${result})`;
+                    return `${macro_name}(${name}${postfix}, ${assignment_type}, ${result})`;
                 })
                 .join("\n");
         });

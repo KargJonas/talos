@@ -19,11 +19,11 @@ export const div        = create_binary_op(core._div_scl, core._div_brc);
 export const pow        = create_binary_op(core._pow_scl, core._pow_brc);
 
 // binary accumulative operations (dest += a <OP> b)
-export const add_acc = create_binary_acc_op(core._add_brc, core._add_acc_dbrc);
-export const sub_acc = create_binary_acc_op(core._sub_brc, core._sub_acc_dbrc);
-export const mul_acc = create_binary_acc_op(core._mul_brc, core._mul_acc_dbrc);
-export const div_acc = create_binary_acc_op(core._div_brc, core._div_acc_dbrc);
-export const pow_acc = create_binary_acc_op(core._pow_brc, core._pow_acc_dbrc);
+export const add_acc = create_binary_acc_op(core._add_brc, core._add_dbrc_acc);
+export const sub_acc = create_binary_acc_op(core._sub_brc, core._sub_dbrc_acc);
+export const mul_acc = create_binary_acc_op(core._mul_brc, core._mul_dbrc_acc);
+export const div_acc = create_binary_acc_op(core._div_brc, core._div_dbrc_acc);
+export const pow_acc = create_binary_acc_op(core._pow_brc, core._pow_dbrc_acc);
 
 // unary operations
 export const relu       = create_unary_op(core._relu_tns);

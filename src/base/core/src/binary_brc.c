@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include "./util.h"
 
-#define BROADCASTING_OP(NAME, RESULT) [[[
+#define BROADCASTING_OP(NAME, ASSIGNMENT, RESULT) [[[
 void NAME(struct tensor_t *_a, struct tensor_t *_b, struct tensor_t *res) {
     size_t ia, ib, ires, iaxis, remainder, dim;
     size_t strides_a[res->rank], strides_b[res->rank];
@@ -35,23 +35,31 @@ void NAME(struct tensor_t *_a, struct tensor_t *_b, struct tensor_t *res) {
         }
 
         float a = _a->data[_a->offset + ia], b = _b->data[_b->offset + ib];
-        res->data[ires] RESULT;
+        res->data[ires] ASSIGNMENT RESULT;
     }
 }
 ]]]
 
-// Regular broadcasting operations
-BROADCASTING_OP(add_brc, = a + b)
-BROADCASTING_OP(sub_brc, = a - b)
-BROADCASTING_OP(mul_brc, = a * b)
-BROADCASTING_OP(div_brc, = a / b)
-BROADCASTING_OP(pow_brc, = pow(a, b))
+@GENERATE (BROADCASTING_OP) [[[
+    add_brc: a + b
+    sub_brc: a - b
+    mul_brc: a * b
+    div_brc: a / b
+    pow_brc: pow(a, b)
+]]]
 
-// Accumulative broadcasting operations
-BROADCASTING_OP(add_brc_acc, += a + b)
-BROADCASTING_OP(sub_brc_acc, += a - b)
-BROADCASTING_OP(mul_brc_acc, += a * b)
-BROADCASTING_OP(div_brc_acc, += a / b)
-BROADCASTING_OP(pow_brc_acc, += pow(a, b))
+// // Regular broadcasting operations
+// BROADCASTING_OP(add_brc, = a + b)
+// BROADCASTING_OP(sub_brc, = a - b)
+// BROADCASTING_OP(mul_brc, = a * b)
+// BROADCASTING_OP(div_brc, = a / b)
+// BROADCASTING_OP(pow_brc, = pow(a, b))
+
+// // Accumulative broadcasting operations
+// BROADCASTING_OP(add_brc_acc, += a + b)
+// BROADCASTING_OP(sub_brc_acc, += a - b)
+// BROADCASTING_OP(mul_brc_acc, += a * b)
+// BROADCASTING_OP(div_brc_acc, += a / b)
+// BROADCASTING_OP(pow_brc_acc, += pow(a, b))
 
 #endif //CORE_BROADCASTING

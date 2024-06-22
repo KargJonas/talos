@@ -19,7 +19,7 @@ EF = [ \
 	\
 	_mul_tns, _dot_tns, \
 	\
-	_add_acc_dbrc, _sub_acc_dbrc, _mul_acc_dbrc, _div_acc_dbrc, _pow_acc_dbrc, \
+	_add_dbrc_acc, _sub_dbrc_acc, _mul_dbrc_acc, _div_dbrc_acc, _pow_dbrc_acc, \
 	\
 	_max_red_scl, _min_red_scl, _sum_red_scl, _mean_red_scl, \
 	_max_red_tns, _min_red_tns, _sum_red_tns, _mean_red_tns, \

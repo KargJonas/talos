@@ -9,12 +9,12 @@
 #include "./util.h"
 #include "./tensor.h"
 
-#define UNARY_OP(NAME, RESULT) [[[
+#define UNARY_OP(NAME, ASSIGNMENT, RESULT) [[[
 void NAME(struct tensor_t* _a, struct tensor_t* res) {
     if (_a->isview || res->isview) {
         for (size_t i = 0; i < _a->nelem; i++) {
             float a = get_index(_a, i);
-            res->data[get_index(res, i)] RESULT;
+            res->data[get_index(res, i)] ASSIGNMENT RESULT;
         }
 
         return;
@@ -22,12 +22,12 @@ void NAME(struct tensor_t* _a, struct tensor_t* res) {
 
     for (size_t i = 0; i < _a->nelem; i++) {
         float a = _a->data[i];
-        res->data[i] RESULT;
+        res->data[i] ASSIGNMENT RESULT;
     }
 }
 ]]]
 
-@GENERATE_UNARY (UNARY_OP) [[[
+@GENERATE (UNARY_OP) [[[
     sin_tns:        sin(a)
     cos_tns:        cos(a)
     tan_tns:        tan(a)
