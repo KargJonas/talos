@@ -57,7 +57,7 @@ describe("tensor creation", async () => {
 
     // ensures that modifying a tensor does not cause changes in another tensor
     function check_tensor_independence(old_tensor: Tensor, new_tensor: Tensor) {
-        expect(new_tensor.get_view_ptr()).not.toBe(old_tensor.get_view_ptr());
+        expect(new_tensor.ptr).not.toBe(old_tensor.ptr);
         expect(new_tensor.get_shape_ptr()).not.toBe(old_tensor.get_shape_ptr());
         expect(new_tensor.get_strides_ptr()).not.toBe(old_tensor.get_strides_ptr());
         expect(new_tensor.get_data_ptr()).not.toBe(old_tensor.get_data_ptr());

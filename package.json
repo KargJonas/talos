@@ -5,7 +5,8 @@
     "@typescript-eslint/eslint-plugin": "^6.17.0",
     "@typescript-eslint/parser": "^6.17.0",
     "bun-types": "latest",
-    "eslint": "^8.56.0"
+    "eslint": "^8.56.0",
+    "rimraf": "^5.0.7"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
@@ -14,9 +15,11 @@
     "dev": "bun --watch examples/dev.ts",
     "test": "bun test",
     "lint": "eslint . ; tsc",
-    "build-core": "make main",
     "build-ts": "bun build ./index.ts --outdir ./dist",
-    "build": "bun build-core ; bun build-ts"
+    "preproc-core": "bun preprocessor/preprocessor.ts",
+    "compile-core": "make main",
+    "build-core": "bun preproc-core ; bun compile-core",
+    "build": "bun preproc-core ; bun compile-core ; bun build-ts"
   },
   "type": "module",
   "license": "UNLICENSED"

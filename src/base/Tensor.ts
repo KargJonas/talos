@@ -26,7 +26,7 @@ export class Tensor implements ITensor<Tensor> {
 
     public set_offset   = (offset: number) => this.view[STRUCT_LAYOUT.OFFSET] = offset;
 
-    public get_view_ptr     = () => this.view.byteOffset;
+    // public get_view_ptr     = () => this.view.byteOffset;
     public get_rank         = () => this.view[STRUCT_LAYOUT.RANK];
     public get_nelem        = () => this.view[STRUCT_LAYOUT.NELEM];
     public get_offset       = () => this.view[STRUCT_LAYOUT.OFFSET];
@@ -52,7 +52,7 @@ export class Tensor implements ITensor<Tensor> {
 
         console.log(
             `${title}\n` +
-            `  address: 0x${this.get_view_ptr().toString(16)}\n` +
+            `  address: 0x${this.ptr.toString(16)}\n` +
             `  is view: ${this.get_isview() ? "true" : "false"}\n` +
             `  shape:   [${this.shape.join(", ")}]\n` +
             `  strides: [${this.strides.join(", ")}]\n` +
@@ -155,6 +155,10 @@ export class Tensor implements ITensor<Tensor> {
         return this.data[this.get_offset()];
     }
 
+    public get ptr(): number {
+        return this.view.byteOffset;
+    }
+
     // operation shorthands
     public get T(): Tensor {
         return ops.transpose(this);
@@ -196,6 +200,6 @@ export function tensor_like(other: Tensor) {
 
 // returns a view of an element in the desired axis
 export function create_view(a: Tensor, axis = 0, offset = 0) {
-    const ptr = core._create_view(a.get_view_ptr(), axis, offset);
+    const ptr = core._create_view(a.ptr, axis, offset);
     return new Tensor(ptr);
 }
