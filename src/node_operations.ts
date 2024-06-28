@@ -205,7 +205,7 @@ export class Sum extends CompGraphNode {
 
     fw() {
         // TODO: Refactor ops.sum to support scalar tensor?
-        this.value.data[this.value.get_offset()] = ops.sum(this.parents[0].value);
+        this.value.data[this.value.offset] = ops.sum(this.parents[0].value);
     }
 
     bw() {
@@ -230,7 +230,7 @@ export class Mean extends CompGraphNode {
 
     fw() {
         // todo: fix
-        this.value.data[this.value.get_offset()] = ops.mean(this.parents[0].value); // Compute the mean
+        this.value.data[this.value.offset] = ops.mean(this.parents[0].value); // Compute the mean
     }
 
     bw() {

@@ -13,15 +13,24 @@ export default class Shape extends Int32Array {
         }
     }
     
-    public get_ndim = () => this.length;
-    public get_rows = () => this.get_axis_size(this.get_ndim() - 2);
-    public get_cols = () => this.get_axis_size(this.get_ndim() - 1);
-    public get_mat_shape = () => new Shape([this.get_rows(), this.get_cols()]);
-    public get_axis_size = (axis_index: number) => this[axis_index] === undefined ? 1 : this[axis_index];
-    public detach = () => new Shape(this);
-    public is_scalar = () => this.length === 1 && this[0] === 1;
+    // public get_ndim = () => this.length;
+    // public get_rows = () => this.get_axis_size(this.ndim - 2);
+    // public get_cols = () => this.get_axis_size(this.ndim - 1);
+    // public get_mat_shape = () => new Shape([this.rows, this.cols]);
+    // public get_axis_size = (axis_index: number) => this[axis_index] === undefined ? 1 : this[axis_index];
+    // public detach = () => new Shape(this);
+    // public is_scalar = () => this.length === 1 && this[0] === 1;
 
-    get_nelem(): number {
+    public get ndim() { return this.length; }
+    public get rows() { return this.get_axis_size(this.ndim - 2); }
+    public get cols() { return this.get_axis_size(this.ndim - 1); }
+    public get mat_shape() { return new Shape([this.rows, this.cols]); }
+    public get is_scalar() { return this.length === 1 && this[0] === 1; }
+
+    public detach = () => new Shape(this);
+    public get_axis_size = (axis_index: number) => this[axis_index] === undefined ? 1 : this[axis_index];
+
+    public get nelem(): number {
         if (this.length === 0) return 0;
         return this.reduce((acc, cur) => acc *= cur, 1);
     }
@@ -40,7 +49,7 @@ export default class Shape extends Int32Array {
     }
 
     broadcastable(other: Shape): boolean {
-        const min_rank = Math.min(this.get_ndim(), other.get_ndim());
+        const min_rank = Math.min(this.ndim, other.ndim);
         const a = this.detach().reverse();
         const b = other.detach().reverse();
 
@@ -56,7 +65,7 @@ export default class Shape extends Int32Array {
         if (!this.broadcastable(other))
             throw new Error(`Shape mismatch: Cannot broadcast tensor of shape [${this}] with [${other}].`);
 
-        const max_rank = Math.max(this.get_ndim(), other.get_ndim());
+        const max_rank = Math.max(this.ndim, other.ndim);
         const new_shape: number[] = [];
         const a = new Shape(this.detach().reverse());
         const b = new Shape(other.detach().reverse());
@@ -70,9 +79,9 @@ export default class Shape extends Int32Array {
 
     // computes number of indices to step over for each element in each axis
     get_strides(): number[] {
-        const strides = Array(this.get_ndim()).fill(1);
+        const strides = Array(this.ndim).fill(1);
 
-        for (let i = this.get_ndim() - 2; i >= 0; i--) {
+        for (let i = this.ndim - 2; i >= 0; i--) {
             strides[i] = strides[i + 1] * this[i + 1];
         }
 
@@ -87,7 +96,7 @@ export default class Shape extends Int32Array {
      */
     expand_left(rank: number): Shape {
         const new_shape = [...this];
-        const n = Math.max(0, rank - this.get_ndim());
+        const n = Math.max(0, rank - this.ndim);
         for (let i = 0; i < n; i++) new_shape.unshift(1); 
         return new Shape(new_shape);
     }
@@ -103,7 +112,7 @@ export default class Shape extends Int32Array {
      * @returns A new shape that is based on this shape with the desired rank
      */
     flatten(rank: number) {
-        const current_rank = this.get_ndim();
+        const current_rank = this.ndim;
         const amount = Math.abs(current_rank - rank);
 
         // flatten
@@ -128,7 +137,7 @@ export default class Shape extends Int32Array {
      * @returns A 2-Tuple containing the index and shape
      */
     get_index(...loc: number[]): [number, Shape] {
-        if (loc.length > this.get_ndim()) throw new Error(`Location [${loc}] is too specific for shape [${this}]`);
+        if (loc.length > this.ndim) throw new Error(`Location [${loc}] is too specific for shape [${this}]`);
 
         const strides = this.get_strides();
         const index = loc.reduce((acc, l_axis, i) => {
@@ -143,7 +152,7 @@ export default class Shape extends Int32Array {
 
     // get shape of elements in an axis (n determines the level of nesting)
     get_axis_shape(n: number): number[] {
-        if (n >= this.get_ndim()) throw new Error(`Cannot get ${ordinal_str(n)} axis.`);
-        return [...this].slice(n - this.get_ndim()); // todo fix. should work with .subarry
+        if (n >= this.ndim) throw new Error(`Cannot get ${ordinal_str(n)} axis.`);
+        return [...this].slice(n - this.ndim); // todo fix. should work with .subarry
     }
 }

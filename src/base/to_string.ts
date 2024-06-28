@@ -2,7 +2,7 @@ import { Tensor } from "./Tensor";
 
 // usability methods
 export default function tensor_to_string(a: Tensor, num_width = 5, space_before = 0) {   
-    switch (a.get_rank()) {
+    switch (a.rank) {
         case 0: return "[]";
         case 1: return vec_to_string(a, num_width);
         case 2: return mat_to_string(a, num_width, space_before);
@@ -18,12 +18,12 @@ export default function tensor_to_string(a: Tensor, num_width = 5, space_before 
 }
 
 function vec_to_string(vec: Tensor, n_decimals: number) {
-    if (vec.shape[0] === 1) return `[ ${vec.data[vec.get_offset()]} ]`;
+    if (vec.shape[0] === 1) return `[ ${vec.data[vec.offset]} ]`;
 
     const n_integer = Math.floor(vec.max()).toString().length;
-    const cols = vec.get_cols();
+    const cols = vec.cols;
     const col_stride = vec.strides[0];
-    const offset = vec.get_offset();
+    const offset = vec.offset;
     const vals: string[] = [];
 
     for (let c = 0; c < cols; c++) {
@@ -43,11 +43,11 @@ function mat_to_string(mat: Tensor, n_decimals: number, space_before: number) {
     // amount of digits in the integer part of the largest number
     const n_integer = Math.floor(mat.max()).toString().length;
     const lines: string[] = [];
-    const cols = mat.get_cols();
-    const rows = mat.get_rows();
+    const cols = mat.cols;
+    const rows = mat.rows;
     const col_stride = mat.strides[1];
     const row_stride = mat.strides[0];
-    const offset = mat.get_offset();
+    const offset = mat.offset;
     const exp = Math.pow(10, n_decimals);
 
     const m = mat.clone();

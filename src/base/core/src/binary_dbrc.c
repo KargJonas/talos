@@ -67,10 +67,4 @@ void NAME(struct tensor_t *_a, struct tensor_t *_b, struct tensor_t *dest) {
     pow_dbrc: pow(a, b)
 ]]]
 
-// DEBROADCASTING_BINARY_OP(add_acc_dbrc, +=, a + b)
-// DEBROADCASTING_BINARY_OP(sub_acc_dbrc, +=, a - b)
-// DEBROADCASTING_BINARY_OP(mul_acc_dbrc, +=, a * b)
-// DEBROADCASTING_BINARY_OP(div_acc_dbrc, +=, a / b)
-// DEBROADCASTING_BINARY_OP(pow_acc_dbrc, +=, pow(a, b))
-
 #endif//CORE_DEBROADCAST

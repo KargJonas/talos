@@ -23,9 +23,9 @@ describe("tensor creation", async () => {
             expect(new_tensor.strides).toBeInstanceOf(Strides);
             expect(new_tensor.data).toBeInstanceOf(Float32Array);
 
-            // ensure that get_rank() and get_nelem() return correct values
-            expect(new_tensor.get_rank()).toBe(shape.length);
-            expect(new_tensor.get_nelem()).toBe(expected_nelem);
+            // ensure that rank and get_nelem() return correct values
+            expect(new_tensor.rank).toBe(shape.length);
+            expect(new_tensor.nelem).toBe(expected_nelem);
             if (data !== undefined) expect(data.length).toBe(expected_nelem);
 
             // ensure that the views have the correct sizes
@@ -58,9 +58,9 @@ describe("tensor creation", async () => {
     // ensures that modifying a tensor does not cause changes in another tensor
     function check_tensor_independence(old_tensor: Tensor, new_tensor: Tensor) {
         expect(new_tensor.ptr).not.toBe(old_tensor.ptr);
-        expect(new_tensor.get_shape_ptr()).not.toBe(old_tensor.get_shape_ptr());
-        expect(new_tensor.get_strides_ptr()).not.toBe(old_tensor.get_strides_ptr());
-        expect(new_tensor.get_data_ptr()).not.toBe(old_tensor.get_data_ptr());
+        expect(new_tensor.shape_ptr).not.toBe(old_tensor.shape_ptr);
+        expect(new_tensor.strides_ptr).not.toBe(old_tensor.strides_ptr);
+        expect(new_tensor.data_ptr).not.toBe(old_tensor.data_ptr);
 
         // modify new tensor
         new_tensor.shape[0] = 50;
@@ -80,13 +80,13 @@ describe("tensor creation", async () => {
         expect([...new_tensor.shape]).not.toEqual([...old_tensor.shape]);
         expect([...new_tensor.strides]).not.toEqual([...old_tensor.strides]);
         expect([...new_tensor.data]).not.toEqual([...old_tensor.data]);
-        // expect(new_tensor.get_rank()).not.toEqual(old_tensor.get_rank());
-        // expect(new_tensor.get_nelem()).not.toEqual(old_tensor.get_nelem());
+        // expect(new_tensor.rank).not.toEqual(old_tensor.rank);
+        // expect(new_tensor.nelem).not.toEqual(old_tensor.nelem);
     }
 
     function check_tensor_metadata_equality(a: Tensor, b: Tensor) {
-        expect(a.get_rank()).toBe(b.get_rank());
-        expect(a.get_nelem()).toBe(b.get_nelem());
+        expect(a.rank).toBe(b.rank);
+        expect(a.nelem).toBe(b.nelem);
         expect([...a.shape]).toEqual([...b.shape]);
         expect([...a.strides]).toEqual([...b.strides]);
     }

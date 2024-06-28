@@ -19,27 +19,30 @@ export class Tensor implements ITensor<Tensor> {
     constructor(ptr: number) {
         // set up typed arrays for data access
         this.view = new Int32Array(core.memory.buffer, ptr, STRUCT_SIZE);
-        this.shape   = new Shape  (new Int32Array(core.memory.buffer, this.get_shape_ptr(), this.get_rank()), true);
-        this.strides = new Strides(new Int32Array(core.memory.buffer, this.get_strides_ptr(), this.get_rank()), true);
-        this.data    = new Float32Array(core.memory.buffer, this.get_data_ptr(), this.get_ndata());
+        this.shape   = new Shape  (new Int32Array(core.memory.buffer, this.shape_ptr, this.rank), true);
+        this.strides = new Strides(new Int32Array(core.memory.buffer, this.strides_ptr, this.rank), true);
+        this.data    = new Float32Array(core.memory.buffer, this.data_ptr, this.ndata);
     }
 
     public set_offset   = (offset: number) => this.view[STRUCT_LAYOUT.OFFSET] = offset;
 
-    // public get_view_ptr     = () => this.view.byteOffset;
-    public get_rank         = () => this.view[STRUCT_LAYOUT.RANK];
-    public get_nelem        = () => this.view[STRUCT_LAYOUT.NELEM];
-    public get_offset       = () => this.view[STRUCT_LAYOUT.OFFSET];
-    public get_ndata        = () => this.view[STRUCT_LAYOUT.NDATA];
-    public get_size         = () => this.view[STRUCT_LAYOUT.SIZE];
-    public get_isview       = () => this.view[STRUCT_LAYOUT.ISVIEW];
-    public get_data_ptr     = () => this.view[STRUCT_LAYOUT.DATA];
-    public get_shape_ptr    = () => this.view[STRUCT_LAYOUT.SHAPE];
-    public get_strides_ptr  = () => this.view[STRUCT_LAYOUT.STRIDES];
-    public get_rows         = () => this.get_axis_size(this.get_rank() - 2);
-    public get_cols         = () => this.get_axis_size(this.get_rank() - 1);
+    public get rank()           {  return this.view[STRUCT_LAYOUT.RANK]; }
+    public get nelem()          { return this.view[STRUCT_LAYOUT.NELEM]; }
+    public get offset()         { return this.view[STRUCT_LAYOUT.OFFSET]; }
+    public get ndata()          { return this.view[STRUCT_LAYOUT.NDATA]; }
+    public get size()           { return this.view[STRUCT_LAYOUT.SIZE]; }
+    public get isview()         { return this.view[STRUCT_LAYOUT.ISVIEW]; }
+    public get data_ptr()       { return this.view[STRUCT_LAYOUT.DATA]; }
+    public get shape_ptr()      { return this.view[STRUCT_LAYOUT.SHAPE]; }
+    public get strides_ptr()    { return this.view[STRUCT_LAYOUT.STRIDES]; }
+    public get rows()           { return this.get_axis_size(this.rank - 2); }
+    public get cols()           { return this.get_axis_size(this.rank - 1); }
+    public get is_scalar()      { return this.nelem === 1; }
     public get_axis_size    = (axis_index: number) => this.shape.get_axis_size(axis_index);
-    public is_scalar    = () => this.get_nelem() === 1;
+
+    public get ptr(): number {
+        return this.view.byteOffset;
+    }
 
     public toString = () => tensor_to_string(this);
     public print = () => console.log(tensor_to_string(this) + "\n---");
@@ -53,24 +56,24 @@ export class Tensor implements ITensor<Tensor> {
         console.log(
             `${title}\n` +
             `  address: 0x${this.ptr.toString(16)}\n` +
-            `  is view: ${this.get_isview() ? "true" : "false"}\n` +
+            `  is view: ${this.is_view ? "true" : "false"}\n` +
             `  shape:   [${this.shape.join(", ")}]\n` +
             `  strides: [${this.strides.join(", ")}]\n` +
-            `  rank:    ${this.get_rank()}\n` +
-            `  nelem:   ${this.get_nelem()}\n` +
-            `  ndata:   ${this.get_ndata()}\n` +
-            `  size:    ${this.get_size()} bytes\n` +
-            `  offset:  ${this.get_offset()}\n` +
+            `  rank:    ${this.rank}\n` +
+            `  nelem:   ${this.nelem}\n` +
+            `  ndata:   ${this.ndata}\n` +
+            `  size:    ${this.size} bytes\n` +
+            `  offset:  ${this.offset}\n` +
             `  data: [${data.join(", ")}${this.data.length > max_entries ? ", ..." : ""}]\n`
         );
     }
 
     *get_axis_iterable(n: number): Generator<Tensor> {
-        if (n > this.get_rank() - 2)
+        if (n > this.rank - 2)
             throw new Error(`Cannot iterate over ${ordinal_str(n)} axis.`);
 
         const view = create_view(this, n + 1);
-        const nelem = this.shape.flatten(this.get_rank() - n)[0];
+        const nelem = this.shape.flatten(this.rank - n)[0];
 
         for (let index = 0; index < nelem; index++) {
             const offset = index * this.strides[n];
@@ -83,17 +86,17 @@ export class Tensor implements ITensor<Tensor> {
     }
 
     public rand(min = -1, max = 1) {
-        core._rand_f(this.get_data_ptr(), this.data.length, min, max);
+        core._rand_f(this.data_ptr, this.data.length, min, max);
         return this;
     }
 
     public rand_int(min = -1, max = 1) {
-        core._rand_i(this.get_data_ptr(), this.data.length, min, max);
+        core._rand_i(this.data_ptr, this.data.length, min, max);
         return this;
     }
 
     public fill(value: number) {
-        core._fill(this.get_data_ptr(), this.data.length, value);
+        core._fill(this.data_ptr, this.data.length, value);
         return this;
     }
 
@@ -149,23 +152,15 @@ export class Tensor implements ITensor<Tensor> {
 
     // Returns the value of the tensor as a scalar if the tensor only has one element
     public item() {
-        if (this.get_nelem() !== 1)
+        if (this.nelem !== 1)
             throw new Error("Tensor.item() may only be called on scalar tensors.");
 
-        return this.data[this.get_offset()];
-    }
-
-    public get ptr(): number {
-        return this.view.byteOffset;
+        return this.data[this.offset];
     }
 
     // operation shorthands
     public get T(): Tensor {
         return ops.transpose(this);
-    }
-
-    public get size(): number {
-        return this.get_nelem();
     }
 
     [Symbol.iterator]() {

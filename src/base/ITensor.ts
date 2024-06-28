@@ -1,13 +1,13 @@
 export default interface ITensor<TensorType> {
-    get_rank: () => number;
-    get_nelem: () => number;
-    get_size: () => number;
+    rank: number;
+    nelem: number;
+    size: number;
     // get_isview: () => this.view[STRUCT_LAYOUT.ISVIEW];
     // get_data_ptr: () => this.view[STRUCT_LAYOUT.DATA];
     // get_shape_ptr: () => this.view[STRUCT_LAYOUT.SHAPE];
     // get_strides_ptr: () => this.view[STRUCT_LAYOUT.STRIDES];
-    get_rows: () => number;
-    get_cols: () => number;
+    rows: number;
+    cols: number;
     get_axis_size: (axis_index: number) => number;
 
     print: () => void;

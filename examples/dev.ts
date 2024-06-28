@@ -58,11 +58,20 @@ console.log("###########\n".repeat(2));
 // }
 // console.timeEnd();
 
-const t0 = tensor([2, 3], [1, 2, 3, 4, 5, 6]);
+const t0 = tensor([3], [1, 2, 3]);
 const t1 = tensor([3], [1, 1, 1]);
 const t3 = tensor_like(t1).zeros();
 
+// this is slightly unintuitive, but when you want to
+// increment a tensor by an immediate, you should do this:
+// add(dest, increment_value, dest);
+//
+// when you want to increment a tensor by the result of an operation,
+// you should use this:
+// add_acc(source_a, source_b, dest);
+
 add_acc(t0, t1, t3);
+add_acc(t3, t1, t3);
 t3.print();
 
 // const t = tensor([3], [1,2,3]);

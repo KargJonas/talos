@@ -12,18 +12,17 @@ type CoreUnaryOp =  (src_ptr: number, dest_ptr: number) => void;
 type CoreBinaryOp = (src_a_ptr: number, src_b_ptr_or_imm: number, dest_ptr: number) => void;
 
 // binary operations (dest = a <OP> b)
-export const add        = create_binary_op(core._add_scl, core._add_brc);
-export const sub        = create_binary_op(core._sub_scl, core._sub_brc);
-export const mul        = create_binary_op(core._mul_scl, core._mul_brc);
-export const div        = create_binary_op(core._div_scl, core._div_brc);
-export const pow        = create_binary_op(core._pow_scl, core._pow_brc);
+export const add = create_binary_op("add");
+export const sub = create_binary_op("sub");
+export const mul = create_binary_op("mul");
+export const div = create_binary_op("div");
+export const pow = create_binary_op("pow");
 
-// binary accumulative operations (dest += a <OP> b)
-export const add_acc = create_binary_acc_op(core._add_brc, core._add_dbrc_acc);
-export const sub_acc = create_binary_acc_op(core._sub_brc, core._sub_dbrc_acc);
-export const mul_acc = create_binary_acc_op(core._mul_brc, core._mul_dbrc_acc);
-export const div_acc = create_binary_acc_op(core._div_brc, core._div_dbrc_acc);
-export const pow_acc = create_binary_acc_op(core._pow_brc, core._pow_dbrc_acc);
+export const add_acc = create_binary_op("add", true);
+export const sub_acc = create_binary_op("sub", true);
+export const mul_acc = create_binary_op("mul", true);
+export const div_acc = create_binary_op("div", true);
+export const pow_acc = create_binary_op("pow", true);
 
 // unary operations
 export const relu       = create_unary_op(core._relu_tns);
@@ -93,11 +92,11 @@ function get_shape_matmul(a: Tensor, b: Tensor): Shape {
         throw new Error(`Cannot multiply matrices of shape [${a.shape}] and [${b.shape}]`);
 
     // get shape of resulting tensor without the last two axes
-    const high_level_shape = a.get_rank() > b.get_rank()
-        ? [...a.shape].slice(0, a.get_rank() - 2)   // todo: ...a.shape should probably be replaced by something like slice
-        : [...b.shape].slice(0, b.get_rank() - 2);
+    const high_level_shape = a.rank > b.rank
+        ? [...a.shape].slice(0, a.rank - 2)   // todo: ...a.shape should probably be replaced by something like slice
+        : [...b.shape].slice(0, b.rank - 2);
 
-    return new Shape([...high_level_shape, a.get_rows(), b.get_cols()]);
+    return new Shape([...high_level_shape, a.rows, b.cols]);
 }
 
 // standard matmul on tensors 
@@ -125,8 +124,8 @@ function get_shape_dot(a: Tensor, b: Tensor): Shape {
     check_row_col_compat(a, b);
 
     const result_shape = new Shape([
-        ...[...a.shape].slice(0, a.get_rank() - 1),
-        ...[...b.shape].slice(0, b.get_rank() - 2), b.shape[b.get_rank() - 1]]); // shape of tensor b without the second-to-last axis
+        ...[...a.shape].slice(0, a.rank - 1),
+        ...[...b.shape].slice(0, b.rank - 2), b.shape[b.rank - 1]]); // shape of tensor b without the second-to-last axis
 
     return result_shape;
 }
@@ -164,7 +163,7 @@ function create_unary_op(core_fn: CoreUnaryOp): UnaryOp {
 
 function create_reduce_op(core_fn: CoreUnaryOp) {
     return (src: Tensor, dest?: Tensor) => {
-        if (dest && !dest.shape.is_scalar())
+        if (dest && !dest.shape.is_scalar)
             throw new Error(`Cannot perform reduce operation. Provided destination tensor is not scalar. Destination shape: [${dest.shape}]`);
 
         const result: Tensor = dest || tensor_scalar();
@@ -189,7 +188,7 @@ export function create_binary_acc_op(core_fn_brc: CoreBinaryOp, core_fn_dbrc: Co
         const result_shape = a.shape.broadcast(b.shape);
 
         // regular broadcasting (number of elements increases)
-        if (result_shape.get_nelem() > dest.get_nelem()) {
+        if (result_shape.nelem > dest.nelem) {
             if (!result_shape.equals(dest.shape))
                 throw new Error(`Cannot perform grad operation. Result tensor [${result_shape}] has different shape than destination tensor [${dest.shape}].`);
 
@@ -212,35 +211,47 @@ export function create_binary_acc_op(core_fn_brc: CoreBinaryOp, core_fn_dbrc: Co
 }
 
 // computes a tensor-tensor/tensor-scalar operation and returns a result tensor
-function binary_op(core_fn_scl: CoreBinaryOp, core_fn_brc: CoreBinaryOp, src_a: Tensor, src_b: Tensor | number, dest?: Tensor): Tensor {
-    // perform scalar operation
-    if (typeof src_b === "number") {
-        const result = dest || tensor_like(src_a);
-        core_fn_scl(src_a.ptr, src_b, result.ptr);
-        return result;
+function binary_op(core_fn_scl: CoreBinaryOp, core_fn_brc: CoreBinaryOp, core_fn_dbrc: CoreBinaryOp, src_a: Tensor, _src_b: Tensor | number, _dest?: Tensor): Tensor {
+    const src_b = (typeof _src_b === "number") ? tensor_scalar(_src_b) : _src_b;
+    const brc_result_shape = src_a.shape.broadcast(src_b.shape);
+    const dest = _dest || tensor(brc_result_shape);
+
+    // // TODO: Check if this can somehow be done safely
+    // //       If not it might be worth it to create a tensor that holds
+    // //       the interim before the result is written back to the source
+    // if ((dest == src_a && !dest.shape.equals(src_a.shape)) || (dest == src_b && !dest.shape.equals(src_b.shape)))
+    //     throw new Error("In-place broadcasting is not supported.");
+
+    // todo come up with a better error message
+    if ((src_a.ptr === dest.ptr && !src_a.shape.equals(brc_result_shape)) || (src_b.ptr === dest.ptr && !src_b.shape.equals(dest.shape)))
+        throw new Error("Could not perform in-place operation in this case.");
+
+    // case: broadcasting / pairwise
+    if (dest.shape.nelem >= brc_result_shape.nelem) {
+        if (!brc_result_shape.broadcastable(dest.shape))
+            throw new Error(`Cant perform broadcasting because result shape [${brc_result_shape}] is incompatible with shape of destination [${dest.shape}].`);
+
+        core_fn_brc(src_a.ptr, src_b.ptr, dest.ptr);
+        return dest;
     }
 
-    const result_shape = src_a.shape.broadcast(src_b.shape);
+    // case: debroadcasting
+    if (dest.shape.nelem < brc_result_shape.nelem) {
+        if (!brc_result_shape.broadcastable(dest.shape))
+            throw new Error(`Cant perform debroadcasting because result shape [${brc_result_shape}] is incompatible with shape of destination [${dest.shape}].`);
 
-    if (dest) {
-        if (!dest.shape.equals(result_shape))
-            throw new Error(`Cannot perform broadcasting binary operation. Result tensor [${result_shape}] has different shape than the destination tensor [${dest.shape}].`);
-
-        // TODO: Check if this can somehow be done safely
-        //       If not it might be worth it to create a tensor that holds
-        //       the interim before the result is written back to the source
-        if ((dest == src_a && !dest.shape.equals(src_a.shape)) || (dest == src_b && !dest.shape.equals(src_b.shape)))
-            throw new Error("In-place broadcasting is not supported.");
+        core_fn_dbrc(src_a.ptr, src_b.ptr, dest.ptr);
+        return dest;
     }
-
-    const result = dest || tensor(result_shape);
-    core_fn_brc(src_a.ptr, src_b.ptr, result.ptr);
-
-    return result;
 }
 
-function create_binary_op(core_fn_scl: CoreBinaryOp, core_fn_brc: CoreBinaryOp): BinaryOp<Tensor | number> {
-    return (a: Tensor, b: Tensor | number, dest?: Tensor) => binary_op(core_fn_scl, core_fn_brc, a, b, dest);
+function create_binary_op(opcode: string, accumulative = false): BinaryOp<Tensor | number> {
+    const postfix = accumulative ? "_acc" : "";
+    const core_fn_scl: CoreBinaryOp = core[`_${opcode}_scl${postfix}`];
+    const core_fn_brc: CoreBinaryOp = core[`_${opcode}_brc${postfix}`];
+    const core_fn_dbrc: CoreBinaryOp = core[`_${opcode}_dbrc${postfix}`];
+
+    return (a: Tensor, b: Tensor | number, dest: Tensor) => binary_op(core_fn_scl, core_fn_brc, core_fn_dbrc, a, b, dest);
 }
 
 function validate_permutation(permutation: number[], rank: number): void {
@@ -281,11 +292,11 @@ export function transpose(a: Tensor, permutation?: number[]): Tensor {
     // todo: handle rank=1: shape should be 1-extended to the right
 
     if (!permutation || permutation.length === 0) {
-        _permutation = get_matrix_transpose_permutation(a.get_rank());
+        _permutation = get_matrix_transpose_permutation(a.rank);
     }
     else {
         _permutation = [...permutation];
-        validate_permutation(permutation, a.get_rank());
+        validate_permutation(permutation, a.rank);
     }
 
     const new_shape   = _permutation.map(i => a.shape[i]);

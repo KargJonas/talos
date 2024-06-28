@@ -14,7 +14,7 @@ export function create_starr(nelem: number): Int32Array {
 }
 
 export function check_row_col_compat(a: Tensor, b: Tensor) {
-    if (a.get_cols() !== b.get_rows())
+    if (a.cols !== b.rows)
         throw new Error(`Cannot multiply tensors of shape [${a.shape}] and [${b.shape}]`);
 }
 
