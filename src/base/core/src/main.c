@@ -1,10 +1,19 @@
 #include "./util.c"
 #include "./init.c"
-#include "./unary.c"
-#include "./reduce.c"
+
+// unary operations
+#include "./unary_prw.c"
+#include "./unary_brc.c"
+#include "./unary_dbrc.c"
+
+// binary operations
 #include "./binary_brc.c"
-#include "./binary_mat.c"
 #include "./binary_dbrc.c"
+#include "./binary_mat.c"
+
+// reduce operations
+#include "./reduce.c"
+
 #include "./tensor.c"
 #include "./mgmt.c"
 

@@ -5,7 +5,7 @@
 import {core, core_ready, tensor, tensor_like} from "../index";
 import {parameter_node, source_node} from "../src/node_factory.ts";
 import {tensor_scalar} from "../src/base/Tensor.ts";
-import {add, add_acc, mul, mul_acc, sub} from "../src/base/tensor_operations.ts";
+import {add, add_acc, mul, mul_acc, sin, sin_acc, sub} from "../src/base/tensor_operations.ts";
 
 // if your runtime does not support top-level await,
 // you'll have to use core_ready.then(() => { ... }) instead
@@ -40,39 +40,6 @@ console.log("###########\n".repeat(2));
 //
 // graph.forward();
 // graph.backward();
-
-
-// const t0 = tensor([50, 100]).rand();
-// const t1 = tensor_scalar(5);
-// const t2 = tensor([50, 100]);
-// console.log("Simple Scalar");
-// console.time();
-// for (let i = 0; i < 1; i++) {
-//     core._add_scl(t0.get_view_ptr(), 5, t2.get_view_ptr());
-// }
-// console.timeEnd();
-// console.log("Broadcasting Scalar");
-// console.time();
-// for (let i = 0; i < 1; i++) {
-//     core._add_brc(t0.get_view_ptr(), t1.get_view_ptr(), t2.get_view_ptr());
-// }
-// console.timeEnd();
-
-const t0 = tensor([3], [1, 2, 3]);
-const t1 = tensor([3], [1, 1, 1]);
-const t3 = tensor_like(t1).zeros();
-
-// this is slightly unintuitive, but when you want to
-// increment a tensor by an immediate, you should do this:
-// add(dest, increment_value, dest);
-//
-// when you want to increment a tensor by the result of an operation,
-// you should use this:
-// add_acc(source_a, source_b, dest);
-
-add_acc(t0, t1, t3);
-add_acc(t3, t1, t3);
-t3.print();
 
 // const t = tensor([3], [1,2,3]);
 // const t1 = tensor([1], [3]);

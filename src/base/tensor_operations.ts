@@ -25,29 +25,53 @@ export const div_acc = create_binary_op("div", true);
 export const pow_acc = create_binary_op("pow", true);
 
 // unary operations
-export const relu       = create_unary_op(core._relu_tns);
-export const tanh       = create_unary_op(core._tanh_tns);
-export const binstep    = create_unary_op(core._binstep_tns);
-export const logistic   = create_unary_op(core._logistic_tns);
-export const negate     = create_unary_op(core._negate_tns);
-export const sin        = create_unary_op(core._sin_tns);
-export const cos        = create_unary_op(core._cos_tns);
-export const tan        = create_unary_op(core._tan_tns);
-export const asin       = create_unary_op(core._asin_tns);
-export const acos       = create_unary_op(core._acos_tns);
-export const atan       = create_unary_op(core._atan_tns);
-export const sinh       = create_unary_op(core._sinh_tns);
-export const cosh       = create_unary_op(core._cosh_tns);
-export const exp        = create_unary_op(core._exp_tns);
-export const log        = create_unary_op(core._log_tns);
-export const log10      = create_unary_op(core._log10_tns);
-export const log2       = create_unary_op(core._log2_tns);
-export const invsqrt    = create_unary_op(core._invsqrt_tns);
-export const sqrt       = create_unary_op(core._sqrt_tns);
-export const ceil       = create_unary_op(core._ceil_tns);
-export const floor      = create_unary_op(core._floor_tns);
-export const abs        = create_unary_op(core._abs_tns);
-export const reciprocal = create_unary_op(core._reciprocal_tns);
+export const relu       = create_unary_op("relu");
+export const binstep    = create_unary_op("binstep");
+export const logistic   = create_unary_op("logistic");
+export const negate     = create_unary_op("negate");
+export const sin        = create_unary_op("sin");
+export const cos        = create_unary_op("cos");
+export const tan        = create_unary_op("tan");
+export const asin       = create_unary_op("asin");
+export const acos       = create_unary_op("acos");
+export const atan       = create_unary_op("atan");
+export const sinh       = create_unary_op("sinh");
+export const cosh       = create_unary_op("cosh");
+export const tanh       = create_unary_op("tanh");
+export const exp        = create_unary_op("exp");
+export const log        = create_unary_op("log");
+export const log10      = create_unary_op("log10");
+export const log2       = create_unary_op("log2");
+export const invsqrt    = create_unary_op("invsqrt");
+export const sqrt       = create_unary_op("sqrt");
+export const ceil       = create_unary_op("ceil");
+export const floor      = create_unary_op("floor");
+export const abs        = create_unary_op("abs");
+export const reciprocal = create_unary_op("reciprocal");
+
+export const relu_acc       = create_unary_op("relu", true);
+export const binstep_acc    = create_unary_op("binstep", true);
+export const logistic_acc   = create_unary_op("logistic", true);
+export const negate_acc     = create_unary_op("negate", true);
+export const sin_acc        = create_unary_op("sin", true);
+export const cos_acc        = create_unary_op("cos", true);
+export const tan_acc        = create_unary_op("tan", true);
+export const asin_acc       = create_unary_op("asin", true);
+export const acos_acc       = create_unary_op("acos", true);
+export const atan_acc       = create_unary_op("atan", true);
+export const sinh_acc       = create_unary_op("sinh", true);
+export const cosh_acc       = create_unary_op("cosh", true);
+export const tanh_acc       = create_unary_op("tanh", true);
+export const exp_acc        = create_unary_op("exp", true);
+export const log_acc        = create_unary_op("log", true);
+export const log10_acc      = create_unary_op("log10", true);
+export const log2_acc       = create_unary_op("log2", true);
+export const invsqrt_acc    = create_unary_op("invsqrt", true);
+export const sqrt_acc       = create_unary_op("sqrt", true);
+export const ceil_acc       = create_unary_op("ceil", true);
+export const floor_acc      = create_unary_op("floor", true);
+export const abs_acc        = create_unary_op("abs", true);
+export const reciprocal_acc = create_unary_op("reciprocal", true);
 
 // reduce operations
 // todo: add pairwise functionality (tensor-valued functions)
@@ -150,14 +174,72 @@ export function grad_acc(src: Tensor, dest: Tensor) {
     core._sum_red_brc(src.ptr, dest.ptr);
 }
 
-function create_unary_op(core_fn: CoreUnaryOp): UnaryOp {
-    return (src: Tensor, dest?: Tensor) => {
-        if (dest && !dest.shape.equals(src.shape))
-            throw new Error(`Cannot perform unary op. Result tensor [${src.shape}] has different shape than destination tensor [${dest.shape}].`);
+function create_binary_op(opcode: string, accumulative = false): BinaryOp<Tensor | number> {
+    const postfix = accumulative ? "_acc" : "";
+    const core_fn_brc: CoreBinaryOp = core[`_${opcode}_brc${postfix}`];   //   broadcasting operation
+    const core_fn_dbrc: CoreBinaryOp = core[`_${opcode}_dbrc${postfix}`]; // debroadcasting operations
 
-        const result: Tensor = dest || tensor_like(src);
-        core_fn(src.ptr, result.ptr);
-        return result;
+    return (src_a: Tensor, _src_b: Tensor | number, _dest?: Tensor): Tensor => {
+        const scalar_op = typeof _src_b === "number";
+        const src_b = scalar_op ? tensor_scalar(_src_b) : _src_b;
+        const brc_result_shape = src_a.shape.broadcast(src_b.shape);
+        const dest = _dest || tensor(brc_result_shape);
+
+        // todo come up with a better error message
+        // todo compatibility with brc/dbrc would be nice
+        // check if in-place op is possible
+        if ((src_a.ptr === dest.ptr && !src_a.shape.equals(brc_result_shape)) || (src_b.ptr === dest.ptr && !src_b.shape.equals(dest.shape)))
+            throw new Error("Could not perform in-place operation in this case.");
+
+        // case: broadcasting / pairwise
+        if (dest.shape.nelem >= brc_result_shape.nelem) {
+            if (!brc_result_shape.broadcastable(dest.shape))
+                throw new Error(`Cant perform broadcasting because result shape [${brc_result_shape}] is incompatible with shape of destination [${dest.shape}].`);
+
+            core_fn_brc(src_a.ptr, src_b.ptr, dest.ptr);
+        }
+
+        // case: debroadcasting
+        else if (dest.shape.nelem < brc_result_shape.nelem) {
+            if (!brc_result_shape.broadcastable(dest.shape))
+                throw new Error(`Cant perform debroadcasting because result shape [${brc_result_shape}] is incompatible with shape of destination [${dest.shape}].`);
+
+            core_fn_dbrc(src_a.ptr, src_b.ptr, dest.ptr);
+        }
+
+        // deallocate temporary scalar tensor
+        if (scalar_op) src_b.free();
+
+        return dest;
+    };
+}
+
+function create_unary_op(opcode: string, accumulative = false): UnaryOp {
+    const postfix = accumulative ? "_acc" : "";
+    const core_fn_prw: CoreUnaryOp = core[`_${opcode}_prw${postfix}`];   // pairwise
+    const core_fn_brc: CoreUnaryOp = core[`_${opcode}_brc${postfix}`];   // broadcasting
+    const core_fn_dbrc: CoreUnaryOp = core[`_${opcode}_dbrc${postfix}`]; // debroadcasting
+
+    return (src: Tensor, _dest?: Tensor) => {
+        if (_dest && !src.shape.broadcastable(_dest.shape))
+            throw new Error(`Cannot perform unary operation because broadcasting is not possible between source tensor [${src.shape}] and destination tensor [${_dest.shape}].`);
+
+        const dest = _dest || tensor_like(src);
+
+        // pairwise
+        if (src.nelem === dest.nelem) {
+            core_fn_prw(src.ptr, dest.ptr);
+            return dest;
+        }
+
+        // todo add support for (de)broadcasting in-place ops
+        if (src.ptr === dest.ptr)
+            throw new Error("Could not perform in-place operation in this case.");
+
+        if (src.nelem < dest.nelem) core_fn_brc(src.ptr, dest.ptr);       // broadcasting
+        else if (src.nelem > dest.nelem) core_fn_dbrc(src.ptr, dest.ptr); // debroadcasting
+    
+        return dest;
     };
 }
 
@@ -170,87 +252,6 @@ function create_reduce_op(core_fn: CoreUnaryOp) {
         core_fn(src.ptr, result.ptr);
         return result;
     };
-}
-
-/**
- * Creates a binary operations that:
- * - Uses naive pairwise operations if the shape of the result and destination tensors match
- * - Uses regular broadcasting if applicable
- * - "De-broadcasts" the result tensor by summing along appropriate axes,
- *   if the result tensor is of higher rank than the destination and if de-broadcasting is possible>
- */
-export function create_binary_acc_op(core_fn_brc: CoreBinaryOp, core_fn_dbrc: CoreBinaryOp) {
-    return (a: Tensor, b: Tensor, dest: Tensor) => {
-        // ensure that (de)broadcasting is possible. the direction does not matter
-        if (!a.shape.broadcastable(b.shape))
-            throw new Error(`Cannot perform grad operation. Shape of tensor a [${a.shape}] is not broadcastable with shape of tensor b [${b.shape}]`);
-
-        const result_shape = a.shape.broadcast(b.shape);
-
-        // regular broadcasting (number of elements increases)
-        if (result_shape.nelem > dest.nelem) {
-            if (!result_shape.equals(dest.shape))
-                throw new Error(`Cannot perform grad operation. Result tensor [${result_shape}] has different shape than destination tensor [${dest.shape}].`);
-
-            // console.log("performing broadcasting grad op")
-
-            core_fn_brc(a.ptr, b.ptr, dest.ptr);
-            return;
-        }
-
-        // perform debroadcasting
-        if (!b.shape.equals(dest.shape))
-            throw new Error(`Cannot perform de-broadcast. Shape of tensor destination tensor [${dest.shape}] does not match required shape [${b.shape}]`);
-
-        // console.log("performing debroadcasting grad op")
-
-        // sum tensor a along appropriate axes such that it matches the
-        // shape of tensor b, then apply the desired operation between the two
-        core_fn_dbrc(a.ptr, b.ptr, dest.ptr);
-    };
-}
-
-// computes a tensor-tensor/tensor-scalar operation and returns a result tensor
-function binary_op(core_fn_brc: CoreBinaryOp, core_fn_dbrc: CoreBinaryOp, src_a: Tensor, _src_b: Tensor | number, _dest?: Tensor): Tensor {
-    const scalar_op = typeof _src_b === "number";
-    const src_b = scalar_op ? tensor_scalar(_src_b) : _src_b;
-    const brc_result_shape = src_a.shape.broadcast(src_b.shape);
-    const dest = _dest || tensor(brc_result_shape);
-
-    // todo come up with a better error message
-    // todo compatibility with brc/dbrc would be nice
-    // check if in-place op is possible
-    if ((src_a.ptr === dest.ptr && !src_a.shape.equals(brc_result_shape)) || (src_b.ptr === dest.ptr && !src_b.shape.equals(dest.shape)))
-        throw new Error("Could not perform in-place operation in this case.");
-
-    // case: broadcasting / pairwise
-    if (dest.shape.nelem >= brc_result_shape.nelem) {
-        if (!brc_result_shape.broadcastable(dest.shape))
-            throw new Error(`Cant perform broadcasting because result shape [${brc_result_shape}] is incompatible with shape of destination [${dest.shape}].`);
-
-        core_fn_brc(src_a.ptr, src_b.ptr, dest.ptr);
-    }
-
-    // case: debroadcasting
-    else if (dest.shape.nelem < brc_result_shape.nelem) {
-        if (!brc_result_shape.broadcastable(dest.shape))
-            throw new Error(`Cant perform debroadcasting because result shape [${brc_result_shape}] is incompatible with shape of destination [${dest.shape}].`);
-
-        core_fn_dbrc(src_a.ptr, src_b.ptr, dest.ptr);
-    }
-
-    // deallocate temporary scalar tensor
-    if (scalar_op) src_b.free();
-
-    return dest;
-}
-
-function create_binary_op(opcode: string, accumulative = false): BinaryOp<Tensor | number> {
-    const postfix = accumulative ? "_acc" : "";
-    const core_fn_brc: CoreBinaryOp = core[`_${opcode}_brc${postfix}`];   //   broadcasting operation
-    const core_fn_dbrc: CoreBinaryOp = core[`_${opcode}_dbrc${postfix}`]; // debroadcasting operations
-
-    return (a: Tensor, b: Tensor | number, dest?: Tensor) => binary_op(core_fn_brc, core_fn_dbrc, a, b, dest);
 }
 
 function validate_permutation(permutation: number[], rank: number): void {

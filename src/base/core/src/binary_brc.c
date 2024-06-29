@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include "./util.h"
 
-#define BROADCASTING_OP(NAME, ASSIGNMENT, RESULT) [[[
+#define BROADCASTING_BINARY_OP(NAME, ASSIGNMENT, RESULT) [[[
 void NAME(struct tensor_t *_a, struct tensor_t *_b, struct tensor_t *res) {
     size_t ia, ib, ires, iaxis, remainder, dim;
     size_t strides_a[res->rank], strides_b[res->rank];
@@ -40,7 +40,7 @@ void NAME(struct tensor_t *_a, struct tensor_t *_b, struct tensor_t *res) {
 }
 ]]]
 
-@GENERATE (BROADCASTING_OP) [[[
+@GENERATE (BROADCASTING_BINARY_OP) [[[
     add_brc: a + b
     sub_brc: a - b
     mul_brc: a * b
