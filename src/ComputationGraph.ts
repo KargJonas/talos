@@ -63,6 +63,10 @@ export default class CompGraph {
         return topological_order;
     }
 
+    zero_grad() {
+        for (const node of this.all_nodes) node.zero_grad();
+    }
+
     forward() {
         // Step forward through node execution order and update primals using forward functions
         for (let i = 0; i < this.topological_ordering.length; i++) {

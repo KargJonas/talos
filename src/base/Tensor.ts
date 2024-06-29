@@ -56,7 +56,7 @@ export class Tensor implements ITensor<Tensor> {
         console.log(
             `${title}\n` +
             `  address: 0x${this.ptr.toString(16)}\n` +
-            `  is view: ${this.is_view ? "true" : "false"}\n` +
+            `  is view: ${this.isview ? "true" : "false"}\n` +
             `  shape:   [${this.shape.join(", ")}]\n` +
             `  strides: [${this.strides.join(", ")}]\n` +
             `  rank:    ${this.rank}\n` +

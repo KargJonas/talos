@@ -23,63 +23,22 @@ console.log("###########\n".repeat(2));
 // gradient then we can now efficiently accumulate this gradient
 // without any additional interims
 
-// const t0 = tensor([2, 3], [1, 2, 3, 4, 5, 6]);
-// const t1 = tensor([3], [1, 2, 3]);
-// const t2 = tensor_like(t1).zeros();
-//
-// add_acc
-// t2.print();
+
 
 // const a = tensor_scalar(5);
 // const b = tensor([3], [1, 2, 3]);
-//
+
 // const input = source_node([3], () => b);
-//
+
 // const nn = input.add(a);
 // const graph = nn.get_computation_graph();
-//
+
 // graph.forward();
 // graph.backward();
 
-// const t = tensor([3], [1,2,3]);
-// const t1 = tensor([1], [3]);
-// t1.add(t).print(); // this should yield [4, 5, 6] but it yields [4, 0, 0]
-
-// // Input and target tensors
-// const weight = parameter_node(tensor([3], [1, 2, 3]), true);
-// const input = tensor([3], [1, 2, 3]);
-// const target = tensor([3], [1, 2, 3]);
-//
-// // Create a source node for input
-// const a = source_node([3], () => input);
-//
-// // Modify the computation graph to include the weight
-// // const nn = a.mul(weight).sub(target).pow(2).mean();
-// const nn = a.mul(weight).sum();
-//
-// const graph = nn.get_computation_graph();
-//
-// // Define learning rate
-// const learningRate = 0.01;
-//
-// const interim = tensor_like(weight.value);
-//
-// // Training loop
-// for (let epoch = 0; epoch < 3; epoch++) {
-//     graph.forward();
-//     graph.backward();
-//
-//     // Print loss value
-//     console.log(`Epoch ${epoch + 1}: Loss = ${graph.outputs[0].value.toString()}`);
-//
-//     // Update weights using SGD
-//     mul(weight.grad!, learningRate, interim);
-//     sub(weight.value, interim, weight.value);
+// for (const output of graph.outputs) {
+//     output.print();
 // }
-//
-// // Print final weight values and their gradients
-// weight.print();
-// weight.print_grad();
 
 
 

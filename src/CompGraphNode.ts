@@ -2,10 +2,11 @@ import {Tensor} from "./base/Tensor.ts";
 import * as graph_ops from "./node_operations.ts";
 import CompGraph from "./ComputationGraph.ts";
 import {parameter_node} from "./node_factory.ts";
+import ITensor from "./base/ITensor.ts";
 
 type OperationClass<T> = new (parents: CompGraphNode[]) => T;
 
-export default abstract class CompGraphNode {
+export default abstract class CompGraphNode /* implements ITensor<CompGraphNode> */ {
     // State of the node
     abstract value: Tensor;
     grad?: Tensor = undefined;
