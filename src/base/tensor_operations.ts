@@ -49,9 +49,6 @@ export const floor      = create_unary_op(core._floor_tns);
 export const abs        = create_unary_op(core._abs_tns);
 export const reciprocal = create_unary_op(core._reciprocal_tns);
 
-// be aware of tensor data dependencies when deallocating tensors !!
-export const free = (a: Tensor) => core._free_tensor(a.ptr);
-
 // reduce operations
 // todo: add pairwise functionality (tensor-valued functions)
 export const max  = (a: Tensor) => core._max_red_scl(a.ptr);
@@ -62,6 +59,9 @@ export const max_tns = create_reduce_op(core._max_red_tns);
 export const min_tns = create_reduce_op(core._min_red_tns);
 export const sum_tns = create_reduce_op(core._sum_red_tns);
 export const mean_tns = create_reduce_op(core._mean_red_tns);
+
+// be aware of tensor data dependencies when deallocating tensors !!
+export const free = (a: Tensor) => core._free_tensor(a.ptr);
 
 /**
  * Creates a deep copy of a tensor.
@@ -211,18 +211,15 @@ export function create_binary_acc_op(core_fn_brc: CoreBinaryOp, core_fn_dbrc: Co
 }
 
 // computes a tensor-tensor/tensor-scalar operation and returns a result tensor
-function binary_op(core_fn_scl: CoreBinaryOp, core_fn_brc: CoreBinaryOp, core_fn_dbrc: CoreBinaryOp, src_a: Tensor, _src_b: Tensor | number, _dest?: Tensor): Tensor {
-    const src_b = (typeof _src_b === "number") ? tensor_scalar(_src_b) : _src_b;
+function binary_op(core_fn_brc: CoreBinaryOp, core_fn_dbrc: CoreBinaryOp, src_a: Tensor, _src_b: Tensor | number, _dest?: Tensor): Tensor {
+    const scalar_op = typeof _src_b === "number";
+    const src_b = scalar_op ? tensor_scalar(_src_b) : _src_b;
     const brc_result_shape = src_a.shape.broadcast(src_b.shape);
     const dest = _dest || tensor(brc_result_shape);
 
-    // // TODO: Check if this can somehow be done safely
-    // //       If not it might be worth it to create a tensor that holds
-    // //       the interim before the result is written back to the source
-    // if ((dest == src_a && !dest.shape.equals(src_a.shape)) || (dest == src_b && !dest.shape.equals(src_b.shape)))
-    //     throw new Error("In-place broadcasting is not supported.");
-
     // todo come up with a better error message
+    // todo compatibility with brc/dbrc would be nice
+    // check if in-place op is possible
     if ((src_a.ptr === dest.ptr && !src_a.shape.equals(brc_result_shape)) || (src_b.ptr === dest.ptr && !src_b.shape.equals(dest.shape)))
         throw new Error("Could not perform in-place operation in this case.");
 
@@ -232,26 +229,28 @@ function binary_op(core_fn_scl: CoreBinaryOp, core_fn_brc: CoreBinaryOp, core_fn
             throw new Error(`Cant perform broadcasting because result shape [${brc_result_shape}] is incompatible with shape of destination [${dest.shape}].`);
 
         core_fn_brc(src_a.ptr, src_b.ptr, dest.ptr);
-        return dest;
     }
 
     // case: debroadcasting
-    if (dest.shape.nelem < brc_result_shape.nelem) {
+    else if (dest.shape.nelem < brc_result_shape.nelem) {
         if (!brc_result_shape.broadcastable(dest.shape))
             throw new Error(`Cant perform debroadcasting because result shape [${brc_result_shape}] is incompatible with shape of destination [${dest.shape}].`);
 
         core_fn_dbrc(src_a.ptr, src_b.ptr, dest.ptr);
-        return dest;
     }
+
+    // deallocate temporary scalar tensor
+    if (scalar_op) src_b.free();
+
+    return dest;
 }
 
 function create_binary_op(opcode: string, accumulative = false): BinaryOp<Tensor | number> {
     const postfix = accumulative ? "_acc" : "";
-    const core_fn_scl: CoreBinaryOp = core[`_${opcode}_scl${postfix}`];
-    const core_fn_brc: CoreBinaryOp = core[`_${opcode}_brc${postfix}`];
-    const core_fn_dbrc: CoreBinaryOp = core[`_${opcode}_dbrc${postfix}`];
+    const core_fn_brc: CoreBinaryOp = core[`_${opcode}_brc${postfix}`];   //   broadcasting operation
+    const core_fn_dbrc: CoreBinaryOp = core[`_${opcode}_dbrc${postfix}`]; // debroadcasting operations
 
-    return (a: Tensor, b: Tensor | number, dest: Tensor) => binary_op(core_fn_scl, core_fn_brc, core_fn_dbrc, a, b, dest);
+    return (a: Tensor, b: Tensor | number, dest?: Tensor) => binary_op(core_fn_brc, core_fn_dbrc, a, b, dest);
 }
 
 function validate_permutation(permutation: number[], rank: number): void {
