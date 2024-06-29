@@ -49,10 +49,10 @@ export class Add extends CompGraphNode {
 
     bw() {
         // d/da (a+b) = 1
-        if (this.parents[0].grad) ops.add_acc(this.grad, this.parents[0].grad, this.parents[0].grad); // parents[0].grad = 1 * this.grad
+        if (this.parents[0].grad) ops.add(this.grad, this.parents[0].grad, this.parents[0].grad); // parents[0].grad = 1 * this.grad
 
         // d/da (a+b) = 1
-        if (this.parents[1].grad) ops.add_acc(this.grad, this.parents[1].grad, this.parents[1].grad); // parents[0].grad = 1 * this.grad
+        if (this.parents[1].grad) ops.add(this.grad, this.parents[1].grad, this.parents[1].grad); // parents[0].grad = 1 * this.grad
     }
 }
 
@@ -72,10 +72,10 @@ export class Sub extends CompGraphNode {
 
     bw() {
         // d/da (a-b) = 1
-        if (this.parents[0].grad) ops.add_acc(this.parents[0].grad, this.grad, this.parents[0].grad); // parents[0].grad = 1 * this.grad
+        if (this.parents[0].grad) ops.add(this.parents[0].grad, this.grad, this.parents[0].grad); // parents[0].grad = 1 * this.grad
 
         // d/db (a-b) = -1
-        if (this.parents[1].grad) ops.sub_acc(this.parents[1].grad, this.grad, this.parents[1].grad); // parents[1].grad parents[0].grad = -1 * this.grad
+        if (this.parents[1].grad) ops.sub(this.parents[1].grad, this.grad, this.parents[1].grad); // parents[1].grad parents[0].grad = -1 * this.grad
     }
 }
 
@@ -110,8 +110,9 @@ export class Mul extends CompGraphNode {
 
         // d/db (a*b) = a
         if (b.grad) {
-            ops.mul(a.value, this.grad, this.interim);
-            ops.add_acc(this.interim, b.grad, b.grad);
+            // ops.mul(a.value, this.grad, this.interim);
+            // ops.add_acc(this.interim, b.grad, b.grad);
+            ops.mul_acc(this.grad, a.value, b.grad);
         }
     }
 }
@@ -235,13 +236,12 @@ export class Mean extends CompGraphNode {
 
     bw() {
         const input = this.parents[0];
-        if (!input.grad) return;
-
-        ops.div(this.grad, input.value.size, this.interim);
-        ops.add(input.grad, this.interim, input.grad);
+        if (input.grad) {
+            ops.div(this.grad, input.value.size, this.interim);
+            ops.add(input.grad, this.interim, input.grad);
+        }
     }
 }
-
 
 export class MseLoss extends CompGraphNode {
     value: Tensor;
@@ -279,6 +279,30 @@ export class MseLoss extends CompGraphNode {
             ops.sub(prediction.value, target.value, this.grad);
             ops.mul(this.grad, 2 / prediction.value.size, this.grad);
             ops.add(prediction.grad, this.grad, prediction.grad);
+        }
+    }
+}
+
+export class Relu extends CompGraphNode {
+    value: Tensor;
+    grad: Tensor;
+    interim: Tensor;
+
+    constructor(parents: CompGraphNode[]) {
+        super(parents);
+        this.value = tensor_like(parents[0].value);
+        this.grad = tensor_like(parents[0].value);
+        this.interim = tensor_like(parents[0].value);
+    }
+
+    fw() {
+        ops.relu(this.parents[0].value, this.value);
+    }
+
+    bw() {
+        if (this.parents[0].grad) {
+            ops.binstep(this.parents[0].value, this.interim);
+            ops.mul_acc(this.parents[0].grad, this.grad, this.parents[0].grad);
         }
     }
 }

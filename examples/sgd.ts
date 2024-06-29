@@ -9,15 +9,16 @@ await core_ready;
 console.log("\nRunning SGD demo...\n");
 
 // Input and target tensors
-const weight = parameter_node(tensor([3], [.5, 2, 3]), true);
-const input = tensor([3], [1, 2, 3]);
-const target = tensor([3], [1, 2, 3]);
+const weight = parameter_node(tensor([30]).rand(), true);
+const bias = parameter_node(tensor([30]).rand(), true);
+const input = tensor([30]).rand();  // random but constant "input data"
+const target = tensor([30]).rand(); // random but constant target/label
 
 // Create a source node for input
-const a = source_node([3], () => input);
+const a = source_node([30], () => input);
 
 // Modify the computation graph to include the weight
-const nn = a.mul(weight).mse_loss(target);
+const nn = a.mul(weight).add(bias).mse_loss(target);
 
 // this is identical to mse_loss
 // const nn = a.mul(weight).sub(target).pow(2).mean();
@@ -25,7 +26,7 @@ const nn = a.mul(weight).mse_loss(target);
 const graph = nn.get_computation_graph();
 
 // Define learning rate
-const learningRate = 1;
+const learningRate = 10;
 
 console.time();
 
@@ -40,6 +41,7 @@ for (let epoch = 0; epoch < 30; epoch++) {
 
     // Update weights using SGD
     mul_acc(weight.grad!, -learningRate, weight.value);
+    mul_acc(bias.grad!, -learningRate, bias.value);
 }
 
 console.write("\n\nTraining completed in: ");

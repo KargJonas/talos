@@ -187,33 +187,47 @@ describe("tensor operations", async () => {
     });
 
     describe("out-of-place", () => {
-        test("unary ops", () => {
-            unary(ops.relu, t5, v => v < 0 ? 0 : v);
-            unary(ops.binstep, t5, v => v < 0 ? 0 : 1);
-            unary(ops.logistic, t5, v => 1 / (Math.exp(-v) + 1));
-            unary(ops.negate, t5, v => -v);
+        describe("unary ops", () => {
+            describe("direct assignment", () => {
+                test("pairwise", () => {
+                    unary(ops.relu, t5, v => v < 0 ? 0 : v);
+                    unary(ops.binstep, t5, v => v < 0 ? 0 : 1);
+                    unary(ops.logistic, t5, v => 1 / (Math.exp(-v) + 1));
+                    unary(ops.negate, t5, v => -v);
 
-            unary(ops.sin, t5, Math.sin);
-            unary(ops.cos, t5, Math.cos);
-            unary(ops.tan, t5, Math.tan);
-            unary(ops.asin, t5, Math.asin);
-            unary(ops.acos, t5, Math.acos);
-            unary(ops.atan, t5, Math.atan);
-            unary(ops.sinh, t5, Math.sinh);
-            unary(ops.cosh, t5, Math.cosh);
-            unary(ops.tanh, t5, Math.tanh);
+                    unary(ops.sin, t5, Math.sin);
+                    unary(ops.cos, t5, Math.cos);
+                    unary(ops.tan, t5, Math.tan);
+                    unary(ops.asin, t5, Math.asin);
+                    unary(ops.acos, t5, Math.acos);
+                    unary(ops.atan, t5, Math.atan);
+                    unary(ops.sinh, t5, Math.sinh);
+                    unary(ops.cosh, t5, Math.cosh);
+                    unary(ops.tanh, t5, Math.tanh);
 
-            unary(ops.exp, t5, Math.exp);
-            unary(ops.log, t5, Math.log);
-            unary(ops.log10, t5, Math.log10);
-            unary(ops.log2, t5, Math.log2);
-            unary(ops.invsqrt, t1, v => 1 / Math.sqrt(v));
-            unary(ops.sqrt, t1, Math.sqrt);
-            unary(ops.ceil, t4, Math.ceil);
-            unary(ops.floor, t4, Math.floor);
-            unary(ops.floor, t4, Math.floor);
-            unary(ops.abs, t4, Math.abs);
-            unary(ops.reciprocal, t4, v => 1 / v);
+                    unary(ops.exp, t5, Math.exp);
+                    unary(ops.log, t5, Math.log);
+                    unary(ops.log10, t5, Math.log10);
+                    unary(ops.log2, t5, Math.log2);
+                    unary(ops.invsqrt, t1, v => 1 / Math.sqrt(v));
+                    unary(ops.sqrt, t1, Math.sqrt);
+                    unary(ops.ceil, t4, Math.ceil);
+                    unary(ops.floor, t4, Math.floor);
+                    unary(ops.floor, t4, Math.floor);
+                    unary(ops.abs, t4, Math.abs);
+                    unary(ops.reciprocal, t4, v => 1 / v);
+                });
+            });
+
+            test("accumulative assignment", () => {
+                // const t6 = tensor([2, 3], [-100, 2, 3, 2, 4, 2]);
+                const res = tensor_like(t6).zeros();
+
+                ops.relu_acc(t6, res);
+                expect_arrays_closeto(res.data, [0, 2, 3, 2, 4, 2]);
+                ops.sin_acc(t6, res);
+                expect_arrays_closeto(res.data, [0.50636566, 2.9092975, 3.14112, 2.9092975, 3.2431974, 2.9092975]);
+            });
         });
 
         test("scalar ops", () => {
@@ -473,23 +487,71 @@ describe("tensor operations", async () => {
         // const t15 = tensor([5, 1], [0.891, 0.549, 0.65, 0.02, 0.676]);
         // const t16 = tensor([1, 3], [7, 3, 1]);
         // const t17 = tensor([8, 1], [9, 8, 7, 6, 5, 4, 3, 2]);
-
-        test("debroadcasting operations", () => {
-            const a = tensor([2, 3], [1, 2, 3, 4, 5, 6]);
-            let res = tensor_like(t5).zeros();
-            ops.add_acc(a, t5, res);
-            expect([...res.data]).toEqual([3, 11, 15]);
-            ops.add_acc(a, t5, res);
-            expect([...res.data]).toEqual([6, 22, 30]);
-            res.zeros();
-            ops.mul_acc(a, t5, res);
-            expect([...res.data]).toEqual([-5, 14, 27]);
-            ops.mul_acc(a, t5, res);
-            expect([...res.data]).toEqual([-10, 28, 54]);
-            res.free();
-            res = tensor_scalar(0);
-            ops.add_acc(t5, res, res);
-            expect(res.item()).toEqual(t5.sum());
+    
+        describe("accumulative operations", () => {
+            test("pairwise", () => {
+                const a = tensor([4, 2], [4, 7, 22, 8, 3, 2, 89, 2]);
+                const b = tensor([4, 2], [1, 2, 3,  4, 5, 6, 7,  8]);
+                const res = tensor_like(a).zeros();
+    
+                ops.add_acc(a, b, res);
+                expect_arrays_closeto(res.data, [5, 9, 25, 12, 8, 8, 96, 10]);
+                ops.mul_acc(a, b, res);
+                expect_arrays_closeto(res.data, [9, 23, 91, 44, 23, 20, 719, 26]);
+                ops.sub_acc(b, a, res);
+                expect_arrays_closeto(res.data, [6, 18, 72, 40, 25, 24, 637, 32]);
+                ops.div_acc(a, b, res);
+                // expect_arrays_closeto(res.data, [6+4/1, 18+7/2, 72+22/3, 40+8/4, 25+3/5, 24+2/6, 637+89/7, 32+2/8]);
+                expect_arrays_closeto(res.data, [10, 21.5, 79.333, 42, 25.6, 24.333, 649.714, 32.25]);
+                ops.pow_acc(a, b, res);
+                expect_arrays_closeto(res.data, [10+4**1, 21.5+7**2, 79.333+22**3, 42+8**4, 25.6+3**5, 24.333+2**6, 44231334821888, 32.25+2**8]);
+            
+                a.free();
+                b.free();
+                res.free();
+            });
+    
+            test("broadcasting", () => {
+                const a = tensor([2, 2], [1, 2, 3, 4]);  
+                const b = tensor([2], [10, 20]);        
+                const res = tensor_like(a).zeros();     
+            
+                ops.add_acc(a, b, res);  
+                expect_arrays_closeto(res.data, [11, 22, 13, 24]);
+                ops.sub_acc(a, b, res);  
+                expect_arrays_closeto(res.data, [2, 4, 6, 8]);
+                ops.mul_acc(a, b, res);  
+                expect_arrays_closeto(res.data, [12, 44, 36, 88]);
+                ops.div_acc(a, b, res);  
+                expect_arrays_closeto(res.data, [12.1, 44.1, 36.3, 88.2]);
+                ops.pow_acc(a, b, res);  
+                expect_arrays_closeto(res.data, [13.1, 1048620.125, 59085.301, 1099511627776]);
+            
+                a.free();
+                b.free();
+                res.free();
+            });
+    
+            test("debroadcasting", () => {
+                const a = tensor([2, 3], [1, 2, 3, 4, 5, 6]);
+                let res = tensor_like(t5).zeros();
+                ops.add_acc(a, t5, res);
+                expect([...res.data]).toEqual([3, 11, 15]);
+                ops.add_acc(a, t5, res);
+                expect([...res.data]).toEqual([6, 22, 30]);
+                res.zeros();
+                ops.mul_acc(a, t5, res);
+                expect([...res.data]).toEqual([-5, 14, 27]);
+                ops.mul_acc(a, t5, res);
+                expect([...res.data]).toEqual([-10, 28, 54]);
+                res.free();
+                res = tensor_scalar(0);
+                ops.add_acc(t5, res, res);
+                expect(res.item()).toEqual(t5.sum());
+    
+                a.free();
+                res.free();
+            });
         });
     });
 

@@ -72,14 +72,17 @@ export default abstract class CompGraphNode /* implements ITensor<CompGraphNode>
         };
     }
 
-    // common node operations
+    // binary operations
     add = this.create_binary_op(graph_ops.Add);
     sub = this.create_binary_op(graph_ops.Sub);
     mul = this.create_binary_op(graph_ops.Mul);
     div = this.create_binary_op(graph_ops.Div);
     pow = this.create_binary_op(graph_ops.Pow);
 
-    // reduce/unary operations
+    // unary operations
+    relu = this.create_unary_op(graph_ops.Relu);
+
+    // reduce operations
     sum = this.create_unary_op(graph_ops.Sum);
     mean = this.create_unary_op(graph_ops.Mean);
     mse_loss = this.create_binary_op(graph_ops.MseLoss);

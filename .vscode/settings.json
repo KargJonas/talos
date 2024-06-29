@@ -15,7 +15,9 @@
         "streambuf": "c"
     },
     "cSpell.words": [
+        "binstep",
         "debroadcasting",
-        "emscripten"
+        "emscripten",
+        "Relu"
     ]
 }

@@ -2,64 +2,56 @@
  * This file is used for validation and debugging during development. 
  */
 
-import {core, core_ready, tensor, tensor_like} from "../index";
+import {core_ready, tensor} from "../index";
 import {parameter_node, source_node} from "../src/node_factory.ts";
-import {tensor_scalar} from "../src/base/Tensor.ts";
-import {add, add_acc, mul, mul_acc, sin, sin_acc, sub} from "../src/base/tensor_operations.ts";
+import {mul_acc} from "../src/base/tensor_operations.ts";
 
 // if your runtime does not support top-level await,
 // you'll have to use core_ready.then(() => { ... }) instead
 await core_ready;
 
-console.log("###########\n".repeat(2));
+console.log("\nRunning SGD demo...\n");
 
-// Define a weight tensor
+// Input and target tensors
+const weight = parameter_node(tensor([30]).rand(), true);
+const bias = parameter_node(tensor([30]).rand(), true);
+const input = tensor([30]).rand();  // random but constant "input data"
+const target = tensor([30]).rand(); // random but constant target/label
 
-// t0 is debroadcasted to [5, 7, 9]
-// then [1, 2, 3] is added which results in [6, 9, 12]
-// this is then stored in t2
+// Create a source node for input
+const a = source_node([30], () => input);
 
-// if t0 is an incoming gradient and t1 is the current node's
-// gradient then we can now efficiently accumulate this gradient
-// without any additional interims
+// Modify the computation graph to include the weight
+const nn = a.mul(weight).add(bias).mse_loss(target);
 
+// this is identical to mse_loss
+// const nn = a.mul(weight).sub(target).pow(2).mean();
 
+const graph = nn.get_computation_graph();
 
-// const a = tensor_scalar(5);
-// const b = tensor([3], [1, 2, 3]);
+// Define learning rate
+const learningRate = 10;
 
-// const input = source_node([3], () => b);
+console.time();
 
-// const nn = input.add(a);
-// const graph = nn.get_computation_graph();
+// Training loop
+for (let epoch = 0; epoch < 30; epoch++) {
+    graph.zero_grad();
+    graph.forward();
+    graph.backward();
 
-// graph.forward();
-// graph.backward();
+    // Print loss value
+    console.log(`Epoch ${epoch + 1}: Loss = ${graph.outputs[0].value.toString()}`);
 
-// for (const output of graph.outputs) {
-//     output.print();
-// }
+    // Update weights using SGD
+    mul_acc(weight.grad!, -learningRate, weight.value);
+    mul_acc(bias.grad!, -learningRate, bias.value);
+}
 
-
-
-// const input = tensor([3], [1, 2, 3]);
-// const target = tensor([3], [1, 2, 3]);
-//
-// // node "a" always receives the same input for the sake of demonstration
-// const a  = source_node([3], () => input);
-//
-// // the last node of this primitive network is the mean squared error loss
-// // the value of this node is a scalar tensor
-// // const nn = a.mul(3).mse_loss(source_node([3], () => target));
-// const nn = a.mul(3).sub(target).pow(2).mean();
-//
-// const graph = nn.get_computation_graph();
-// graph.forward();
-// graph.backward();
-//
-// graph.outputs[0].print();
-// graph.outputs[0].print_grad();
-
+console.write("\n\nTraining completed in: ");
+console.timeEnd();
+console.log(`  Weight value: ${weight.value.toString()}`);
+// console.log(`  Weight grad:  ${weight.grad!.toString()}`);
 
 
 // const dataset_x_0: Tensor = tensor([50, 4, 4]).zeros();    // 50 "images" of size 4x4
@@ -93,18 +85,3 @@ console.log("###########\n".repeat(2));
 //  *      done in a single backward pass.
 //  *      (this would be called multi-objective-optimization)
 //  */
-//
-// // Result tensor
-// const result = input_0.add(1).add(input_1);
-//
-// // Graph acquisition
-// const graph = result.get_computation_graph();
-//
-// graph.forward();
-// graph.backward();
-//
-// console.log("Result: ");
-// result.primal.print();
-//
-// console.log("Gradient of result: ");
-// result.grad?.print();
