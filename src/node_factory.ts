@@ -1,6 +1,6 @@
+import { Parameter, Source } from "./node_operations.ts";
+import { RawTensor } from "./base/RawTensor.ts";
 import Shape from "./base/Shape.ts";
-import {Tensor} from "./base/Tensor.ts";
-import {Parameter, Source} from "./node_operations.ts";
 
 /**
  * Creates an input node.
@@ -12,10 +12,10 @@ import {Parameter, Source} from "./node_operations.ts";
  * @param producer Function that returns a tensor each time it is called.
  *  These tensors should have the same shape as specified by the shape parameter.
  */
-export function source_node(shape: Shape | number[], producer: () => Tensor): Source {
+export function source_node(shape: Shape | number[], producer: () => RawTensor): Source {
     return new Source(shape, producer);
 }
 
-export function parameter_node(value: Tensor | number, requires_grad: boolean): Parameter {
+export function parameter_node(value: RawTensor | number, requires_grad: boolean): Parameter {
     return new Parameter(value, requires_grad);
 }

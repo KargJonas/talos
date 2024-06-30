@@ -1,6 +1,5 @@
 import * as ops from "./base/tensor_operations.ts";
-import {Tensor, tensor_like, tensor_scalar} from "./base/Tensor.ts";
-import {tensor} from "../index.ts";
+import {RawTensor} from "./base/RawTensor.ts";
 import Shape from "./base/Shape.ts";
 import CompGraphNode from "./CompGraphNode.ts";
 
@@ -8,23 +7,23 @@ import CompGraphNode from "./CompGraphNode.ts";
 // These are essentially all operations of the tensor level plus their derivatives
 
 export class Parameter extends CompGraphNode {
-    value: Tensor;
+    value: RawTensor;
 
-    constructor(value: Tensor | number, requires_grad: boolean) {
+    constructor(value: RawTensor | number, requires_grad: boolean) {
         super([]);
-        this.value = typeof value === "number" ? tensor_scalar(value) : value;
-        if (requires_grad) this.grad = tensor_like(this.value);
+        this.value = typeof value === "number" ? RawTensor.scalar(value) : value;
+        if (requires_grad) this.grad = RawTensor.like(this.value);
     }
 }
 
 export class Source extends CompGraphNode {
-    value: Tensor;
-    producer: () => Tensor;
+    value: RawTensor;
+    producer: () => RawTensor;
 
-    constructor(shape: Shape | number[], producer: () => Tensor) {
+    constructor(shape: Shape | number[], producer: () => RawTensor) {
         super([]);
 
-        this.value = tensor(shape);
+        this.value = RawTensor.create(shape);
         this.producer = producer;
     }
 
@@ -34,13 +33,13 @@ export class Source extends CompGraphNode {
 }
 
 export class Add extends CompGraphNode {
-    value: Tensor;
-    grad: Tensor;
+    value: RawTensor;
+    grad: RawTensor;
 
     constructor(parents: CompGraphNode[]) {
         super(parents);
-        this.value = tensor(this.parents[0].value.shape.broadcast(this.parents[1].value.shape));
-        this.grad = tensor_like(this.value);
+        this.value = RawTensor.create(this.parents[0].value.shape.broadcast(this.parents[1].value.shape));
+        this.grad = RawTensor.like(this.value);
     }
 
     fw() {
@@ -57,13 +56,13 @@ export class Add extends CompGraphNode {
 }
 
 export class Sub extends CompGraphNode {
-    value: Tensor;
-    grad: Tensor;
+    value: RawTensor;
+    grad: RawTensor;
 
     constructor(parents: CompGraphNode[]) {
         super(parents);
-        this.value = tensor(this.parents[0].value.shape.broadcast(this.parents[1].value.shape));
-        this.grad = tensor_like(this.value);
+        this.value = RawTensor.create(this.parents[0].value.shape.broadcast(this.parents[1].value.shape));
+        this.grad = RawTensor.like(this.value);
     }
 
     fw() {
@@ -80,15 +79,15 @@ export class Sub extends CompGraphNode {
 }
 
 export class Mul extends CompGraphNode {
-    value: Tensor;
-    grad: Tensor;
-    interim: Tensor;
+    value: RawTensor;
+    grad: RawTensor;
+    interim: RawTensor;
 
     constructor(parents: CompGraphNode[]) {
         super(parents);
-        this.value = tensor(this.parents[0].value.shape.broadcast(this.parents[1].value.shape));
-        this.grad = tensor_like(this.value);
-        this.interim = tensor_like(this.value);
+        this.value = RawTensor.create(this.parents[0].value.shape.broadcast(this.parents[1].value.shape));
+        this.grad = RawTensor.like(this.value);
+        this.interim = RawTensor.like(this.value);
     }
 
     fw() {
@@ -108,15 +107,15 @@ export class Mul extends CompGraphNode {
 }
 
 export class Div extends CompGraphNode {
-    value: Tensor;
-    grad: Tensor;
-    interim: Tensor;
+    value: RawTensor;
+    grad: RawTensor;
+    interim: RawTensor;
 
     constructor(parents: CompGraphNode[]) {
         super(parents);
-        this.value = tensor(this.parents[0].value.shape.broadcast(this.parents[1].value.shape));
-        this.grad = tensor_like(this.value);
-        this.interim = tensor_like(this.value);
+        this.value = RawTensor.create(this.parents[0].value.shape.broadcast(this.parents[1].value.shape));
+        this.grad = RawTensor.like(this.value);
+        this.interim = RawTensor.like(this.value);
     }
 
     fw() {
@@ -143,17 +142,17 @@ export class Div extends CompGraphNode {
 }
 
 export class Pow extends CompGraphNode {
-    value: Tensor;
-    grad: Tensor;
-    interim_0: Tensor;
-    interim_1: Tensor;
+    value: RawTensor;
+    grad: RawTensor;
+    interim_0: RawTensor;
+    interim_1: RawTensor;
 
     constructor(parents: CompGraphNode[]) {
         super(parents);
-        this.value = tensor(this.parents[0].value.shape.broadcast(this.parents[1].value.shape));
-        this.grad = tensor_like(this.value);
-        this.interim_0 = tensor_like(this.parents[0].value);
-        this.interim_1 = tensor_like(this.parents[1].value);
+        this.value = RawTensor.create(this.parents[0].value.shape.broadcast(this.parents[1].value.shape));
+        this.grad = RawTensor.like(this.value);
+        this.interim_0 = RawTensor.like(this.parents[0].value);
+        this.interim_1 = RawTensor.like(this.parents[1].value);
     }
 
     fw() {
@@ -185,13 +184,13 @@ export class Pow extends CompGraphNode {
 }
 
 export class Sum extends CompGraphNode {
-    value: Tensor;
-    grad: Tensor;
+    value: RawTensor;
+    grad: RawTensor;
 
     constructor(parents: CompGraphNode[]) {
         super(parents);
-        this.value = tensor_scalar();
-        this.grad = tensor_scalar();
+        this.value = RawTensor.scalar();
+        this.grad = RawTensor.scalar();
     }
 
     fw() {
@@ -208,15 +207,15 @@ export class Sum extends CompGraphNode {
 }
 
 export class Mean extends CompGraphNode {
-    value: Tensor;
-    grad: Tensor;
-    interim: Tensor;
+    value: RawTensor;
+    grad: RawTensor;
+    interim: RawTensor;
 
     constructor(parents: CompGraphNode[]) {
         super(parents);
-        this.value = tensor_scalar(); // Scalar tensor to hold the mean value
-        this.grad = tensor_like(this.parents[0].value); // Gradient tensor with the same shape as input
-        this.interim = tensor_like(this.parents[0].value);
+        this.value = RawTensor.scalar(); // Scalar tensor to hold the mean value
+        this.grad = RawTensor.like(this.parents[0].value); // Gradient tensor with the same shape as input
+        this.interim = RawTensor.like(this.parents[0].value);
     }
 
     fw() {
@@ -234,19 +233,19 @@ export class Mean extends CompGraphNode {
 }
 
 export class MseLoss extends CompGraphNode {
-    value: Tensor;
-    grad: Tensor;
+    value: RawTensor;
+    grad: RawTensor;
 
     // intermediate values
-    interim: Tensor;
+    interim: RawTensor;
 
     constructor(parents: CompGraphNode[]) {
         super(parents);
 
         // todo: add shape compat check
-        this.value = tensor_scalar(0);
-        this.grad = tensor_like(parents[0].value).ones(); // todo: this should be set to 1 after at some point (maybe reintroduce init()?)
-        this.interim = tensor_like(parents[0].value);
+        this.value = RawTensor.scalar(0);
+        this.grad = RawTensor.like(parents[0].value).ones(); // todo: this should be set to 1 after at some point (maybe reintroduce init()?)
+        this.interim = RawTensor.like(parents[0].value);
     }
 
     fw() {
@@ -279,15 +278,15 @@ export class MseLoss extends CompGraphNode {
 }
 
 export class Relu extends CompGraphNode {
-    value: Tensor;
-    grad: Tensor;
-    interim: Tensor;
+    value: RawTensor;
+    grad: RawTensor;
+    interim: RawTensor;
 
     constructor(parents: CompGraphNode[]) {
         super(parents);
-        this.value = tensor_like(parents[0].value);
-        this.grad = tensor_like(parents[0].value);
-        this.interim = tensor_like(parents[0].value);
+        this.value = RawTensor.like(parents[0].value);
+        this.grad = RawTensor.like(parents[0].value);
+        this.interim = RawTensor.like(parents[0].value);
     }
 
     fw() {

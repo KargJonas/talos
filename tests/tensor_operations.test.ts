@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import tensor, {Tensor, tensor_like, tensor_scalar} from "../src/base/Tensor";
+import { RawTensor } from "../src/base/RawTensor.ts";
 import Shape from "../src/base/Shape";
 import * as ops from "../src/base/tensor_operations.ts";
 import { core_ready } from "../src/base/Management";
@@ -12,23 +12,23 @@ import { core_ready } from "../src/base/Management";
 describe("tensor operations", async () => {
     await core_ready;
 
-    const t1 = tensor([2, 2, 3], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
-    const t2 = tensor([3, 2], [1, 2, 3, 4, 5, 6]);
-    const t3 = tensor([3, 2], [-100, 2, 3, 2, 4, 2]);
-    const t4 = tensor([3, 2], [7.5, 5.5, -2, 3.5, 0, 3]);
-    const t5 = tensor([3], [-1, 2, 3]);
-    const t6 = tensor([2, 3], [-100, 2, 3, 2, 4, 2]);
-    const t7 = tensor([2, 3, 4], [8, 4, 4, 2, 3, 1, 4, 9, 2, 0, 9, 0, 4, 5, 1, 3, 2, 3, 4, 5, 8, 1, 2, 3]);
-    const t8 = tensor([4, 3], [0, 2, 3, 0, 3, 6, 5, 7, 3, 1, 2, 1]);
-    const t9 = tensor([2, 2, 4, 3], [0.82, 0.447, 0.716, 0.057, 0.245, 0.855, 0.288, 0.902, 0.162, 0.091, 0.225, 0.892, 0.808, 0.924, 0.967, 0.084, 0.623, 0.686, 0.042, 0.358, 0.54, 0.54, 0.195, 0.298, 0.783, 0.477, 0.117, 0.894, 0.927, 0.532, 0.184, 0.86, 0.543, 0.57, 0.719, 0.72, 0.184, 0.989, 0.863, 0.784, 0.143, 0.156, 0.403, 0.187, 0.304, 0.824, 0.514, 0.731]);
-    const t10 = tensor([3, 1], [0.021, 0.782, 0.253]);
-    const t11 = tensor([3, 4, 5], [0.316, 0.057, 0.639, 0.295, 0.726, 0.135, 0.742, 0.346, 0.789, 0.503, 0.745, 0.907, 0.91, 0.239, 0.999, 0.372, 0.118, 0.414, 0.275, 0.76, 0.98, 0.574, 0.886, 0.247, 0.259, 0.574, 0.129, 0.546, 0.508, 0.403, 0.097, 0.072, 0.286, 0.141, 0.37, 0.153, 0.585, 0.994, 0.399, 0.74, 0.063, 0.904, 0.384, 0.158, 0.904, 0.478, 0.237, 0.714, 0.732, 0.231, 0.814, 0.88, 0.91, 0.764, 0.778, 0.912, 0.764, 0.977, 0.158, 0.493]);
-    const t12 = tensor([3, 5, 6], [0.084, 0.078, 0.868, 0.891, 0.331, 0.668, 0.829, 0.305, 0.899, 0.636, 0.855, 0.854, 0.627, 0.078, 0.884, 0.297, 0.52, 0.722, 0.248, 0.663, 0.353, 0.68, 0.298, 0.384, 0.929, 0.714, 0.273, 0.737, 0.644, 0.072, 0.304, 0.755, 0.405, 0.676, 0.597, 0.55, 0.785, 0.333, 0.26, 0.385, 0.895, 0.062, 0.396, 0.904, 0.518, 0.316, 0.839, 0.581, 0.057, 0.555, 0.101, 0.986, 0.348, 0.549, 0.733, 0.629, 0.745, 0.723, 0.752, 0.515, 0.501, 0.148, 0.816, 0.901, 0.534, 0.748, 0.197, 0.581, 0.747, 0.295, 0.048, 0.488, 0.727, 0.313, 0.39, 0.652, 0.645, 0.686, 0.21, 0.18, 0.557, 0.779, 0.926, 0.272, 0.005, 0.539, 0.023, 0.208, 0.243, 0.39]);
-    const t13 = tensor([2, 2, 5, 2], [0.261, 0.983, 0.857, 0.279, 0.211, 0.75, 0.671, 0.32, 0.641, 0.317, 0.003, 0.951, 0.332, 0.226, 0.409, 0.475, 0.348, 0.205, 0.11, 0.353, 0.557, 0.309, 0.06, 0.963, 0.368, 0.607, 0.047, 0.52, 0.5, 0.532, 0.138, 0.686, 0.982, 0.134, 0.984, 0.488, 0.856, 0.766, 0.208, 0.29]);
-    const t14 = tensor([5, 5], [0.93, 0.793, 0.149, 0.827, 0.167, 0.563, 0.485, 0.969, 0.63, 0.909, 0.113, 0.11, 0.627, 0.198, 0.708, 0.574, 0.565, 0.678, 0.013, 0.195, 0.913, 0.131, 0.016, 0.418, 0.277]);
-    const t15 = tensor([5, 1], [0.891, 0.549, 0.65, 0.02, 0.676]);
-    const t16 = tensor([1, 3], [7, 3, 1]);
-    const t17 = tensor([8, 1], [9, 8, 7, 6, 5, 4, 3, 2]);
+    const t1 = RawTensor.create([2, 2, 3], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+    const t2 = RawTensor.create([3, 2], [1, 2, 3, 4, 5, 6]);
+    const t3 = RawTensor.create([3, 2], [-100, 2, 3, 2, 4, 2]);
+    const t4 = RawTensor.create([3, 2], [7.5, 5.5, -2, 3.5, 0, 3]);
+    const t5 = RawTensor.create([3], [-1, 2, 3]);
+    const t6 = RawTensor.create([2, 3], [-100, 2, 3, 2, 4, 2]);
+    const t7 = RawTensor.create([2, 3, 4], [8, 4, 4, 2, 3, 1, 4, 9, 2, 0, 9, 0, 4, 5, 1, 3, 2, 3, 4, 5, 8, 1, 2, 3]);
+    const t8 = RawTensor.create([4, 3], [0, 2, 3, 0, 3, 6, 5, 7, 3, 1, 2, 1]);
+    const t9 = RawTensor.create([2, 2, 4, 3], [0.82, 0.447, 0.716, 0.057, 0.245, 0.855, 0.288, 0.902, 0.162, 0.091, 0.225, 0.892, 0.808, 0.924, 0.967, 0.084, 0.623, 0.686, 0.042, 0.358, 0.54, 0.54, 0.195, 0.298, 0.783, 0.477, 0.117, 0.894, 0.927, 0.532, 0.184, 0.86, 0.543, 0.57, 0.719, 0.72, 0.184, 0.989, 0.863, 0.784, 0.143, 0.156, 0.403, 0.187, 0.304, 0.824, 0.514, 0.731]);
+    const t10 = RawTensor.create([3, 1], [0.021, 0.782, 0.253]);
+    const t11 = RawTensor.create([3, 4, 5], [0.316, 0.057, 0.639, 0.295, 0.726, 0.135, 0.742, 0.346, 0.789, 0.503, 0.745, 0.907, 0.91, 0.239, 0.999, 0.372, 0.118, 0.414, 0.275, 0.76, 0.98, 0.574, 0.886, 0.247, 0.259, 0.574, 0.129, 0.546, 0.508, 0.403, 0.097, 0.072, 0.286, 0.141, 0.37, 0.153, 0.585, 0.994, 0.399, 0.74, 0.063, 0.904, 0.384, 0.158, 0.904, 0.478, 0.237, 0.714, 0.732, 0.231, 0.814, 0.88, 0.91, 0.764, 0.778, 0.912, 0.764, 0.977, 0.158, 0.493]);
+    const t12 = RawTensor.create([3, 5, 6], [0.084, 0.078, 0.868, 0.891, 0.331, 0.668, 0.829, 0.305, 0.899, 0.636, 0.855, 0.854, 0.627, 0.078, 0.884, 0.297, 0.52, 0.722, 0.248, 0.663, 0.353, 0.68, 0.298, 0.384, 0.929, 0.714, 0.273, 0.737, 0.644, 0.072, 0.304, 0.755, 0.405, 0.676, 0.597, 0.55, 0.785, 0.333, 0.26, 0.385, 0.895, 0.062, 0.396, 0.904, 0.518, 0.316, 0.839, 0.581, 0.057, 0.555, 0.101, 0.986, 0.348, 0.549, 0.733, 0.629, 0.745, 0.723, 0.752, 0.515, 0.501, 0.148, 0.816, 0.901, 0.534, 0.748, 0.197, 0.581, 0.747, 0.295, 0.048, 0.488, 0.727, 0.313, 0.39, 0.652, 0.645, 0.686, 0.21, 0.18, 0.557, 0.779, 0.926, 0.272, 0.005, 0.539, 0.023, 0.208, 0.243, 0.39]);
+    const t13 = RawTensor.create([2, 2, 5, 2], [0.261, 0.983, 0.857, 0.279, 0.211, 0.75, 0.671, 0.32, 0.641, 0.317, 0.003, 0.951, 0.332, 0.226, 0.409, 0.475, 0.348, 0.205, 0.11, 0.353, 0.557, 0.309, 0.06, 0.963, 0.368, 0.607, 0.047, 0.52, 0.5, 0.532, 0.138, 0.686, 0.982, 0.134, 0.984, 0.488, 0.856, 0.766, 0.208, 0.29]);
+    const t14 = RawTensor.create([5, 5], [0.93, 0.793, 0.149, 0.827, 0.167, 0.563, 0.485, 0.969, 0.63, 0.909, 0.113, 0.11, 0.627, 0.198, 0.708, 0.574, 0.565, 0.678, 0.013, 0.195, 0.913, 0.131, 0.016, 0.418, 0.277]);
+    const t15 = RawTensor.create([5, 1], [0.891, 0.549, 0.65, 0.02, 0.676]);
+    const t16 = RawTensor.create([1, 3], [7, 3, 1]);
+    const t17 = RawTensor.create([8, 1], [9, 8, 7, 6, 5, 4, 3, 2]);
 
     function expect_arrays_closeto(a: number[] | Float32Array, b: number[] | Float32Array) {
         [...a].map((v, i) => {
@@ -37,7 +37,7 @@ describe("tensor operations", async () => {
         });
     }
 
-    function unary(unary_op: ops.UnaryOp, a: Tensor, expectation: (v: number) => number, in_place = false) {
+    function unary(unary_op: ops.UnaryOp, a: RawTensor, expectation: (v: number) => number, in_place = false) {
         let t = a.clone();
         const input = [...t.data];
 
@@ -53,8 +53,8 @@ describe("tensor operations", async () => {
     }
 
     function binary(
-        binary_op: ops.BinaryOp<Tensor | number> | ops.BinaryOp<Tensor>,
-        a: Tensor, b: Tensor | number,
+        binary_op: ops.BinaryOp<RawTensor | number> | ops.BinaryOp<RawTensor>,
+        a: RawTensor, b: RawTensor | number,
         expected_shape: Shape | number[],
         expected_data: number[],
         in_place = false
@@ -228,8 +228,8 @@ describe("tensor operations", async () => {
             });
 
             test("accumulative assignment", () => {
-                // const t6 = tensor([2, 3], [-100, 2, 3, 2, 4, 2]);
-                const res = tensor_like(t6).zeros();
+                // const t6 = RawTensor.create([2, 3], [-100, 2, 3, 2, 4, 2]);
+                const res = RawTensor.like(t6).zeros();
 
                 ops.relu_acc(t6, res);
                 expect_arrays_closeto(res.data, [0, 2, 3, 2, 4, 2]);
@@ -290,9 +290,9 @@ describe("tensor operations", async () => {
     
         describe("accumulative operations", () => {
             test("pairwise", () => {
-                const a = tensor([4, 2], [4, 7, 22, 8, 3, 2, 89, 2]);
-                const b = tensor([4, 2], [1, 2, 3,  4, 5, 6, 7,  8]);
-                const res = tensor_like(a).zeros();
+                const a = RawTensor.create([4, 2], [4, 7, 22, 8, 3, 2, 89, 2]);
+                const b = RawTensor.create([4, 2], [1, 2, 3,  4, 5, 6, 7,  8]);
+                const res = RawTensor.like(a).zeros();
     
                 ops.add_acc(a, b, res);
                 expect_arrays_closeto(res.data, [5, 9, 25, 12, 8, 8, 96, 10]);
@@ -312,9 +312,9 @@ describe("tensor operations", async () => {
             });
     
             test("broadcasting", () => {
-                const a = tensor([2, 2], [1, 2, 3, 4]);  
-                const b = tensor([2], [10, 20]);        
-                const res = tensor_like(a).zeros();     
+                const a = RawTensor.create([2, 2], [1, 2, 3, 4]);  
+                const b = RawTensor.create([2], [10, 20]);        
+                const res = RawTensor.like(a).zeros();     
             
                 ops.add_acc(a, b, res);  
                 expect_arrays_closeto(res.data, [11, 22, 13, 24]);
@@ -333,8 +333,8 @@ describe("tensor operations", async () => {
             });
     
             test("debroadcasting", () => {
-                const a = tensor([2, 3], [1, 2, 3, 4, 5, 6]);
-                let res = tensor_like(t5).zeros();
+                const a = RawTensor.create([2, 3], [1, 2, 3, 4, 5, 6]);
+                let res = RawTensor.like(t5).zeros();
                 ops.add_acc(a, t5, res);
                 expect([...res.data]).toEqual([3, 11, 15]);
                 ops.add_acc(a, t5, res);
@@ -345,7 +345,7 @@ describe("tensor operations", async () => {
                 ops.mul_acc(a, t5, res);
                 expect([...res.data]).toEqual([-10, 28, 54]);
                 res.free();
-                res = tensor_scalar(0);
+                res = RawTensor.scalar(0);
                 ops.add_acc(t5, res, res);
                 expect(res.item).toEqual(ops.sum(t5));
     
@@ -356,7 +356,7 @@ describe("tensor operations", async () => {
     });
 
     // checks if all values in the tensor data array are within the specified range
-    function values_in_range(a: Tensor, min: number, max: number) {
+    function values_in_range(a: RawTensor, min: number, max: number) {
         [...a.data].map((value) => {
             expect(value).toBeGreaterThanOrEqual(min);
             expect(value).toBeLessThanOrEqual(max);
@@ -368,7 +368,7 @@ describe("tensor operations", async () => {
     describe("tensor initialization", () => {
         test("Tensor.rand()", () => {
             // check that the tensor is initialized with *some data*
-            const old_tensor = tensor([100]).rand();
+            const old_tensor = RawTensor.create([100]).rand();
             const new_tensor = old_tensor.clone().rand();
             expect(old_tensor.data).not.toEqual(new_tensor.data);
 
@@ -380,7 +380,7 @@ describe("tensor operations", async () => {
 
         test("Tensor.rand_int()", () => {
             // check that the tensor is initialized with *some data*
-            const old_tensor = tensor([100]).rand_int();
+            const old_tensor = RawTensor.create([100]).rand_int();
             const new_tensor = old_tensor.clone().rand_int();
             expect(old_tensor.data).not.toEqual(new_tensor.data);
 

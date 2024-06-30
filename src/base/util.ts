@@ -1,9 +1,9 @@
-import { Tensor } from "./Tensor";
+import { RawTensor } from "./RawTensor.ts";
 import core from "./core/build";
 
 export const set_rand_seed = (n: number) => core._rand_seed(n);
 
-export function check_row_col_compat(a: Tensor, b: Tensor) {
+export function check_row_col_compat(a: RawTensor, b: RawTensor) {
     if (a.cols !== b.rows)
         throw new Error(`Cannot multiply tensors of shape [${a.shape}] and [${b.shape}]`);
 }

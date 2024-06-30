@@ -1,6 +1,6 @@
-import {core_ready, tensor} from "../index";
-import {parameter_node, source_node} from "../src/node_factory.ts";
-import {mul_acc} from "../src/base/tensor_operations.ts";
+import { RawTensor, core_ready } from "../index";
+import { parameter_node, source_node } from "../src/node_factory.ts";
+import { mul_acc } from "../src/base/tensor_operations.ts";
 
 // if your runtime does not support top-level await,
 // you'll have to use core_ready.then(() => { ... }) instead
@@ -9,10 +9,10 @@ await core_ready;
 console.log("\nRunning SGD demo...\n");
 
 // Input and target tensors
-const weight = parameter_node(tensor([30]).rand(), true);
-const bias = parameter_node(tensor([30]).rand(), true);
-const input = tensor([30]).rand();  // random but constant "input data"
-const target = tensor([30]).rand(); // random but constant target/label
+const weight = parameter_node(RawTensor.create([30]).rand(), true);
+const bias = parameter_node(RawTensor.create([30]).rand(), true);
+const input = RawTensor.create([30]).rand();  // random but constant "input data"
+const target = RawTensor.create([30]).rand(); // random but constant target/label
 
 // Create a source node for input
 const a = source_node([30], () => input);

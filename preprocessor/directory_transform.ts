@@ -1,4 +1,4 @@
-import {rimraf} from "rimraf";
+import { rimraf } from "rimraf";
 import fs from "fs";
 
 /**
@@ -61,7 +61,7 @@ export default function directory_transform(
         else if (stats.isDirectory()) {
             const outPath = `${ outDir }/${ item }`;
             fs.mkdirSync(outPath);
-            transform(inPath, outPath, convertFunc);
+            directory_transform(inPath, outPath, convertFunc);
         }
     }
 }

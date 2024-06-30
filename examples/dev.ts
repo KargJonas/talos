@@ -2,11 +2,10 @@
  * This file is used for validation and debugging during development. 
  */
 
-import {Tensor, core_ready, tensor} from "../index";
-import {parameter_node, source_node} from "../src/node_factory.ts";
-import {add, mul_acc, sub} from "../src/base/tensor_operations.ts";
+import { RawTensor, core_ready } from "../index";
+import { parameter_node, source_node } from "../src/node_factory.ts";
 import { get_total_allocated } from "../src/base/Management.ts";
-import { tensor_scalar } from "../src/base/Tensor.ts";
+import { mul_acc } from "../src/base/tensor_operations.ts";
 
 // if your runtime does not support top-level await,
 // you'll have to use core_ready.then(() => { ... }) instead
@@ -15,15 +14,15 @@ await core_ready;
 console.log("\nRunning SGD demo...\n");
 
 // Input and target tensors
-const weight = parameter_node(tensor([3]).rand(), true);
-const bias = parameter_node(tensor([3]).rand(), true);
-const input = tensor([3]).rand();  // random but constant "input data"
-const target = tensor([3]).rand(); // random but constant target/label
+const weight = parameter_node(RawTensor.create([3]).rand(), true);
+const bias = parameter_node(RawTensor.create([3]).rand(), true);
+const input = RawTensor.create([3]).rand();  // random but constant "input data"
+const target = RawTensor.create([3]).rand(); // random but constant target/label
 
-// const weight = parameter_node(tensor([3], [6, 2, 8]), true);
-// const bias = parameter_node(tensor([3], [0, 0, 0]), true);
-// const input = tensor([3], [2, -3, 9]);  // random but constant "input data"
-// const target = tensor([3], [23, 2, -3]); // random but constant target/label
+// const weight = parameter_node(RawTensor.create([3], [6, 2, 8]), true);
+// const bias = parameter_node(RawTensor.create([3], [0, 0, 0]), true);
+// const input = RawTensor.create([3], [2, -3, 9]);  // random but constant "input data"
+// const target = RawTensor.create([3], [23, 2, -3]); // random but constant target/label
 
 // Create a source node for input
 const a = source_node([3], () => input);
@@ -65,9 +64,9 @@ console.log(`  Weight value: ${weight.value.toString()}`);
 console.log(`  Weight grad:  ${weight.grad!.toString()}`);
 
 
-// const dataset_x_0: Tensor = tensor([50, 4, 4]).zeros();    // 50 "images" of size 4x4
-// const dataset_x_1: Tensor = tensor([50, 4, 4]).zeros();    // additional information for each image
-// const dataset_y: Tensor   = tensor([50, 10]);             // one hot encoding of 10 classes
+// const dataset_x_0: Tensor = RawTensor.create([50, 4, 4]).zeros();    // 50 "images" of size 4x4
+// const dataset_x_1: Tensor = RawTensor.create([50, 4, 4]).zeros();    // additional information for each image
+// const dataset_y: Tensor   = RawTensor.create([50, 10]);             // one hot encoding of 10 classes
 //
 // function get_provider_from_dataset(dataset: Tensor): () => Tensor {
 //     const iterator = dataset.get_axis_iterable(0);

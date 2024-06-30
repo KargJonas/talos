@@ -28,44 +28,44 @@ export default interface ITensor<TensorType> {
     transpose: (...permutation: number[]) => TensorType;
 
     // unary operations
-    relu:       (in_place?: boolean) => TensorType;
-    binstep:    (in_place?: boolean) => TensorType;
-    logistic:   (in_place?: boolean) => TensorType;
-    negate:     (in_place?: boolean) => TensorType;
-    sin:        (in_place?: boolean) => TensorType;
-    cos:        (in_place?: boolean) => TensorType;
-    tan:        (in_place?: boolean) => TensorType;
-    asin:       (in_place?: boolean) => TensorType;
-    acos:       (in_place?: boolean) => TensorType;
-    atan:       (in_place?: boolean) => TensorType;
-    sinh:       (in_place?: boolean) => TensorType;
-    cosh:       (in_place?: boolean) => TensorType;
-    tanh:       (in_place?: boolean) => TensorType;
-    exp:        (in_place?: boolean) => TensorType;
-    log:        (in_place?: boolean) => TensorType;
-    log10:      (in_place?: boolean) => TensorType;
-    log2:       (in_place?: boolean) => TensorType;
-    invsqrt:    (in_place?: boolean) => TensorType;
-    sqrt:       (in_place?: boolean) => TensorType;
-    ceil:       (in_place?: boolean) => TensorType;
-    floor:      (in_place?: boolean) => TensorType;
-    abs:        (in_place?: boolean) => TensorType;
-    reciprocal: (in_place?: boolean) => TensorType;
+    relu:       () => TensorType;
+    binstep:    () => TensorType;
+    logistic:   () => TensorType;
+    negate:     () => TensorType;
+    sin:        () => TensorType;
+    cos:        () => TensorType;
+    tan:        () => TensorType;
+    asin:       () => TensorType;
+    acos:       () => TensorType;
+    atan:       () => TensorType;
+    sinh:       () => TensorType;
+    cosh:       () => TensorType;
+    tanh:       () => TensorType;
+    exp:        () => TensorType;
+    log:        () => TensorType;
+    log10:      () => TensorType;
+    log2:       () => TensorType;
+    invsqrt:    () => TensorType;
+    sqrt:       () => TensorType;
+    ceil:       () => TensorType;
+    floor:      () => TensorType;
+    abs:        () => TensorType;
+    reciprocal: () => TensorType;
 
-    // *** binary operations ***
-    add: (other: TensorType | number, in_place?: boolean) => TensorType;
-    sub: (other: TensorType | number, in_place?: boolean) => TensorType;
-    mul: (other: TensorType | number, in_place?: boolean) => TensorType;
-    div: (other: TensorType | number, in_place?: boolean) => TensorType;
-    pow: (other: TensorType | number, in_place?: boolean) => TensorType;
-    dot: (other: TensorType, in_place?: boolean) => TensorType;
-    matmul: (other: TensorType, in_place?: boolean) => TensorType;
+    // binary operations
+    add: (other: TensorType | number) => TensorType;
+    sub: (other: TensorType | number) => TensorType;
+    mul: (other: TensorType | number) => TensorType;
+    div: (other: TensorType | number) => TensorType;
+    pow: (other: TensorType | number) => TensorType;
+    dot: (other: TensorType, ) => TensorType;
+    matmul: (other: TensorType, ) => TensorType;
 
     // reduce operations
-    min: () => TensorType | number;
-    max: () => TensorType | number;
-    sum: () => TensorType | number;
-    mean: () => TensorType | number;
+    min: () => TensorType;
+    max: () => TensorType;
+    sum: () => TensorType;
+    mean: () => TensorType;
 
     // operation shorthands
     readonly T: TensorType;

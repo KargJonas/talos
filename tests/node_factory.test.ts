@@ -1,12 +1,12 @@
 import { describe, expect, test } from "bun:test";
-import tensor, { tensor_scalar } from "../src/base/Tensor";
 import { add } from "../src/base/tensor_operations";
-import { parameter_node, source_node } from "../src/node_factory";
+import { source_node } from "../src/node_factory";
+import { RawTensor } from "../src/base/RawTensor.ts";
 
 describe("node operations", () => {
 
     test("source nodes", () => {
-        const input = tensor_scalar(0);
+        const input = RawTensor.scalar(0);
         const source = source_node([1], () => {
             add(input, 1, input);
             return input;

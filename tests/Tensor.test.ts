@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import tensor, { Tensor, tensor_like } from "../src/base/Tensor";
+import { RawTensor } from "../src/base/RawTensor.ts";
 import { core_ready } from "../src/base/Management";
 import Shape from "../src/base/Shape";
 import Strides from "../src/base/Strides";
@@ -7,18 +7,18 @@ import Strides from "../src/base/Strides";
 describe("tensor creation", async () => {
     await core_ready;
 
-    test("tensor()", () => {
-        // creates a tensor through tensor() and ensures that the created
+    test("RawTensor.create()", () => {
+        // creates a tensor through RawTensor.create() and ensures that the created
         // tensor matches the expectation
         function init_and_validate_tensor(shape: Shape | number[], strides: number[], data?: number[]) {
             // create tensor
-            const new_tensor = tensor(shape, data);
+            const new_tensor = RawTensor.create(shape, data);
 
             // @ts-expect-error Obscure signature incompatibility between Int32Array.reduce() and Array.reduce()
             const expected_nelem = shape.reduce((acc: number, val: number) => acc * val, 1);
 
             // check view types
-            expect(new_tensor).toBeInstanceOf(Tensor);
+            expect(new_tensor).toBeInstanceOf(RawTensor);
             expect(new_tensor.shape).toBeInstanceOf(Shape);
             expect(new_tensor.strides).toBeInstanceOf(Strides);
             expect(new_tensor.data).toBeInstanceOf(Float32Array);
@@ -56,7 +56,7 @@ describe("tensor creation", async () => {
     });
 
     // ensures that modifying a tensor does not cause changes in another tensor
-    function check_tensor_independence(old_tensor: Tensor, new_tensor: Tensor) {
+    function check_tensor_independence(old_tensor: RawTensor, new_tensor: RawTensor) {
         expect(new_tensor.ptr).not.toBe(old_tensor.ptr);
         expect(new_tensor.shape_ptr).not.toBe(old_tensor.shape_ptr);
         expect(new_tensor.strides_ptr).not.toBe(old_tensor.strides_ptr);
@@ -84,16 +84,16 @@ describe("tensor creation", async () => {
         // expect(new_tensor.nelem).not.toEqual(old_tensor.nelem);
     }
 
-    function check_tensor_metadata_equality(a: Tensor, b: Tensor) {
+    function check_tensor_metadata_equality(a: RawTensor, b: RawTensor) {
         expect(a.rank).toBe(b.rank);
         expect(a.nelem).toBe(b.nelem);
         expect([...a.shape]).toEqual([...b.shape]);
         expect([...a.strides]).toEqual([...b.strides]);
     }
 
-    test("tensor_like()", () => {
-        let old_tensor = tensor([1, 2, 3, 4], (new Array(1 * 2 * 3 * 4)).fill(1));
-        let new_tensor = tensor_like(old_tensor);
+    test("RawTensor.like()", () => {
+        let old_tensor = RawTensor.create([1, 2, 3, 4], (new Array(1 * 2 * 3 * 4)).fill(1));
+        let new_tensor = RawTensor.like(old_tensor);
 
         check_tensor_metadata_equality(new_tensor, old_tensor);
         check_tensor_independence(old_tensor, new_tensor);
@@ -102,8 +102,8 @@ describe("tensor creation", async () => {
         new_tensor.free();
 
         // make sure that data was *not* copied to the new tensor        
-        old_tensor = tensor([1, 2, 3, 4]).rand();
-        new_tensor = tensor_like(old_tensor);
+        old_tensor = RawTensor.create([1, 2, 3, 4]).rand();
+        new_tensor = RawTensor.like(old_tensor);
         expect([...old_tensor.data]).not.toEqual([...new_tensor.data]);
 
         old_tensor.free();
@@ -111,7 +111,7 @@ describe("tensor creation", async () => {
     });
 
     test("Tensor.clone()", () => {
-        let old_tensor = tensor([1, 2, 3, 4], (new Array(1 * 2 * 3 * 4)).fill(1));
+        let old_tensor = RawTensor.create([1, 2, 3, 4], (new Array(1 * 2 * 3 * 4)).fill(1));
         let new_tensor = old_tensor.clone();
 
         // make sure metadata is copied correctly and that tensors are independent of one another
@@ -122,7 +122,7 @@ describe("tensor creation", async () => {
         new_tensor.free();
 
         // make sure that data *was* copied to the new tensor properly      
-        old_tensor = tensor([1, 2, 3, 4]).rand();
+        old_tensor = RawTensor.create([1, 2, 3, 4]).rand();
         new_tensor = old_tensor.clone();
         expect([...old_tensor.data]).toEqual([...new_tensor.data]);
 
@@ -133,7 +133,7 @@ describe("tensor creation", async () => {
     // basic tests for tensor address space overlaps
     // not really tests for views
     test("Tensor views/data-dependence", () => {
-        const old_tensor = tensor([1, 2, 3, 4]).zeros();
+        const old_tensor = RawTensor.create([1, 2, 3, 4]).zeros();
         const new_tensor = old_tensor.create_view();
 
         // make sure metadata is copied correctly and that tensors are independent of one another
@@ -142,10 +142,10 @@ describe("tensor creation", async () => {
         expect(old_tensor.data[0]).toEqual(new_tensor.data[0]);
     });
 
-    const t1 = tensor([2, 2, 3], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
-    const t2 = tensor([3, 2], [1, 2, 3, 4, 5, 6]);
-    const t13 = tensor([2, 2, 5, 2], [0.261, 0.983, 0.857, 0.279, 0.211, 0.75, 0.671, 0.32, 0.641, 0.317, 0.003, 0.951, 0.332, 0.226, 0.409, 0.475, 0.348, 0.205, 0.11, 0.353, 0.557, 0.309, 0.06, 0.963, 0.368, 0.607, 0.047, 0.52, 0.5, 0.532, 0.138, 0.686, 0.982, 0.134, 0.984, 0.488, 0.856, 0.766, 0.208, 0.29]);
-    const t14 = tensor([5, 5], [0.93, 0.793, 0.149, 0.827, 0.167, 0.563, 0.485, 0.969, 0.63, 0.909, 0.113, 0.11, 0.627, 0.198, 0.708, 0.574, 0.565, 0.678, 0.013, 0.195, 0.913, 0.131, 0.016, 0.418, 0.277]);
+    const t1 = RawTensor.create([2, 2, 3], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+    const t2 = RawTensor.create([3, 2], [1, 2, 3, 4, 5, 6]);
+    const t13 = RawTensor.create([2, 2, 5, 2], [0.261, 0.983, 0.857, 0.279, 0.211, 0.75, 0.671, 0.32, 0.641, 0.317, 0.003, 0.951, 0.332, 0.226, 0.409, 0.475, 0.348, 0.205, 0.11, 0.353, 0.557, 0.309, 0.06, 0.963, 0.368, 0.607, 0.047, 0.52, 0.5, 0.532, 0.138, 0.686, 0.982, 0.134, 0.984, 0.488, 0.856, 0.766, 0.208, 0.29]);
+    const t14 = RawTensor.create([5, 5], [0.93, 0.793, 0.149, 0.827, 0.167, 0.563, 0.485, 0.969, 0.63, 0.909, 0.113, 0.11, 0.627, 0.198, 0.708, 0.574, 0.565, 0.678, 0.013, 0.195, 0.913, 0.131, 0.016, 0.418, 0.277]);
 
     describe("views", () => {
         test("get_axis_iterable", () => {
@@ -346,7 +346,7 @@ describe("tensor creation", async () => {
     });
 });
 
-function expect_shape(t: Tensor, ...shape: number[]) {
+function expect_shape(t: RawTensor, ...shape: number[]) {
     expect([...t.shape]).toEqual(shape);
 }
 
@@ -358,8 +358,8 @@ function expect_arrays_closeto(a: number[] | Float32Array, b: number[] | Float32
 }
 
 function test_chained_ops(
-    input_tensor:     Tensor,
-    operations:       (tensor: Tensor) => Tensor,
+    input_tensor:     RawTensor,
+    operations:       (tensor: RawTensor) => RawTensor,
     expected_data:    number[] | Float32Array,
     expected_shape:   number[] | Shape,
     expected_strides: number[] | Strides

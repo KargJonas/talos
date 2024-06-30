@@ -1,15 +1,15 @@
-import {Tensor} from "./base/Tensor.ts";
+import { RawTensor } from "./base/RawTensor.ts";
+import { parameter_node } from "./node_factory.ts";
 import * as graph_ops from "./node_operations.ts";
 import CompGraph from "./ComputationGraph.ts";
-import {parameter_node} from "./node_factory.ts";
 import ITensor from "./base/ITensor.ts";
 
 type OperationClass<T> = new (parents: CompGraphNode[]) => T;
 
 export default abstract class CompGraphNode implements ITensor<CompGraphNode> {
     // State of the node
-    abstract value: Tensor;
-    grad?: Tensor = undefined;
+    abstract value: RawTensor;
+    grad?: RawTensor = undefined;
 
     // Metadata
     readonly parents: CompGraphNode[];
@@ -51,7 +51,7 @@ export default abstract class CompGraphNode implements ITensor<CompGraphNode> {
     };
 
     private create_binary_op<T extends CompGraphNode>(op_class: OperationClass<T>) {
-        return (_other: CompGraphNode | Tensor | number, requires_grad = true) => {
+        return (_other: CompGraphNode | RawTensor | number, requires_grad = true) => {
 
             // If _other is a scalar, create a tensor that holds the scalar value such that it can be referenced in the graph
             const other: CompGraphNode = _other instanceof CompGraphNode ? _other : parameter_node(_other, requires_grad);

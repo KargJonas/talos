@@ -1,8 +1,8 @@
-import { Tensor } from "./Tensor";
-import {max, min} from "./tensor_operations.ts";
+import { RawTensor } from "./RawTensor.ts";
+import { max, min } from "./tensor_operations.ts";
 
 // usability methods
-export default function tensor_to_string(a: Tensor, num_width = 5, space_before = 0) {   
+export default function tensor_to_string(a: RawTensor, num_width = 5, space_before = 0) {
     switch (a.rank) {
         case 0: return "[]";
         case 1: return vec_to_string(a, num_width);
@@ -18,7 +18,7 @@ export default function tensor_to_string(a: Tensor, num_width = 5, space_before 
     return `[ ${strings.join(",\n\n" + " ".repeat(space_before + 2))} ]`;
 }
 
-function vec_to_string(vec: Tensor, n_decimals: number) {
+function vec_to_string(vec: RawTensor, n_decimals: number) {
     if (vec.is_scalar) return `[ ${(vec.item | 0) === vec.item ? vec.item.toString() : vec.item.toFixed(n_decimals)} ]`;
 
     const n_integer = Math.floor(max(vec)).toString().length;
@@ -40,7 +40,7 @@ function vec_to_string(vec: Tensor, n_decimals: number) {
     return `[ ${vals.join(", ")} ]`;
 }
 
-function mat_to_string(mat: Tensor, n_decimals: number, space_before: number) {
+function mat_to_string(mat: RawTensor, n_decimals: number, space_before: number) {
     // amount of digits in the integer part of the largest number
     const n_integer = Math.floor(max(mat)).toString().length;
     const lines: string[] = [];
