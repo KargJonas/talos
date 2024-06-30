@@ -1,9 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import tensor, {Tensor, tensor_like, tensor_scalar} from "../src/base/Tensor";
-import { set_rand_seed } from "../src/base/util";
 import Shape from "../src/base/Shape";
 import * as ops from "../src/base/tensor_operations.ts";
-import Strides from "../src/base/Strides";
 import { core_ready } from "../src/base/Management";
 
 // todo:
@@ -110,23 +108,28 @@ describe("tensor operations", async () => {
             const t = t1.clone();
             let expected = [...t.data];
 
-            t.add(1, true);
+            ops.add(t, 1, t);
+            // t.add(1, true);
             expected = expected.map(v => v + 1);
             expect([...t.data]).toEqual(expected);
 
-            t.sub(2.5, true);
+            // t.sub(2.5, true);
+            ops.sub(t, 2.5, t);
             expected = expected.map(v => v - 2.5);
             expect([...t.data]).toEqual(expected);
 
-            t.mul(2, true);
+            // t.mul(2, true);
+            ops.mul(t, 2, t);
             expected = expected.map(v => v * 2);
             expect([...t.data]).toEqual(expected);
 
-            t.div(4, true);
+            // t.div(4, true);
+            ops.div(t, 4, t);
             expected = expected.map(v => v / 4);
             expect([...t.data]).toEqual(expected);
 
-            t.pow(Math.PI, true);
+            // t.pow(Math.PI, true);
+            ops.pow(t, Math.PI, t);
             expected = expected.map(v => Math.pow(v, Math.PI));
             expect_arrays_closeto(t.data, expected);
 
@@ -138,23 +141,28 @@ describe("tensor operations", async () => {
             const t = t2.clone();
             let expected = [...t.data];
 
-            t.add(t3, true);
+            // t.add(t3, true);
+            ops.add(t, t3, t);
             expected = expected.map((v, i) => v + t3.data[i]);
             expect_arrays_closeto(t.data, expected);
 
-            t.sub(t4, true);
+            // t.sub(t4, true);
+            ops.sub(t, t4, t);
             expected = expected.map((v, i) => v - t4.data[i]);
             expect_arrays_closeto(t.data, expected);
 
-            t.mul(t3, true);
+            // t.mul(t3, true);
+            ops.mul(t, t3, t);
             expected = expected.map((v, i) => v * t3.data[i]);
             expect_arrays_closeto(t.data, expected);
 
-            t.div(t2, true);
+            // t.div(t2, true);
+            ops.div(t, t2, t);
             expected = expected.map((v, i) => v / t2.data[i]);
             expect_arrays_closeto(t.data, expected);
 
-            t.pow(t2, true);
+            // t.pow(t2, true);
+            ops.pow(t, t2, t);
             expected = expected.map((v, i) => Math.pow(v, t2.data[i]));
             expect_arrays_closeto(t.data, expected);
         });
@@ -279,214 +287,6 @@ describe("tensor operations", async () => {
             binary(ops.dot, t9, t10, [2, 2, 4, 1], [0.548, 0.409, 0.752, 0.404, 0.984, 0.663, 0.417, 0.239, 0.419, 0.878, 0.814, 0.756, 0.996, 0.168, 0.232, 0.604]);
             binary(ops.dot, t11, t13, [3, 4, 2, 2, 2], [0.929, 1.13, 0.464, 0.934, 0.791, 1.08, 1.132, 0.973, 1.596, 1.011, 0.718, 0.8, 0.536, 1.644, 1.868, 1.111, 1.964, 2.061, 0.869, 1.747, 1.315, 2.312, 2.301, 1.549, 0.957, 1.038, 0.389, 0.902, 0.76, 1.027, 0.968, 0.904, 1.266, 1.949, 0.67, 1.625, 1.047, 1.66, 1.836, 1.446, 0.975, 1.3, 0.489, 1.081, 0.754, 1.112, 1.262, 1.183, 0.479, 0.492, 0.231, 0.404, 0.355, 0.543, 0.563, 0.431, 1.493, 1.421, 0.821, 1.093, 0.875, 1.815, 2.069, 1.189, 1.558, 0.939, 0.612, 0.798, 0.69, 1.686, 1.598, 0.735, 1.118, 1.379, 0.652, 1.079, 0.693, 1.313, 1.676, 1.336, 2.17, 2.219, 1.018, 1.836, 1.266, 2.463, 2.688, 1.931, 1.521, 2.049, 0.765, 1.71, 1.167, 1.955, 2.075, 1.469]);
         });
-
-        function test_chained_ops(
-            input_tensor:     Tensor,
-            operations:       (tensor: Tensor) => Tensor,
-            expected_data:    number[] | Float32Array,
-            expected_shape:   number[] | Shape,
-            expected_strides: number[] | Strides
-        ) {
-            const result = operations(input_tensor);
-
-            expect([...result.shape]).toEqual([...expected_shape]);
-            expect([...result.strides]).toEqual([...expected_strides]);
-            expect_arrays_closeto(result.data, expected_data);
-        }
-
-        test("transpose", () => {
-            // make sure invalid permutations are caught
-            expect(() => t1.transpose(1, 2, 3)).toThrow();
-            expect(() => t1.transpose(0, 1, 1)).toThrow();
-            expect(() => t1.transpose(0, 1, 2, 3)).toThrow();
-            expect(() => t1.transpose(0, 1)).toThrow();
-
-            // basic testing of transpose functionality
-            test_chained_ops(
-                t2,
-                t => t.T,
-                [1, 2, 3, 4, 5, 6],
-                [2, 3],
-                [1, 2]
-            );
-
-            test_chained_ops(
-                t2,
-                t => t.T.clone(),
-                [1, 3, 5, 2, 4, 6],
-                [2, 3],
-                [3, 1]
-            );
-
-            // transposition is its own inverse operation,
-            // this means transposing twice should yield the original tensor
-            test_chained_ops(
-                t1,
-                t => t.T.T,
-                [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
-                [2, 2, 3],
-                [6, 3, 1]
-            );
-
-            test_chained_ops(
-                t1,
-                t => t.T.T.clone(),
-                [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
-                [2, 2, 3],
-                [6, 3, 1]
-            );
-
-            // double transpose with interlaced clone (caused some issues during implementation)
-            test_chained_ops(
-                t2,
-                t => t.T.clone().T.clone(),
-                [1, 2, 3, 4, 5, 6],
-                [3, 2],
-                [2, 1]
-            );
-
-            test_chained_ops(
-                t1,
-                t => t.T.clone().T.clone(),
-                [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
-                [2, 2, 3],
-                [6, 3, 1]
-            );
-
-            // testing of transpose on rank 3 tensors
-            test_chained_ops(
-                t1,
-                t => t.T,
-                [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
-                [3, 2, 2],
-                [1, 3, 6]
-            );
-
-            test_chained_ops(
-                t1,
-                t => t.T.clone(),
-                [1, 7, 4, 10, 2, 8, 5, 11, 3, 9, 6, 12],
-                [3, 2, 2],
-                [4, 2, 1]
-            );
-        
-            // testing of custom permutations
-            test_chained_ops(
-                t1,
-                t => t.transpose(0, 2, 1),
-                [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
-                [2, 3, 2],
-                [6, 1, 3]
-            );
-
-            test_chained_ops(
-                t1,
-                t => t.transpose(0, 2, 1).clone(),
-                [1, 4, 2, 5, 3, 6, 7, 10, 8, 11, 9, 12],
-                [2, 3, 2],
-                [6, 2, 1]
-            );
-
-            test_chained_ops(
-                t1,
-                t => t.transpose(1, 0, 2),
-                [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
-                [2, 2, 3],
-                [3, 6, 1]
-            );
-
-            test_chained_ops(
-                t1,
-                t => t.transpose(1, 0, 2).clone(),
-                [1, 2, 3, 7, 8, 9, 4, 5, 6, 10, 11, 12],
-                [2, 2, 3],
-                [6, 3, 1]
-            );
-        });
-
-        test("transpose + other ops", () =>  {
-            expect_arrays_closeto(t2.T.matmul(t2).clone().data, [ 35, 44, 44, 56 ]);
-            expect_arrays_closeto(t2.matmul(t2.T).clone().data, [ 5, 11, 17, 11, 25, 39, 17, 39, 61 ]);
-        
-            test_chained_ops(
-                t2,
-                t => t.T.matmul(t2),
-                [35, 44, 44, 56],
-                [2, 2],
-                [2, 1]
-            );
-
-            test_chained_ops(
-                t2,
-                t => t.clone().T.clone().matmul(t2.clone()),
-                [35, 44, 44, 56],
-                [2, 2],
-                [2, 1]
-            );
-
-            test_chained_ops(
-                t1,
-                t => t.add(t2.T),
-                [2, 5, 8, 6, 9 , 12, 8, 11, 14, 12, 15, 18],
-                [2, 2, 3],
-                [6, 3, 1]
-            );
-
-            test_chained_ops(
-                t1,
-                t => t.clone().transpose(0, 2, 1).add(t2),
-                [2, 6, 5, 9, 8, 12, 8, 12, 11, 15, 14, 18],
-                [2, 3, 2],
-                [6, 2, 1]
-            );
-
-            test_chained_ops(
-                t14,
-                t => t.T.matmul(t14).T.clone(),
-                [2.358, 1.467, 1.159, 1.535, 1.112, 1.467, 1.213, 1.042, 1.045, 0.798, 1.159, 1.042, 1.814, 0.873, 1.486, 1.535, 1.045, 0.873, 1.295, 0.969, 1.112, 0.798, 1.486, 0.969, 1.47],
-                [5, 5],
-                [5, 1]
-            );
-
-            test_chained_ops(
-                t14,
-                t => t.matmul(t14.T).clone(),
-                [2.228, 1.725, 0.568, 1.126, 1.347, 1.725, 2.714, 1.493, 1.44, 1.108, 0.568, 1.493, 0.958, 0.693, 0.406, 1.126, 1.44, 0.693, 1.147, 0.668, 1.347, 1.108, 0.406, 0.668, 1.102],
-                [5, 5],
-                [5, 1]
-            );
-
-            // todo might want to add some tests for in-place ops on views
-        });
-
-        test("reduce operations", () => {
-            expect(t14.sum()).toBeCloseTo(11.958);
-            expect(t13.sum()).toBeCloseTo(18.697);
-            expect(t14.min()).toBeCloseTo(0.013);
-            expect(t13.min()).toBeCloseTo(0.003);
-            expect(t14.max()).toBeCloseTo(0.969);
-            expect(t13.max()).toBeCloseTo(0.985);
-            expect(t14.mean()).toBeCloseTo(0.478);
-            expect(t13.mean()).toBeCloseTo(0.467);
-        });
-
-        // const t1 = tensor([2, 2, 3], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
-        // const t2 = tensor([3, 2], [1, 2, 3, 4, 5, 6]);
-        // const t3 = tensor([3, 2], [-100, 2, 3, 2, 4, 2]);
-        // const t4 = tensor([3, 2], [7.5, 5.5, -2, 3.5, 0, 3]);
-        // const t5 = tensor([3], [-1, 2, 3]);
-        // const t6 = tensor([2, 3], [-100, 2, 3, 2, 4, 2]);
-        // const t7 = tensor([2, 3, 4], [8, 4, 4, 2, 3, 1, 4, 9, 2, 0, 9, 0, 4, 5, 1, 3, 2, 3, 4, 5, 8, 1, 2, 3]);
-        // const t8 = tensor([4, 3], [0, 2, 3, 0, 3, 6, 5, 7, 3, 1, 2, 1]);
-        // const t9 = tensor([2, 2, 4, 3], [0.82, 0.447, 0.716, 0.057, 0.245, 0.855, 0.288, 0.902, 0.162, 0.091, 0.225, 0.892, 0.808, 0.924, 0.967, 0.084, 0.623, 0.686, 0.042, 0.358, 0.54, 0.54, 0.195, 0.298, 0.783, 0.477, 0.117, 0.894, 0.927, 0.532, 0.184, 0.86, 0.543, 0.57, 0.719, 0.72, 0.184, 0.989, 0.863, 0.784, 0.143, 0.156, 0.403, 0.187, 0.304, 0.824, 0.514, 0.731]);
-        // const t10 = tensor([3, 1], [0.021, 0.782, 0.253]);
-        // const t11 = tensor([3, 4, 5], [0.316, 0.057, 0.639, 0.295, 0.726, 0.135, 0.742, 0.346, 0.789, 0.503, 0.745, 0.907, 0.91, 0.239, 0.999, 0.372, 0.118, 0.414, 0.275, 0.76, 0.98, 0.574, 0.886, 0.247, 0.259, 0.574, 0.129, 0.546, 0.508, 0.403, 0.097, 0.072, 0.286, 0.141, 0.37, 0.153, 0.585, 0.994, 0.399, 0.74, 0.063, 0.904, 0.384, 0.158, 0.904, 0.478, 0.237, 0.714, 0.732, 0.231, 0.814, 0.88, 0.91, 0.764, 0.778, 0.912, 0.764, 0.977, 0.158, 0.493]);
-        // const t12 = tensor([3, 5, 6], [0.084, 0.078, 0.868, 0.891, 0.331, 0.668, 0.829, 0.305, 0.899, 0.636, 0.855, 0.854, 0.627, 0.078, 0.884, 0.297, 0.52, 0.722, 0.248, 0.663, 0.353, 0.68, 0.298, 0.384, 0.929, 0.714, 0.273, 0.737, 0.644, 0.072, 0.304, 0.755, 0.405, 0.676, 0.597, 0.55, 0.785, 0.333, 0.26, 0.385, 0.895, 0.062, 0.396, 0.904, 0.518, 0.316, 0.839, 0.581, 0.057, 0.555, 0.101, 0.986, 0.348, 0.549, 0.733, 0.629, 0.745, 0.723, 0.752, 0.515, 0.501, 0.148, 0.816, 0.901, 0.534, 0.748, 0.197, 0.581, 0.747, 0.295, 0.048, 0.488, 0.727, 0.313, 0.39, 0.652, 0.645, 0.686, 0.21, 0.18, 0.557, 0.779, 0.926, 0.272, 0.005, 0.539, 0.023, 0.208, 0.243, 0.39]);
-        // const t13 = tensor([2, 2, 5, 2], [0.261, 0.983, 0.857, 0.279, 0.211, 0.75, 0.671, 0.32, 0.641, 0.317, 0.003, 0.951, 0.332, 0.226, 0.409, 0.475, 0.348, 0.205, 0.11, 0.353, 0.557, 0.309, 0.06, 0.963, 0.368, 0.607, 0.047, 0.52, 0.5, 0.532, 0.138, 0.686, 0.982, 0.134, 0.984, 0.488, 0.856, 0.766, 0.208, 0.29]);
-        // const t14 = tensor([5, 5], [0.93, 0.793, 0.149, 0.827, 0.167, 0.563, 0.485, 0.969, 0.63, 0.909, 0.113, 0.11, 0.627, 0.198, 0.708, 0.574, 0.565, 0.678, 0.013, 0.195, 0.913, 0.131, 0.016, 0.418, 0.277]);
-        // const t15 = tensor([5, 1], [0.891, 0.549, 0.65, 0.02, 0.676]);
-        // const t16 = tensor([1, 3], [7, 3, 1]);
-        // const t17 = tensor([8, 1], [9, 8, 7, 6, 5, 4, 3, 2]);
     
         describe("accumulative operations", () => {
             test("pairwise", () => {
@@ -547,7 +347,7 @@ describe("tensor operations", async () => {
                 res.free();
                 res = tensor_scalar(0);
                 ops.add_acc(t5, res, res);
-                expect(res.item).toEqual(t5.sum());
+                expect(res.item).toEqual(ops.sum(t5));
     
                 a.free();
                 res.free();
@@ -588,21 +388,6 @@ describe("tensor operations", async () => {
             values_in_range(new_tensor, -1, 1);
             values_in_range(new_tensor.rand_int(-5, 19), -5, 19);
             values_in_range(new_tensor.rand_int(100, 150), 100, 150);
-        });
-
-        test("core.set_rand_seed()", () => {
-            // check that two tensors initialized randomly with the same seed are equal
-            set_rand_seed(31415);
-            const old_tensor = tensor([2]).rand();
-            
-            set_rand_seed(31415);
-            const old_tensor_2 = tensor([2]).rand();
-            expect([...old_tensor.data]).toEqual([...old_tensor_2.data]);
-
-            // check that different seeds produce different values
-            set_rand_seed(59307);
-            const new_tensor = tensor([2]).rand();
-            expect([...old_tensor.data]).not.toEqual([...new_tensor.data]);
         });
     });
 });

@@ -38,9 +38,6 @@
         "semi": [
             "error",
             "always"
-        ],
-        "no-extra-semi": [
-            "no"
         ]
     }
 }

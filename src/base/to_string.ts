@@ -1,4 +1,5 @@
 import { Tensor } from "./Tensor";
+import {max, min} from "./tensor_operations.ts";
 
 // usability methods
 export default function tensor_to_string(a: Tensor, num_width = 5, space_before = 0) {   
@@ -20,7 +21,7 @@ export default function tensor_to_string(a: Tensor, num_width = 5, space_before 
 function vec_to_string(vec: Tensor, n_decimals: number) {
     if (vec.is_scalar) return `[ ${(vec.item | 0) === vec.item ? vec.item.toString() : vec.item.toFixed(n_decimals)} ]`;
 
-    const n_integer = Math.floor(vec.max()).toString().length;
+    const n_integer = Math.floor(max(vec)).toString().length;
     const cols = vec.cols;
     const col_stride = vec.strides[0];
     const offset = vec.offset;
@@ -41,7 +42,7 @@ function vec_to_string(vec: Tensor, n_decimals: number) {
 
 function mat_to_string(mat: Tensor, n_decimals: number, space_before: number) {
     // amount of digits in the integer part of the largest number
-    const n_integer = Math.floor(mat.max()).toString().length;
+    const n_integer = Math.floor(max(mat)).toString().length;
     const lines: string[] = [];
     const cols = mat.cols;
     const rows = mat.rows;
@@ -60,7 +61,7 @@ function mat_to_string(mat: Tensor, n_decimals: number, space_before: number) {
     }
 
     const max_length = n_integer + 1 + (only_integers ? 0 : n_decimals);
-    const has_negative_vals = mat.min() < 0;
+    const has_negative_vals = min(mat) < 0;
 
     for (let r = 0; r < rows; r++) {
         const vals: string[] = [];

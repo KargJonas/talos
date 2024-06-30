@@ -5,13 +5,12 @@ import { get_row_major } from "./util";
 import tensor_to_string from "./to_string";
 import { ordinal_str } from "./util";
 import * as ops from "./tensor_operations.ts";
-import ITensor from "./ITensor.ts";
 
 enum  STRUCT_LAYOUT { DATA, SHAPE, STRIDES, RANK, NELEM, NDATA, OFFSET, SIZE, ISVIEW }
 const STRUCT_SIZE = Object.entries(STRUCT_LAYOUT).length / 2;
 
-export class Tensor implements ITensor<Tensor> {
-    private view: Int32Array;
+export class Tensor {
+    private readonly view: Int32Array;
     data: Float32Array; // todo: should be private probably
     shape: Shape;
     strides: Strides;
@@ -23,8 +22,6 @@ export class Tensor implements ITensor<Tensor> {
         this.strides = new Strides(new Int32Array(core.memory.buffer, this.strides_ptr, this.rank), true);
         this.data    = new Float32Array(core.memory.buffer, this.data_ptr, this.ndata);
     }
-
-    public set_offset   = (offset: number) => this.view[STRUCT_LAYOUT.OFFSET] = offset;
 
     public get rank()           {  return this.view[STRUCT_LAYOUT.RANK]; }
     public get nelem()          { return this.view[STRUCT_LAYOUT.NELEM]; }
@@ -110,51 +107,9 @@ export class Tensor implements ITensor<Tensor> {
     // metadata operations
     public transpose  = (...permutation: number[]) => ops.transpose(this, permutation);
 
-    // unary operations
-    public relu       = (in_place = false) => ops.relu(this, in_place ? this : undefined);
-    public binstep    = (in_place = false) => ops.binstep(this, in_place ? this : undefined);
-    public logistic   = (in_place = false) => ops.logistic(this, in_place ? this : undefined);
-    public negate     = (in_place = false) => ops.negate(this, in_place ? this : undefined);
-    public sin        = (in_place = false) => ops.sin(this, in_place ? this : undefined);
-    public cos        = (in_place = false) => ops.cos(this, in_place ? this : undefined);
-    public tan        = (in_place = false) => ops.tan(this, in_place ? this : undefined);
-    public asin       = (in_place = false) => ops.asin(this, in_place ? this : undefined);
-    public acos       = (in_place = false) => ops.acos(this, in_place ? this : undefined);
-    public atan       = (in_place = false) => ops.atan(this, in_place ? this : undefined);
-    public sinh       = (in_place = false) => ops.sinh(this, in_place ? this : undefined);
-    public cosh       = (in_place = false) => ops.cosh(this, in_place ? this : undefined);
-    public tanh       = (in_place = false) => ops.tanh(this, in_place ? this : undefined);
-    public exp        = (in_place = false) => ops.exp(this, in_place ? this : undefined);
-    public log        = (in_place = false) => ops.log(this, in_place ? this : undefined);
-    public log10      = (in_place = false) => ops.log10(this, in_place ? this : undefined);
-    public log2       = (in_place = false) => ops.log2(this, in_place ? this : undefined);
-    public invsqrt    = (in_place = false) => ops.invsqrt(this, in_place ? this : undefined); // careful - negative input values will produce Infinity, not NaN
-    public sqrt       = (in_place = false) => ops.sqrt(this, in_place ? this : undefined);
-    public ceil       = (in_place = false) => ops.ceil(this, in_place ? this : undefined);
-    public floor      = (in_place = false) => ops.floor(this, in_place ? this : undefined);
-    public abs        = (in_place = false) => ops.abs(this, in_place ? this : undefined);
-    public reciprocal = (in_place = false) => ops.reciprocal(this, in_place ? this : undefined);
-
-    // binary operations
-    public add        = (other: Tensor | number, in_place = false) => ops.add(this, other, in_place ? this : undefined);
-    public sub        = (other: Tensor | number, in_place = false) => ops.sub(this, other, in_place ? this : undefined);
-    public mul        = (other: Tensor | number, in_place = false) => ops.mul(this, other, in_place ? this : undefined);
-    public div        = (other: Tensor | number, in_place = false) => ops.div(this, other, in_place ? this : undefined);
-    public pow        = (other: Tensor | number, in_place = false) => ops.pow(this, other, in_place ? this : undefined);
-    public dot        = (other: Tensor) => ops.dot(this, other);
-    public matmul     = (other: Tensor) => ops.matmul(this, other);
-
-    // reduce operations
-    public min  = (): number => ops.min(this);
-    public max  = (): number => ops.max(this);
-    public sum  = (): number => ops.sum(this);
-    public mean = (): number => ops.mean(this);
-
     // Returns the value of the tensor as a scalar if the tensor only has one element
     public get item() {
-        if (this.nelem !== 1)
-            throw new Error("Tensor.item is only valid on scalar tensors.");
-
+        if (this.nelem !== 1) throw new Error("Tensor.item is only valid on scalar tensors.");
         return this.data[this.offset];
     }
 
