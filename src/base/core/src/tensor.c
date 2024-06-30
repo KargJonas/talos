@@ -69,6 +69,7 @@ void free_tensor(struct tensor_t* a) {
     free(a);
 
     mgmt.allocated -= a->size;
+    mgmt.ntensors--;
 }
 
 /**
@@ -127,5 +128,7 @@ void clone_tensor(struct tensor_t* source, struct tensor_t* dest) {
 
     dest->offset = 0;
     set_row_major(dest);
-}
 
+    mgmt.allocated += dest->size;
+    mgmt.ntensors++;
+}

@@ -100,20 +100,10 @@ export class Mul extends CompGraphNode {
         const b = this.parents[1];
 
         // d/da (a*b) = b
-        if (a.grad) {
-            // ops.mul(b.value, this.grad, this.interim);
-            // ops.add_grad(this.interim, a.grad, a.grad);
-
-            // a.grad += this.grad * b.value
-            ops.mul_acc(this.grad, b.value, a.grad);
-        }
+        if (a.grad) ops.mul_acc(this.grad, b.value, a.grad);
 
         // d/db (a*b) = a
-        if (b.grad) {
-            // ops.mul(a.value, this.grad, this.interim);
-            // ops.add_acc(this.interim, b.grad, b.grad);
-            ops.mul_acc(this.grad, a.value, b.grad);
-        }
+        if (b.grad) ops.mul_acc(this.grad, a.value, b.grad);
     }
 }
 
@@ -264,7 +254,6 @@ export class MseLoss extends CompGraphNode {
         const target = this.parents[1].value;
 
         // todo: for perf optimizations, this could be moved to the core as a single operation
-        // compute MSE loss: (prediction - target)^2 / N and store result this.difference
         ops.sub(prediction, target, this.interim);
         ops.pow(this.interim, 2, this.interim);
         this.value.fill(ops.mean(this.interim));
@@ -274,11 +263,17 @@ export class MseLoss extends CompGraphNode {
         const prediction = this.parents[0];
         const target = this.parents[1];
 
+        if (!prediction.grad && !target.grad) return;
+        ops.sub(prediction.value, target.value, this.interim);
+
         if (prediction.grad) {
-            // gradient of MSE loss w.r.t. prediction: 2 * (prediction - target) / N
-            ops.sub(prediction.value, target.value, this.grad);
-            ops.mul(this.grad, 2 / prediction.value.size, this.grad);
-            ops.add(prediction.grad, this.grad, prediction.grad);
+            // gradient of MSE loss w.r.t. prediction: 2 * (prediction - target) / N       
+            ops.mul_acc(this.interim, 2 / prediction.value.size, prediction.grad);
+        }
+
+        // todo fix: no need to to this twice
+        if (target.grad) {
+            ops.mul_acc(this.interim, -2 / prediction.value.size, target.grad);
         }
     }
 }

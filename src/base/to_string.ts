@@ -18,7 +18,7 @@ export default function tensor_to_string(a: Tensor, num_width = 5, space_before 
 }
 
 function vec_to_string(vec: Tensor, n_decimals: number) {
-    if (vec.shape[0] === 1) return `[ ${vec.data[vec.offset]} ]`;
+    if (vec.is_scalar) return `[ ${(vec.item | 0) === vec.item ? vec.item.toString() : vec.item.toFixed(n_decimals)} ]`;
 
     const n_integer = Math.floor(vec.max()).toString().length;
     const cols = vec.cols;
@@ -60,6 +60,7 @@ function mat_to_string(mat: Tensor, n_decimals: number, space_before: number) {
     }
 
     const max_length = n_integer + 1 + (only_integers ? 0 : n_decimals);
+    const has_negative_vals = mat.min() < 0;
 
     for (let r = 0; r < rows; r++) {
         const vals: string[] = [];
@@ -67,7 +68,7 @@ function mat_to_string(mat: Tensor, n_decimals: number, space_before: number) {
         for (let c = 0; c < cols; c++) {
             const index = offset + r * row_stride + c * col_stride;
             const val = Math.floor(mat.data[index] * exp) / exp;
-            const str = val.toString();
+            const str = (val >= 0 && has_negative_vals ? " " : "") + val.toString();
             const separator = c < cols - 1 ? ", " : "";
             const padding_right = " ".repeat(Math.max(0, max_length - str.length));
 
@@ -76,7 +77,7 @@ function mat_to_string(mat: Tensor, n_decimals: number, space_before: number) {
 
         const padding_left = r !== 0 ? " ".repeat(space_before) : "";
         // lines.push(`${padding_left}[ ${vals.join(", ")} ]`);
-        lines.push(`${padding_left}[ ${vals.join("")}]`);
+        lines.push(`${padding_left}[ ${vals.join("")}]`); // todo fix missing space before closing brace
     }
 
     return `[${lines.join("\n ")}]`;

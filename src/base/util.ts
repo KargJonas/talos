@@ -3,16 +3,6 @@ import core from "./core/build";
 
 export const set_rand_seed = (n: number) => core._rand_seed(n);
 
-export function create_farr(nelem: number): Float32Array {
-    const ptr = core._alloc_farr(nelem);
-    return new Float32Array(core.memory.buffer, ptr, nelem);
-}
-
-export function create_starr(nelem: number): Int32Array {
-    const ptr = core._alloc_starr(nelem);
-    return new Int32Array(core.memory.buffer, ptr, nelem);
-}
-
 export function check_row_col_compat(a: Tensor, b: Tensor) {
     if (a.cols !== b.rows)
         throw new Error(`Cannot multiply tensors of shape [${a.shape}] and [${b.shape}]`);

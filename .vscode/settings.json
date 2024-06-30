@@ -19,5 +19,6 @@
         "debroadcasting",
         "emscripten",
         "Relu"
-    ]
+    ],
+    "todo-tree.tree.showCountsInTree": true
 }

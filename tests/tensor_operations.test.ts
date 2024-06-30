@@ -547,7 +547,7 @@ describe("tensor operations", async () => {
                 res.free();
                 res = tensor_scalar(0);
                 ops.add_acc(t5, res, res);
-                expect(res.item()).toEqual(t5.sum());
+                expect(res.item).toEqual(t5.sum());
     
                 a.free();
                 res.free();

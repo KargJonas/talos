@@ -6,7 +6,7 @@ import ITensor from "./base/ITensor.ts";
 
 type OperationClass<T> = new (parents: CompGraphNode[]) => T;
 
-export default abstract class CompGraphNode /* implements ITensor<CompGraphNode> */ {
+export default abstract class CompGraphNode implements ITensor<CompGraphNode> {
     // State of the node
     abstract value: Tensor;
     grad?: Tensor = undefined;
@@ -15,8 +15,12 @@ export default abstract class CompGraphNode /* implements ITensor<CompGraphNode>
     readonly parents: CompGraphNode[];
     readonly children: CompGraphNode[];
 
-    fw() {}
-    bw() {}
+    public get rank()           { return this.value.rank; }
+    public get nelem()          { return this.value.nelem; }
+    public get size()           { return this.value.size; }
+    public get rows()           { return this.value.get_axis_size(this.rank - 2); }
+    public get cols()           { return this.value.get_axis_size(this.rank - 1); }
+    public get_axis_size = (axis_index: number) => this.value.get_axis_size(axis_index);
 
     constructor(parents: CompGraphNode[]) {
         this.parents = parents;
@@ -25,9 +29,15 @@ export default abstract class CompGraphNode /* implements ITensor<CompGraphNode>
         // value is initialized in extending classes
     }
 
-    zero_grad = () => this.grad?.zeros();
+    fw() {} // forward
+    bw() {} // backward
 
-    print = () => this.value.print();
+    public zero_grad() {
+        this.grad?.zeros();
+        return this;
+    }
+
+    print = (precision?: number) => this.value.print(precision);
     print_info = () => this.value.print_info();
 
     print_grad = () => {

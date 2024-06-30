@@ -44,8 +44,8 @@ export class Tensor implements ITensor<Tensor> {
         return this.view.byteOffset;
     }
 
-    public toString = () => tensor_to_string(this);
-    public print = () => console.log(tensor_to_string(this) + "\n---");
+    public toString = (precision?: number) => tensor_to_string(this, precision);
+    public print = (precision?: number) => console.log(tensor_to_string(this, precision) + "\n---");
     public print_info(title: string = "TENSOR INFO") {
         const max_entries = 16;
         const precision = 3;
@@ -151,9 +151,9 @@ export class Tensor implements ITensor<Tensor> {
     public mean = (): number => ops.mean(this);
 
     // Returns the value of the tensor as a scalar if the tensor only has one element
-    public item() {
+    public get item() {
         if (this.nelem !== 1)
-            throw new Error("Tensor.item() may only be called on scalar tensors.");
+            throw new Error("Tensor.item is only valid on scalar tensors.");
 
         return this.data[this.offset];
     }

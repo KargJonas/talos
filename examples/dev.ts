@@ -2,9 +2,11 @@
  * This file is used for validation and debugging during development. 
  */
 
-import {core_ready, tensor} from "../index";
+import {Tensor, core_ready, tensor} from "../index";
 import {parameter_node, source_node} from "../src/node_factory.ts";
-import {mul_acc} from "../src/base/tensor_operations.ts";
+import {add, mul_acc, sub} from "../src/base/tensor_operations.ts";
+import { get_total_allocated } from "../src/base/Management.ts";
+import { tensor_scalar } from "../src/base/Tensor.ts";
 
 // if your runtime does not support top-level await,
 // you'll have to use core_ready.then(() => { ... }) instead
@@ -13,13 +15,18 @@ await core_ready;
 console.log("\nRunning SGD demo...\n");
 
 // Input and target tensors
-const weight = parameter_node(tensor([30]).rand(), true);
-const bias = parameter_node(tensor([30]).rand(), true);
-const input = tensor([30]).rand();  // random but constant "input data"
-const target = tensor([30]).rand(); // random but constant target/label
+const weight = parameter_node(tensor([3]).rand(), true);
+const bias = parameter_node(tensor([3]).rand(), true);
+const input = tensor([3]).rand();  // random but constant "input data"
+const target = tensor([3]).rand(); // random but constant target/label
+
+// const weight = parameter_node(tensor([3], [6, 2, 8]), true);
+// const bias = parameter_node(tensor([3], [0, 0, 0]), true);
+// const input = tensor([3], [2, -3, 9]);  // random but constant "input data"
+// const target = tensor([3], [23, 2, -3]); // random but constant target/label
 
 // Create a source node for input
-const a = source_node([30], () => input);
+const a = source_node([3], () => input);
 
 // Modify the computation graph to include the weight
 const nn = a.mul(weight).add(bias).mse_loss(target);
@@ -30,7 +37,7 @@ const nn = a.mul(weight).add(bias).mse_loss(target);
 const graph = nn.get_computation_graph();
 
 // Define learning rate
-const learningRate = 10;
+const learningRate = .01;
 
 console.time();
 
@@ -41,17 +48,21 @@ for (let epoch = 0; epoch < 30; epoch++) {
     graph.backward();
 
     // Print loss value
-    console.log(`Epoch ${epoch + 1}: Loss = ${graph.outputs[0].value.toString()}`);
+    console.log(`\x1b[35m[${get_total_allocated()} Bytes]\x1b[0m Epoch ${epoch + 1}: Loss = ${graph.outputs[0].value.toString()}`);
+
+    // nn.grad?.print(10);
 
     // Update weights using SGD
     mul_acc(weight.grad!, -learningRate, weight.value);
     mul_acc(bias.grad!, -learningRate, bias.value);
+
+    // print_memory_status();
 }
 
-console.write("\n\nTraining completed in: ");
+console.write("\nTraining completed in: ");
 console.timeEnd();
 console.log(`  Weight value: ${weight.value.toString()}`);
-// console.log(`  Weight grad:  ${weight.grad!.toString()}`);
+console.log(`  Weight grad:  ${weight.grad!.toString()}`);
 
 
 // const dataset_x_0: Tensor = tensor([50, 4, 4]).zeros();    // 50 "images" of size 4x4
