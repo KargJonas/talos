@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { RawTensor } from "../src/base/RawTensor.ts";
 import Shape from "../src/base/Shape";
-import * as ops from "../src/base/tensor_operations.ts";
+import * as ops from "../src/base/raw_tensor_operations.ts";
 import { core_ready } from "../src/base/Management";
 
 // todo:
@@ -62,7 +62,7 @@ describe("tensor operations", async () => {
         let t = a.clone();
 
         // // @ts-expect-error Incompatibility between type of b. Ugly to fix. Guaranteed to work anyways.
-        // todo: fix underlying type issue: should distinguish between binary ops that take tensors and ones that take scalars in tensor_operations.ts
+        // todo: fix underlying type issue: should distinguish between binary ops that take tensors and ones that take scalars in raw_tensor_operations.ts
         t = binary_op(t, b, in_place ? t : undefined);
         expect([...t.shape]).toEqual([...expected_shape]);
 

@@ -2,10 +2,10 @@
  * This file is used for validation and debugging during development. 
  */
 
-import { RawTensor, core_ready } from "../index";
-import { parameter_node, source_node } from "../src/node_factory.ts";
+import { core_ready } from "../index";
+import { tensor } from "../src/node_factory.ts";
 import { get_total_allocated } from "../src/base/Management.ts";
-import { mul_acc } from "../src/base/tensor_operations.ts";
+import { mul_acc } from "../src/base/raw_tensor_operations.ts";
 
 // if your runtime does not support top-level await,
 // you'll have to use core_ready.then(() => { ... }) instead
@@ -14,29 +14,35 @@ await core_ready;
 console.log("\nRunning SGD demo...\n");
 
 // Input and target tensors
-const weight = parameter_node(RawTensor.create([3]).rand(), true);
-const bias = parameter_node(RawTensor.create([3]).rand(), true);
-const input = RawTensor.create([3]).rand();  // random but constant "input data"
-const target = RawTensor.create([3]).rand(); // random but constant target/label
+
+// const weight = parameter_node(RawTensor.create([3]).rand(), true);
+// const bias = parameter_node(RawTensor.create([3]).rand(), true);
+// const input = RawTensor.create([3]).rand();  // random but constant "input data"
+// const target = RawTensor.create([3]).rand(); // random but constant target/label
 
 // const weight = parameter_node(RawTensor.create([3], [6, 2, 8]), true);
 // const bias = parameter_node(RawTensor.create([3], [0, 0, 0]), true);
 // const input = RawTensor.create([3], [2, -3, 9]);  // random but constant "input data"
 // const target = RawTensor.create([3], [23, 2, -3]); // random but constant target/label
 
+const weight = tensor([3], true).rand();
+const bias   = tensor([3], true).rand();
+const input  = tensor([3]).rand();
+const target = tensor([3]).rand();
+
 // Create a source node for input
-const a = source_node([3], () => input);
+// const a = source_node([3], () => input);
 
 // Modify the computation graph to include the weight
-const nn = a.mul(weight).add(bias).mse_loss(target);
+const nn = input.mul(weight).add(bias).mse_loss(target);
 
 // this is identical to mse_loss
 // const nn = a.mul(weight).sub(target).pow(2).mean();
 
-const graph = nn.get_computation_graph();
+const graph = nn.graph;
 
 // Define learning rate
-const learningRate = .01;
+const learningRate = 10;
 
 console.time();
 

@@ -6,26 +6,26 @@ export default interface ITensor<TensorType> {
     cols: number;
 
     get_axis_size: (axis_index: number) => number;
-
+    
     print: () => void;
     print_info: (title: string) => void;
-
-    get_axis_iterable: (n: number) => Generator<TensorType>;
-
-    // init operations
+    
+    // get_axis_iterable: (n: number) => Generator<TensorType>;
+    //
+    // // init operations
     zeros: () => TensorType;
     ones: () => TensorType;
-    clone: () => TensorType;
+    // clone: () => TensorType;
     rand: (min: number, max: number) => TensorType;
     rand_int: (min: number, max: number) => TensorType;
     fill: (value: number) => TensorType;
-
-    // memory dealloc operation
-    free: () => void;
-
-    // view operations
-    create_view: (axis: number, offset: number) => TensorType;
-    transpose: (...permutation: number[]) => TensorType;
+    //
+    // // memory dealloc operation
+    // free: () => void;
+    //
+    // // view operations
+    // create_view: (axis: number, offset: number) => TensorType;
+    // transpose: (...permutation: number[]) => TensorType;
 
     // unary operations
     relu:       () => TensorType;
@@ -68,7 +68,7 @@ export default interface ITensor<TensorType> {
     mean: () => TensorType;
 
     // operation shorthands
-    readonly T: TensorType;
+    // readonly T: TensorType;
 
-    [Symbol.iterator](): Iterator<TensorType>;
+    // [Symbol.iterator](): Iterator<TensorType>;
 }

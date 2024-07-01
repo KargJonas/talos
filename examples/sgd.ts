@@ -1,6 +1,6 @@
 import { RawTensor, core_ready } from "../index";
 import { parameter_node, source_node } from "../src/node_factory.ts";
-import { mul_acc } from "../src/base/tensor_operations.ts";
+import { mul_acc } from "../src/base/raw_tensor_operations.ts";
 
 // if your runtime does not support top-level await,
 // you'll have to use core_ready.then(() => { ... }) instead

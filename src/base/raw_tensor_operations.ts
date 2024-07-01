@@ -105,7 +105,7 @@ export const clone = (src: RawTensor, dest?: RawTensor) => {
     return result;
 };
 
-function get_shape_matmul(a: RawTensor, b: RawTensor): Shape {
+export function get_shape_matmul(a: RawTensor, b: RawTensor): Shape {
     check_row_col_compat(a, b);
 
     // flatten tensors to a "list of matrices" and get the size of that list
@@ -145,7 +145,7 @@ export const matmul: BinaryOp<RawTensor> = (src_a: RawTensor, src_b: RawTensor, 
     return result;
 };
 
-function get_shape_dot(a: RawTensor, b: RawTensor): Shape {
+export function get_shape_dot(a: RawTensor, b: RawTensor): Shape {
     check_row_col_compat(a, b);
 
     const result_shape = new Shape([

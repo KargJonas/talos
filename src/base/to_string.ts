@@ -1,5 +1,5 @@
 import { RawTensor } from "./RawTensor.ts";
-import { max, min } from "./tensor_operations.ts";
+import { max, min } from "./raw_tensor_operations.ts";
 
 // usability methods
 export default function tensor_to_string(a: RawTensor, num_width = 5, space_before = 0) {
@@ -19,7 +19,12 @@ export default function tensor_to_string(a: RawTensor, num_width = 5, space_befo
 }
 
 function vec_to_string(vec: RawTensor, n_decimals: number) {
-    if (vec.is_scalar) return `[ ${(vec.item | 0) === vec.item ? vec.item.toString() : vec.item.toFixed(n_decimals)} ]`;
+    // todo: make this configurable
+    // if (vec.is_scalar) return `[ ${(vec.item | 0) === vec.item ? vec.item.toString() : vec.item.toFixed(n_decimals)} ]`;
+    if (vec.is_scalar) {
+        const exp = Math.log10(vec.item) | 0;
+        return `[ ${(exp < 4 - n_decimals || exp > 21) ? vec.item.toExponential(n_decimals) : vec.item.toFixed(n_decimals)} ]`;
+    }
 
     const n_integer = Math.floor(max(vec)).toString().length;
     const cols = vec.cols;

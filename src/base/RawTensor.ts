@@ -4,7 +4,7 @@ import core from "./core/build";
 import tensor_to_string, {tensor_info_to_string} from "./to_string";
 import { get_row_major } from "./util";
 import { ordinal_str } from "./util";
-import * as ops from "./tensor_operations.ts";
+import * as ops from "./raw_tensor_operations.ts";
 
 enum  STRUCT_LAYOUT { DATA, SHAPE, STRIDES, RANK, NELEM, NDATA, OFFSET, SIZE, ISVIEW }
 const STRUCT_SIZE = Object.entries(STRUCT_LAYOUT).length / 2;
@@ -114,20 +114,3 @@ export class RawTensor {
         return new_tensor;
     }
 }
-
-// todo:
-//   you left off here.
-//   the next steps should probably be:
-//   - rename ComputationGraphNode to Tensor
-//   - modify topological ordering code to exclude any
-//     paths that lead to outputs that are not the
-//     output node that the graph was created on
-//       note naïve approach where we walk backwards
-//       through the parents starting from the output
-//       might not work
-//   - using this ordering, we can call realize on any
-//   - Tensor.realize() can then be implemented by
-//     finding the topo ordering and then just executing it
-//     the question then: where/when do we run the topo
-//     ordering alg? might not want to do this every time
-//     we call .realize()

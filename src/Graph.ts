@@ -12,7 +12,7 @@ import Tensor from "./Tensor.ts";
  * considering the graph to be non-directed and applying depth-first
  * search. We then filter by the number of children/parents.
  */
-export default class CompGraph {
+export default class Graph {
     inputs: Tensor[];
     outputs: Tensor[];
     all_nodes: Tensor[];
@@ -76,7 +76,6 @@ export default class CompGraph {
     }
 
     backward(): void {
-
         // TODO: Allow different initializations
         // Initialize the gradients of all ouputs to 1
         for (const output of this.outputs) {

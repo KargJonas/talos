@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { add } from "../src/base/tensor_operations";
+import { add } from "../src/base/raw_tensor_operations.ts";
 import { source_node } from "../src/node_factory";
 import { RawTensor } from "../src/base/RawTensor.ts";
 
