@@ -33,22 +33,12 @@ export default abstract class CompGraphNode implements ITensor<CompGraphNode> {
     bw() {} // backward
 
     public zero_grad() {
-        this.grad?.zeros();
+        this.grad?.zeros(); // todo: should we throw?
         return this;
     }
 
     print = (precision?: number) => this.value.print(precision);
     print_info = () => this.value.print_info();
-
-    print_grad = () => {
-        if (this.grad) this.grad.print();
-        else console.log("Tensor has no gradient to print.");
-    };
-
-    print_grad_info = () => {
-        if (this.grad) this.grad.print_info();
-        else console.log("Tensor has no gradient info to print.");
-    };
 
     private create_binary_op<T extends CompGraphNode>(op_class: OperationClass<T>) {
         return (_other: CompGraphNode | RawTensor | number, requires_grad = true) => {

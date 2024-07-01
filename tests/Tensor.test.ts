@@ -110,7 +110,7 @@ describe("tensor creation", async () => {
         new_tensor.free();
     });
 
-    test("Tensor.clone()", () => {
+    test("RawTensor.clone()", () => {
         let old_tensor = RawTensor.create([1, 2, 3, 4], (new Array(1 * 2 * 3 * 4)).fill(1));
         let new_tensor = old_tensor.clone();
 
@@ -132,7 +132,7 @@ describe("tensor creation", async () => {
 
     // basic tests for tensor address space overlaps
     // not really tests for views
-    test("Tensor views/data-dependence", () => {
+    test("RawTensor views/data-dependence", () => {
         const old_tensor = RawTensor.create([1, 2, 3, 4]).zeros();
         const new_tensor = old_tensor.create_view();
 

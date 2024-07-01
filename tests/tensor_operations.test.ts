@@ -366,7 +366,7 @@ describe("tensor operations", async () => {
     // warning - these tests contain nondeterminism and may thus yield
     // different results at different pints in time
     describe("tensor initialization", () => {
-        test("Tensor.rand()", () => {
+        test("RawTensor.rand()", () => {
             // check that the tensor is initialized with *some data*
             const old_tensor = RawTensor.create([100]).rand();
             const new_tensor = old_tensor.clone().rand();
@@ -378,7 +378,7 @@ describe("tensor operations", async () => {
             values_in_range(new_tensor.rand(100.1, 150.7), 100.1, 150.7);
         });
 
-        test("Tensor.rand_int()", () => {
+        test("RawTensor.rand_int()", () => {
             // check that the tensor is initialized with *some data*
             const old_tensor = RawTensor.create([100]).rand_int();
             const new_tensor = old_tensor.clone().rand_int();

@@ -83,3 +83,23 @@ function mat_to_string(mat: RawTensor, n_decimals: number, space_before: number)
 
     return `[${lines.join("\n ")}]`;
 }
+
+export function tensor_info_to_string(a: RawTensor) {
+    const max_entries = 16;
+    const precision = 3;
+    const exp = 10 ** precision;
+    const data = [...a.data.slice(0, max_entries)].map(v => Math.floor(v * exp) / exp);
+
+    return (
+        "TENSOR INFO\n" +
+        `  address: 0x${a.ptr.toString(16)}\n` +
+        `  is view: ${a.isview ? "true" : "false"}\n` +
+        `  shape:   [${a.shape.join(", ")}]\n` +
+        `  strides: [${a.strides.join(", ")}]\n` +
+        `  rank:    ${a.rank}\n` +
+        `  nelem:   ${a.nelem}\n` +
+        `  ndata:   ${a.ndata}\n` +
+        `  size:    ${a.size} bytes\n` +
+        `  offset:  ${a.offset}\n` +
+        `  data: [${data.join(", ")}${a.data.length > max_entries ? ", ..." : ""}]\n`);
+}

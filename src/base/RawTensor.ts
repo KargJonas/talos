@@ -1,8 +1,8 @@
 import Shape from "./Shape";
 import Strides from "./Strides";
 import core from "./core/build";
+import tensor_to_string, {tensor_info_to_string} from "./to_string";
 import { get_row_major } from "./util";
-import tensor_to_string from "./to_string";
 import { ordinal_str } from "./util";
 import * as ops from "./tensor_operations.ts";
 
@@ -16,54 +16,31 @@ export class RawTensor {
     strides: Strides;
 
     constructor(ptr: number) {
-        // set up typed arrays for data access
+        // set up typed arrays for wasm memory access
         this.view = new Int32Array(core.memory.buffer, ptr, STRUCT_SIZE);
         this.shape   = new Shape  (new Int32Array(core.memory.buffer, this.shape_ptr, this.rank), true);
         this.strides = new Strides(new Int32Array(core.memory.buffer, this.strides_ptr, this.rank), true);
         this.data    = new Float32Array(core.memory.buffer, this.data_ptr, this.ndata);
     }
 
-    public get rank()           {  return this.view[STRUCT_LAYOUT.RANK]; }
-    public get nelem()          { return this.view[STRUCT_LAYOUT.NELEM]; }
-    public get offset()         { return this.view[STRUCT_LAYOUT.OFFSET]; }
-    public get ndata()          { return this.view[STRUCT_LAYOUT.NDATA]; }
-    public get size()           { return this.view[STRUCT_LAYOUT.SIZE]; }
-    public get isview()         { return this.view[STRUCT_LAYOUT.ISVIEW]; }
-    public get data_ptr()       { return this.view[STRUCT_LAYOUT.DATA]; }
-    public get shape_ptr()      { return this.view[STRUCT_LAYOUT.SHAPE]; }
-    public get strides_ptr()    { return this.view[STRUCT_LAYOUT.STRIDES]; }
-    public get rows()           { return this.get_axis_size(this.rank - 2); }
-    public get cols()           { return this.get_axis_size(this.rank - 1); }
-    public get is_scalar()      { return this.nelem === 1; }
-    public get_axis_size    = (axis_index: number) => this.shape.get_axis_size(axis_index);
+    public get rank(): number        { return this.view[STRUCT_LAYOUT.RANK]; }
+    public get nelem(): number       { return this.view[STRUCT_LAYOUT.NELEM]; }
+    public get offset(): number      { return this.view[STRUCT_LAYOUT.OFFSET]; }
+    public get ndata(): number       { return this.view[STRUCT_LAYOUT.NDATA]; }
+    public get size(): number        { return this.view[STRUCT_LAYOUT.SIZE]; }
+    public get isview(): number      { return this.view[STRUCT_LAYOUT.ISVIEW]; }
+    public get ptr(): number         { return this.view.byteOffset; }
+    public get data_ptr(): number    { return this.view[STRUCT_LAYOUT.DATA]; }
+    public get shape_ptr(): number   { return this.view[STRUCT_LAYOUT.SHAPE]; }
+    public get strides_ptr(): number { return this.view[STRUCT_LAYOUT.STRIDES]; }
+    public get rows(): number        { return this.get_axis_size(this.rank - 2); }
+    public get cols(): number        { return this.get_axis_size(this.rank - 1); }
+    public get is_scalar(): boolean  { return this.nelem === 1; }
 
-    public get ptr(): number {
-        return this.view.byteOffset;
-    }
-
-    public toString = (precision?: number) => tensor_to_string(this, precision);
-    public print = (precision?: number) => console.log(tensor_to_string(this, precision) + "\n---");
-    public print_info(title: string = "TENSOR INFO") {
-        const max_entries = 16;
-        const precision = 3;
-
-        const exp = 10 ** precision;
-        const data = [...this.data.slice(0, max_entries)].map(v => Math.floor(v * exp) / exp);
-
-        console.log(
-            `${title}\n` +
-            `  address: 0x${this.ptr.toString(16)}\n` +
-            `  is view: ${this.isview ? "true" : "false"}\n` +
-            `  shape:   [${this.shape.join(", ")}]\n` +
-            `  strides: [${this.strides.join(", ")}]\n` +
-            `  rank:    ${this.rank}\n` +
-            `  nelem:   ${this.nelem}\n` +
-            `  ndata:   ${this.ndata}\n` +
-            `  size:    ${this.size} bytes\n` +
-            `  offset:  ${this.offset}\n` +
-            `  data: [${data.join(", ")}${this.data.length > max_entries ? ", ..." : ""}]\n`
-        );
-    }
+    public get_axis_size = (axis_index: number) => this.shape.get_axis_size(axis_index);
+    public toString      = (precision?: number) => tensor_to_string(this, precision);
+    public print         = (precision?: number) => console.log(tensor_to_string(this, precision) + "\n---");
+    public print_info    = () =>console.log(tensor_info_to_string(this));
 
     *get_axis_iterable(n: number): Generator<RawTensor> {
         if (n > this.rank - 2)
@@ -106,21 +83,15 @@ export class RawTensor {
 
     // metadata operations
     public transpose  = (...permutation: number[]) => ops.transpose(this, permutation);
+    public get T(): RawTensor { return ops.transpose(this); }
 
     // Returns the value of the tensor as a scalar if the tensor only has one element
     public get item() {
-        if (this.nelem !== 1) throw new Error("Tensor.item is only valid on scalar tensors.");
+        if (this.nelem !== 1) throw new Error("RawTensor.item only works on scalar tensors.");
         return this.data[this.offset];
     }
 
-    // operation shorthands
-    public get T(): RawTensor {
-        return ops.transpose(this);
-    }
-
-    [Symbol.iterator]() {
-        return this.get_axis_iterable(0);
-    }
+    [Symbol.iterator]() { return this.get_axis_iterable(0); }
 
     // builders
     static scalar = (scalar?: number): RawTensor => RawTensor.create([1], scalar ? [scalar] : undefined);
@@ -143,3 +114,20 @@ export class RawTensor {
         return new_tensor;
     }
 }
+
+// todo:
+//   you left off here.
+//   the next steps should probably be:
+//   - rename ComputationGraphNode to Tensor
+//   - modify topological ordering code to exclude any
+//     paths that lead to outputs that are not the
+//     output node that the graph was created on
+//       note naïve approach where we walk backwards
+//       through the parents starting from the output
+//       might not work
+//   - using this ordering, we can call realize on any
+//   - Tensor.realize() can then be implemented by
+//     finding the topo ordering and then just executing it
+//     the question then: where/when do we run the topo
+//     ordering alg? might not want to do this every time
+//     we call .realize()
