@@ -132,7 +132,7 @@ export const matmul: BinaryOp<RawTensor> = (src_a: RawTensor, src_b: RawTensor, 
     if (dest && !dest.shape.equals(result_shape))
         throw new Error(`Cannot perform matmul. Result tensor [${result_shape}] has different shape than destination tensor [${dest.shape}].`);
 
-    // todo: decide if data should be passed into op from CompGraphNode.forward()
+    // todo: decide if data should be passed into op from Tensor.forward()
     //   or if we can just pass in the data like here
 
     // perform computation using core
