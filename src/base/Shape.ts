@@ -1,5 +1,5 @@
-import { ordinal_str } from "./util";
 import core from "./core/build";
+import {ordinal_str} from "./to_string.ts";
 
 export default class Shape extends Int32Array {
     constructor(shape: Int32Array | number[] | Shape, attached = false) {

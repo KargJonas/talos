@@ -1,6 +1,6 @@
 import core from "./core/build";
 
-enum  STRUCT_LAYOUT { ALLOCATED }
+enum  STRUCT_LAYOUT { ALLOCATED, NTENSORS }
 const STRUCT_SIZE = Object.entries(STRUCT_LAYOUT).length / 2;
 
 let view: Uint32Array;
@@ -73,4 +73,16 @@ export function init_mgmt() {
 
 export function get_total_allocated(): number {
     return view[STRUCT_LAYOUT.ALLOCATED];
+}
+
+export function get_ntensors(): number {
+    return view[STRUCT_LAYOUT.NTENSORS];
+}
+
+export function print_memory_status() {
+    console.log(
+        "MEMORY INFO\n" + 
+        `  Number of Tensors: ${get_ntensors()}\n` +
+        `  Total allocated:   ${get_total_allocated()} bytes`
+    );
 }

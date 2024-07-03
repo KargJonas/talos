@@ -1,14 +1,14 @@
-import { core_ready, tensor } from "../index";
+import { core_ready } from "../index";
 
 // if your runtime does not support top-level await,
 // you'll have to use core_ready.then(() => { ... }) instead
 await core_ready;
 
-const t1 = tensor([2, 2, 3], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
-const t2 = tensor([3, 2],    [1, 2, 3, 4, 5, 6]);
-const t3 = tensor([3],       [-1, 2, 3]);
-const t4 = tensor([2, 2]).rand_int(1, 6);
-const t5 = tensor([2, 2]).rand(1, 6);
+const t1 = RawTensor.create([2, 2, 3], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+const t2 = RawTensor.create([3, 2],    [1, 2, 3, 4, 5, 6]);
+const t3 = RawTensor.create([3],       [-1, 2, 3]);
+const t4 = RawTensor.create([2, 2]).rand_int(1, 6);
+const t5 = RawTensor.create([2, 2]).rand(1, 6);
 
 for (const e of t1) {
     e.T.add(t2).print();

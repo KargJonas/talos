@@ -1,4 +1,4 @@
-import CompGraphNode from "./CompGraphNode.ts";
+import Tensor from "./Tensor.ts";
 
 /**
  * This is a basic implementation of the computation graph.
@@ -12,14 +12,14 @@ import CompGraphNode from "./CompGraphNode.ts";
  * considering the graph to be non-directed and applying depth-first
  * search. We then filter by the number of children/parents.
  */
-export default class CompGraph {
-    inputs: CompGraphNode[];
-    outputs: CompGraphNode[];
-    all_nodes: CompGraphNode[];
+export default class Graph {
+    inputs: Tensor[];
+    outputs: Tensor[];
+    all_nodes: Tensor[];
 
-    topological_ordering: CompGraphNode[];
+    topological_ordering: Tensor[];
 
-    constructor(inputs: CompGraphNode[], outputs: CompGraphNode[], all_nodes: CompGraphNode[]) {
+    constructor(inputs: Tensor[], outputs: Tensor[], all_nodes: Tensor[]) {
         this.inputs = inputs;
         this.outputs = outputs;
         this.all_nodes = all_nodes;
@@ -39,10 +39,10 @@ export default class CompGraph {
      * @returns An array that represents the topological ordering or the graph execution.
      *          The first op that should be performed is in index 0, and the last is in the last index.
      */
-    find_topological_order(): CompGraphNode[] {
-        const queue: CompGraphNode[] = [...this.inputs];
-        const topological_order: CompGraphNode[] = [];
-        const in_degrees = new Map<CompGraphNode, number>();
+    find_topological_order(): Tensor[] {
+        const queue: Tensor[] = [...this.inputs];
+        const topological_order: Tensor[] = [];
+        const in_degrees = new Map<Tensor, number>();
 
         for (const node of this.all_nodes) {
             in_degrees.set(node, node.parents.length);
@@ -76,7 +76,6 @@ export default class CompGraph {
     }
 
     backward(): void {
-
         // TODO: Allow different initializations
         // Initialize the gradients of all ouputs to 1
         for (const output of this.outputs) {

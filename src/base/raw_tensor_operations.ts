@@ -1,11 +1,12 @@
-import core from "./core/build";
 import { check_row_col_compat } from "./util";
-import tensor, {Tensor, create_view, tensor_like, tensor_scalar} from "./Tensor";
+import { RawTensor } from "./RawTensor.ts";
+import core from "./core/build";
 import Shape from "./Shape";
 
+
 // types for high level operations
-export type UnaryOp = (src: Tensor, dest?: Tensor) => Tensor;
-export type BinaryOp<OtherType> = (src_a: Tensor, src_b: OtherType, dest?: Tensor) => Tensor;
+export type UnaryOp = (src: RawTensor, dest?: RawTensor) => RawTensor;
+export type BinaryOp<OtherType> = (src_a: RawTensor, src_b: OtherType, dest?: RawTensor) => RawTensor;
 
 // types of core functions
 type CoreUnaryOp =  (src_ptr: number, dest_ptr: number) => void;
@@ -75,17 +76,17 @@ export const reciprocal_acc = create_unary_op("reciprocal", true);
 
 // reduce operations
 // todo: add pairwise functionality (tensor-valued functions)
-export const max  = (a: Tensor) => core._max_red_scl(a.ptr);
-export const min  = (a: Tensor) => core._min_red_scl(a.ptr);
-export const sum  = (a: Tensor) => core._sum_red_scl(a.ptr);
-export const mean = (a: Tensor) => core._mean_red_scl(a.ptr);
+export const max  = (a: RawTensor) => core._max_red_scl(a.ptr);
+export const min  = (a: RawTensor) => core._min_red_scl(a.ptr);
+export const sum  = (a: RawTensor) => core._sum_red_scl(a.ptr);
+export const mean = (a: RawTensor) => core._mean_red_scl(a.ptr);
 export const max_tns = create_reduce_op(core._max_red_tns);
 export const min_tns = create_reduce_op(core._min_red_tns);
 export const sum_tns = create_reduce_op(core._sum_red_tns);
 export const mean_tns = create_reduce_op(core._mean_red_tns);
 
 // be aware of tensor data dependencies when deallocating tensors !!
-export const free = (a: Tensor) => core._free_tensor(a.ptr);
+export const free = (a: RawTensor) => core._free_tensor(a.ptr);
 
 /**
  * Creates a deep copy of a tensor.
@@ -98,13 +99,13 @@ export const free = (a: Tensor) => core._free_tensor(a.ptr);
  * @param dest Destination tensor where data will be copied to
  * @returns A copy of the original tensor.
  */
-export const clone = (src: Tensor, dest?: Tensor) => {
-    const result = dest || tensor_like(src);
+export const clone = (src: RawTensor, dest?: RawTensor) => {
+    const result = dest || RawTensor.like(src);
     core._clone_tensor(src.ptr, result.ptr);
     return result;
 };
 
-function get_shape_matmul(a: Tensor, b: Tensor): Shape {
+export function get_shape_matmul(a: RawTensor, b: RawTensor): Shape {
     check_row_col_compat(a, b);
 
     // flatten tensors to a "list of matrices" and get the size of that list
@@ -124,14 +125,14 @@ function get_shape_matmul(a: Tensor, b: Tensor): Shape {
 }
 
 // standard matmul on tensors 
-export const matmul: BinaryOp<Tensor> = (src_a: Tensor, src_b: Tensor, dest?: Tensor): Tensor => {
+export const matmul: BinaryOp<RawTensor> = (src_a: RawTensor, src_b: RawTensor, dest?: RawTensor): RawTensor => {
     const result_shape = get_shape_matmul(src_a, src_b);
-    const result = dest || tensor(result_shape);
+    const result = dest || RawTensor.create(result_shape);
 
     if (dest && !dest.shape.equals(result_shape))
         throw new Error(`Cannot perform matmul. Result tensor [${result_shape}] has different shape than destination tensor [${dest.shape}].`);
 
-    // todo: decide if data should be passed into op from CompGraphNode.forward()
+    // todo: decide if data should be passed into op from Tensor.forward()
     //   or if we can just pass in the data like here
 
     // perform computation using core
@@ -144,7 +145,7 @@ export const matmul: BinaryOp<Tensor> = (src_a: Tensor, src_b: Tensor, dest?: Te
     return result;
 };
 
-function get_shape_dot(a: Tensor, b: Tensor): Shape {
+export function get_shape_dot(a: RawTensor, b: RawTensor): Shape {
     check_row_col_compat(a, b);
 
     const result_shape = new Shape([
@@ -155,9 +156,9 @@ function get_shape_dot(a: Tensor, b: Tensor): Shape {
 }
 
 // numpy-style dot-product
-export const dot = (a: Tensor, b: Tensor, dest?: Tensor): Tensor => {
+export const dot = (a: RawTensor, b: RawTensor, dest?: RawTensor): RawTensor => {
     const result_shape = get_shape_dot(a, b);
-    const result = dest || tensor(result_shape);
+    const result = dest || RawTensor.create(result_shape);
 
     if (dest && !dest.shape.equals(result_shape))
         throw new Error(`Cannot compute dot product. Result tensor [${result_shape}] has different shape than destination tensor [${dest.shape}].`);
@@ -170,20 +171,20 @@ export const dot = (a: Tensor, b: Tensor, dest?: Tensor): Tensor => {
     return result;
 };
 
-export function grad_acc(src: Tensor, dest: Tensor) {
+export function grad_acc(src: RawTensor, dest: RawTensor) {
     core._sum_red_brc(src.ptr, dest.ptr);
 }
 
-function create_binary_op(opcode: string, accumulative = false): BinaryOp<Tensor | number> {
+function create_binary_op(opcode: string, accumulative = false): BinaryOp<RawTensor | number> {
     const postfix = accumulative ? "_acc" : "";
     const core_fn_brc: CoreBinaryOp = core[`_${opcode}_brc${postfix}`];   //   broadcasting operation
     const core_fn_dbrc: CoreBinaryOp = core[`_${opcode}_dbrc${postfix}`]; // debroadcasting operations
 
-    return (src_a: Tensor, _src_b: Tensor | number, _dest?: Tensor): Tensor => {
+    return (src_a: RawTensor, _src_b: RawTensor | number, _dest?: RawTensor): RawTensor => {
         const scalar_op = typeof _src_b === "number";
-        const src_b = scalar_op ? tensor_scalar(_src_b) : _src_b;
+        const src_b = scalar_op ? RawTensor.scalar(_src_b) : _src_b;
         const brc_result_shape = src_a.shape.broadcast(src_b.shape);
-        const dest = _dest || tensor(brc_result_shape);
+        const dest = _dest || RawTensor.create(brc_result_shape);
 
         // todo come up with a better error message
         // todo compatibility with brc/dbrc would be nice
@@ -220,11 +221,11 @@ function create_unary_op(opcode: string, accumulative = false): UnaryOp {
     const core_fn_brc: CoreUnaryOp = core[`_${opcode}_brc${postfix}`];   // broadcasting
     const core_fn_dbrc: CoreUnaryOp = core[`_${opcode}_dbrc${postfix}`]; // debroadcasting
 
-    return (src: Tensor, _dest?: Tensor) => {
+    return (src: RawTensor, _dest?: RawTensor) => {
         if (_dest && !src.shape.broadcastable(_dest.shape))
             throw new Error(`Cannot perform unary operation because broadcasting is not possible between source tensor [${src.shape}] and destination tensor [${_dest.shape}].`);
 
-        const dest = _dest || tensor_like(src);
+        const dest = _dest || RawTensor.like(src);
 
         // pairwise
         if (src.nelem === dest.nelem) {
@@ -244,11 +245,11 @@ function create_unary_op(opcode: string, accumulative = false): UnaryOp {
 }
 
 function create_reduce_op(core_fn: CoreUnaryOp) {
-    return (src: Tensor, dest?: Tensor) => {
+    return (src: RawTensor, dest?: RawTensor) => {
         if (dest && !dest.shape.is_scalar)
             throw new Error(`Cannot perform reduce operation. Provided destination tensor is not scalar. Destination shape: [${dest.shape}]`);
 
-        const result: Tensor = dest || tensor_scalar();
+        const result: RawTensor = dest || RawTensor.scalar();
         core_fn(src.ptr, result.ptr);
         return result;
     };
@@ -286,7 +287,7 @@ function get_matrix_transpose_permutation(rank: number): number[] {
     return permutation;
 }
 
-export function transpose(a: Tensor, permutation?: number[]): Tensor {
+export function transpose(a: RawTensor, permutation?: number[]): RawTensor {
     let _permutation: number[];
 
     // todo: handle rank=1: shape should be 1-extended to the right
@@ -302,7 +303,7 @@ export function transpose(a: Tensor, permutation?: number[]): Tensor {
     const new_shape   = _permutation.map(i => a.shape[i]);
     const new_strides = _permutation.map(i => a.strides[i]);
 
-    const new_tensor = create_view(a);
+    const new_tensor = RawTensor.view_of(a);
     new_tensor.shape.set(new_shape);
     new_tensor.strides.set(new_strides);
 

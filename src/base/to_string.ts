@@ -1,7 +1,8 @@
-import { Tensor } from "./Tensor";
+import {RawTensor} from "./RawTensor.ts";
+import {max, min} from "./raw_tensor_operations.ts";
 
 // usability methods
-export default function tensor_to_string(a: Tensor, num_width = 5, space_before = 0) {   
+export function tensor_to_string(a: RawTensor, num_width = 5, space_before = 0) {
     switch (a.rank) {
         case 0: return "[]";
         case 1: return vec_to_string(a, num_width);
@@ -17,10 +18,16 @@ export default function tensor_to_string(a: Tensor, num_width = 5, space_before 
     return `[ ${strings.join(",\n\n" + " ".repeat(space_before + 2))} ]`;
 }
 
-function vec_to_string(vec: Tensor, n_decimals: number) {
-    if (vec.shape[0] === 1) return `[ ${vec.data[vec.offset]} ]`;
-
-    const n_integer = Math.floor(vec.max()).toString().length;
+function vec_to_string(vec: RawTensor, n_decimals: number) {
+    // todo: make this configurable
+    // if (vec.is_scalar) return `[ ${(vec.item | 0) === vec.item ? vec.item.toString() : vec.item.toFixed(n_decimals)} ]`;
+    if (vec.is_scalar) {
+        if ((vec.item | 0) === vec.item) return `[ ${vec.item} ]`;
+        const exp = Math.log10(vec.item) | 0;
+        return `[ ${((exp < 4 - n_decimals || exp > 21) && n_decimals !== 0) ? vec.item.toExponential(n_decimals) : vec.item.toFixed(n_decimals)} ]`;
+    }
+ 
+    const n_integer = Math.floor(max(vec)).toString().length;
     const cols = vec.cols;
     const col_stride = vec.strides[0];
     const offset = vec.offset;
@@ -39,9 +46,9 @@ function vec_to_string(vec: Tensor, n_decimals: number) {
     return `[ ${vals.join(", ")} ]`;
 }
 
-function mat_to_string(mat: Tensor, n_decimals: number, space_before: number) {
+function mat_to_string(mat: RawTensor, n_decimals: number, space_before: number) {
     // amount of digits in the integer part of the largest number
-    const n_integer = Math.floor(mat.max()).toString().length;
+    const n_integer = Math.floor(max(mat)).toString().length;
     const lines: string[] = [];
     const cols = mat.cols;
     const rows = mat.rows;
@@ -60,6 +67,7 @@ function mat_to_string(mat: Tensor, n_decimals: number, space_before: number) {
     }
 
     const max_length = n_integer + 1 + (only_integers ? 0 : n_decimals);
+    const has_negative_vals = min(mat) < 0;
 
     for (let r = 0; r < rows; r++) {
         const vals: string[] = [];
@@ -67,7 +75,7 @@ function mat_to_string(mat: Tensor, n_decimals: number, space_before: number) {
         for (let c = 0; c < cols; c++) {
             const index = offset + r * row_stride + c * col_stride;
             const val = Math.floor(mat.data[index] * exp) / exp;
-            const str = val.toString();
+            const str = (val >= 0 && has_negative_vals ? " " : "") + val.toString();
             const separator = c < cols - 1 ? ", " : "";
             const padding_right = " ".repeat(Math.max(0, max_length - str.length));
 
@@ -76,8 +84,39 @@ function mat_to_string(mat: Tensor, n_decimals: number, space_before: number) {
 
         const padding_left = r !== 0 ? " ".repeat(space_before) : "";
         // lines.push(`${padding_left}[ ${vals.join(", ")} ]`);
-        lines.push(`${padding_left}[ ${vals.join("")}]`);
+        lines.push(`${padding_left}[ ${vals.join("")}]`); // todo fix missing space before closing brace
     }
 
     return `[${lines.join("\n ")}]`;
+}
+
+export function tensor_info_to_string(a: RawTensor) {
+    const max_entries = 16;
+    const precision = 3;
+    const exp = 10 ** precision;
+    const data = [...a.data.slice(0, max_entries)].map(v => Math.floor(v * exp) / exp);
+
+    return (
+        "TENSOR INFO\n" +
+        `  address: 0x${a.ptr.toString(16)}\n` +
+        `  is view: ${a.isview ? "true" : "false"}\n` +
+        `  shape:   [${a.shape.join(", ")}]\n` +
+        `  strides: [${a.strides.join(", ")}]\n` +
+        `  rank:    ${a.rank}\n` +
+        `  nelem:   ${a.nelem}\n` +
+        `  ndata:   ${a.ndata}\n` +
+        `  size:    ${a.size} bytes\n` +
+        `  offset:  ${a.offset}\n` +
+        `  data: [${data.join(", ")}${a.data.length > max_entries ? ", ..." : ""}]\n`);
+}
+
+export function ordinal_str(n: number): string {
+    const last_digit = n % 10;
+    const last_two_digits = n % 100;
+
+    const suffix = (last_digit == 1 && last_two_digits != 11 ? "st" :
+        last_digit == 2 && last_two_digits != 12 ? "nd" :
+            last_digit == 3 && last_two_digits != 13 ? "rd" : "th");
+
+    return `${n}${suffix}`;
 }

@@ -7,7 +7,7 @@ import core from "./core/build";
 //    to select, if you want the data in js, wasm or gpu memory.
 
 // todo could extract functionality to a superclass that can then be
-// extended by Shape, Stride and Tensor (e.g. class WASMView)
+// extended by Shape, Stride and RawTensor (e.g. class WASMView)
 export default class Strides extends Int32Array {
     constructor(strides: Int32Array | number[], attached = false) {
         if (attached) {

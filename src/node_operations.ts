@@ -1,30 +1,30 @@
-import * as ops from "./base/tensor_operations.ts";
-import {Tensor, tensor_like, tensor_scalar} from "./base/Tensor.ts";
-import {tensor} from "../index.ts";
+import * as ops from "./base/raw_tensor_operations.ts";
+import { get_shape_dot, get_shape_matmul } from "./base/raw_tensor_operations.ts";
+import {RawTensor} from "./base/RawTensor.ts";
 import Shape from "./base/Shape.ts";
-import CompGraphNode from "./CompGraphNode.ts";
+import Tensor from "./Tensor.ts";
 
 // This file contains all operations of the graph-node abstraction-level
 // These are essentially all operations of the tensor level plus their derivatives
 
-export class Parameter extends CompGraphNode {
-    value: Tensor;
+export class Parameter extends Tensor {
+    value: RawTensor;
 
-    constructor(value: Tensor | number, requires_grad: boolean) {
+    constructor(value: RawTensor | number, requires_grad: boolean) {
         super([]);
-        this.value = typeof value === "number" ? tensor_scalar(value) : value;
-        if (requires_grad) this.grad = tensor_like(this.value);
+        this.value = typeof value === "number" ? RawTensor.scalar(value) : value;
+        if (requires_grad) this.grad = RawTensor.like(this.value);
     }
 }
 
-export class Source extends CompGraphNode {
-    value: Tensor;
-    producer: () => Tensor;
+export class Source extends Tensor {
+    value: RawTensor;
+    producer: () => RawTensor;
 
-    constructor(shape: Shape | number[], producer: () => Tensor) {
+    constructor(shape: Shape | number[], producer: () => RawTensor) {
         super([]);
 
-        this.value = tensor(shape);
+        this.value = RawTensor.create(shape);
         this.producer = producer;
     }
 
@@ -33,14 +33,14 @@ export class Source extends CompGraphNode {
     }
 }
 
-export class Add extends CompGraphNode {
-    value: Tensor;
-    grad: Tensor;
+export class Add extends Tensor {
+    value: RawTensor;
+    grad: RawTensor;
 
-    constructor(parents: CompGraphNode[]) {
+    constructor(parents: Tensor[]) {
         super(parents);
-        this.value = tensor(this.parents[0].value.shape.broadcast(this.parents[1].value.shape));
-        this.grad = tensor_like(this.value);
+        this.value = RawTensor.create(this.parents[0].value.shape.broadcast(this.parents[1].value.shape));
+        this.grad = RawTensor.like(this.value);
     }
 
     fw() {
@@ -56,14 +56,14 @@ export class Add extends CompGraphNode {
     }
 }
 
-export class Sub extends CompGraphNode {
-    value: Tensor;
-    grad: Tensor;
+export class Sub extends Tensor {
+    value: RawTensor;
+    grad: RawTensor;
 
-    constructor(parents: CompGraphNode[]) {
+    constructor(parents: Tensor[]) {
         super(parents);
-        this.value = tensor(this.parents[0].value.shape.broadcast(this.parents[1].value.shape));
-        this.grad = tensor_like(this.value);
+        this.value = RawTensor.create(this.parents[0].value.shape.broadcast(this.parents[1].value.shape));
+        this.grad = RawTensor.like(this.value);
     }
 
     fw() {
@@ -79,16 +79,16 @@ export class Sub extends CompGraphNode {
     }
 }
 
-export class Mul extends CompGraphNode {
-    value: Tensor;
-    grad: Tensor;
-    interim: Tensor;
+export class Mul extends Tensor {
+    value: RawTensor;
+    grad: RawTensor;
+    interim: RawTensor;
 
-    constructor(parents: CompGraphNode[]) {
+    constructor(parents: Tensor[]) {
         super(parents);
-        this.value = tensor(this.parents[0].value.shape.broadcast(this.parents[1].value.shape));
-        this.grad = tensor_like(this.value);
-        this.interim = tensor_like(this.value);
+        this.value = RawTensor.create(this.parents[0].value.shape.broadcast(this.parents[1].value.shape));
+        this.grad = RawTensor.like(this.value);
+        this.interim = RawTensor.like(this.value);
     }
 
     fw() {
@@ -100,33 +100,23 @@ export class Mul extends CompGraphNode {
         const b = this.parents[1];
 
         // d/da (a*b) = b
-        if (a.grad) {
-            // ops.mul(b.value, this.grad, this.interim);
-            // ops.add_grad(this.interim, a.grad, a.grad);
-
-            // a.grad += this.grad * b.value
-            ops.mul_acc(this.grad, b.value, a.grad);
-        }
+        if (a.grad) ops.mul_acc(this.grad, b.value, a.grad);
 
         // d/db (a*b) = a
-        if (b.grad) {
-            // ops.mul(a.value, this.grad, this.interim);
-            // ops.add_acc(this.interim, b.grad, b.grad);
-            ops.mul_acc(this.grad, a.value, b.grad);
-        }
+        if (b.grad) ops.mul_acc(this.grad, a.value, b.grad);
     }
 }
 
-export class Div extends CompGraphNode {
-    value: Tensor;
-    grad: Tensor;
-    interim: Tensor;
+export class Div extends Tensor {
+    value: RawTensor;
+    grad: RawTensor;
+    interim: RawTensor;
 
-    constructor(parents: CompGraphNode[]) {
+    constructor(parents: Tensor[]) {
         super(parents);
-        this.value = tensor(this.parents[0].value.shape.broadcast(this.parents[1].value.shape));
-        this.grad = tensor_like(this.value);
-        this.interim = tensor_like(this.value);
+        this.value = RawTensor.create(this.parents[0].value.shape.broadcast(this.parents[1].value.shape));
+        this.grad = RawTensor.like(this.value);
+        this.interim = RawTensor.like(this.value);
     }
 
     fw() {
@@ -152,18 +142,18 @@ export class Div extends CompGraphNode {
     }
 }
 
-export class Pow extends CompGraphNode {
-    value: Tensor;
-    grad: Tensor;
-    interim_0: Tensor;
-    interim_1: Tensor;
+export class Pow extends Tensor {
+    value: RawTensor;
+    grad: RawTensor;
+    interim_0: RawTensor;
+    interim_1: RawTensor;
 
-    constructor(parents: CompGraphNode[]) {
+    constructor(parents: Tensor[]) {
         super(parents);
-        this.value = tensor(this.parents[0].value.shape.broadcast(this.parents[1].value.shape));
-        this.grad = tensor_like(this.value);
-        this.interim_0 = tensor_like(this.parents[0].value);
-        this.interim_1 = tensor_like(this.parents[1].value);
+        this.value = RawTensor.create(this.parents[0].value.shape.broadcast(this.parents[1].value.shape));
+        this.grad = RawTensor.like(this.value);
+        this.interim_0 = RawTensor.like(this.parents[0].value);
+        this.interim_1 = RawTensor.like(this.parents[1].value);
     }
 
     fw() {
@@ -194,19 +184,95 @@ export class Pow extends CompGraphNode {
     }
 }
 
-export class Sum extends CompGraphNode {
-    value: Tensor;
-    grad: Tensor;
+export class Matmul extends Tensor {
+    value: RawTensor;
 
-    constructor(parents: CompGraphNode[]) {
+    constructor(parents: Tensor[]) {
         super(parents);
-        this.value = tensor_scalar();
-        this.grad = tensor_scalar();
+        this.value = RawTensor.create(get_shape_matmul(this.parents[0].value, this.parents[1].value));
     }
 
     fw() {
-        // TODO: Refactor ops.sum to support scalar tensor?
-        this.value.data[this.value.offset] = ops.sum(this.parents[0].value);
+        ops.matmul(this.parents[0].value, this.parents[1].value, this.value);
+    }
+
+    bw() {
+        // todo
+    }
+}
+
+export class Dot extends Tensor {
+    value: RawTensor;
+
+    constructor(parents: Tensor[]) {
+        super(parents);
+        this.value = RawTensor.create(get_shape_dot(this.parents[0].value, this.parents[1].value));
+    }
+
+    fw() {
+        ops.dot(this.parents[0].value, this.parents[1].value, this.value);
+    }
+
+    bw() {
+        // todo
+    }
+}
+
+export class Transpose extends Tensor {
+    value: RawTensor;
+
+    constructor(parents: Tensor[], ...permutation: number[]) {
+        super(parents);
+        this.value = parents[0].value.transpose(...permutation);
+    }
+}
+
+export class Min extends Tensor {
+    value: RawTensor;
+
+    constructor(parents: Tensor[]) {
+        super(parents);
+        this.value = RawTensor.scalar();
+    }
+
+    fw() {
+        ops.min_tns(this.parents[0].value, this.value);
+    }
+}
+
+export class Max extends Tensor {
+    value: RawTensor;
+
+    constructor(parents: Tensor[]) {
+        super(parents);
+        this.value = RawTensor.scalar();
+    }
+
+    fw() {
+        ops.max_tns(this.parents[0].value, this.value);
+    }
+
+    bw() {
+        // todo: for bw, we need to propagate the gradient only to the location of the largest
+        //       element. currently we dont have information about what element it was.
+        //       solution: max_tns and min_tns as should return scalar views of the source tensor
+        //                 we can then get the exact element by using the offset.
+        //       problem:  there might be issues with all ops that involve scalars
+    }
+}
+
+export class Sum extends Tensor {
+    value: RawTensor;
+    grad: RawTensor;
+
+    constructor(parents: Tensor[]) {
+        super(parents);
+        this.value = RawTensor.scalar();
+        this.grad = RawTensor.scalar();
+    }
+
+    fw() {
+        ops.sum_tns(this.parents[0].value, this.value);
     }
 
     bw() {
@@ -217,21 +283,20 @@ export class Sum extends CompGraphNode {
     }
 }
 
-export class Mean extends CompGraphNode {
-    value: Tensor;
-    grad: Tensor;
-    interim: Tensor;
+export class Mean extends Tensor {
+    value: RawTensor;
+    grad: RawTensor;
+    interim: RawTensor;
 
-    constructor(parents: CompGraphNode[]) {
+    constructor(parents: Tensor[]) {
         super(parents);
-        this.value = tensor_scalar(); // Scalar tensor to hold the mean value
-        this.grad = tensor_like(this.parents[0].value); // Gradient tensor with the same shape as input
-        this.interim = tensor_like(this.parents[0].value);
+        this.value = RawTensor.scalar(); // Scalar tensor to hold the mean value
+        this.grad = RawTensor.like(this.parents[0].value); // Gradient tensor with the same shape as input
+        this.interim = RawTensor.like(this.parents[0].value);
     }
 
     fw() {
-        // todo: fix
-        this.value.data[this.value.offset] = ops.mean(this.parents[0].value); // Compute the mean
+        ops.mean_tns(this.parents[0].value, this.value);
     }
 
     bw() {
@@ -243,20 +308,20 @@ export class Mean extends CompGraphNode {
     }
 }
 
-export class MseLoss extends CompGraphNode {
-    value: Tensor;
-    grad: Tensor;
+export class MseLoss extends Tensor {
+    value: RawTensor;
+    grad: RawTensor;
 
     // intermediate values
-    interim: Tensor;
+    interim: RawTensor;
 
-    constructor(parents: CompGraphNode[]) {
+    constructor(parents: Tensor[]) {
         super(parents);
 
         // todo: add shape compat check
-        this.value = tensor_scalar(0);
-        this.grad = tensor_like(parents[0].value).ones(); // todo: this should be set to 1 after at some point (maybe reintroduce init()?)
-        this.interim = tensor_like(parents[0].value);
+        this.value = RawTensor.scalar(0);
+        this.grad = RawTensor.like(parents[0].value).ones(); // todo: this should be set to 1 after at some point (maybe reintroduce init()?)
+        this.interim = RawTensor.like(parents[0].value);
     }
 
     fw() {
@@ -264,7 +329,6 @@ export class MseLoss extends CompGraphNode {
         const target = this.parents[1].value;
 
         // todo: for perf optimizations, this could be moved to the core as a single operation
-        // compute MSE loss: (prediction - target)^2 / N and store result this.difference
         ops.sub(prediction, target, this.interim);
         ops.pow(this.interim, 2, this.interim);
         this.value.fill(ops.mean(this.interim));
@@ -274,25 +338,31 @@ export class MseLoss extends CompGraphNode {
         const prediction = this.parents[0];
         const target = this.parents[1];
 
+        if (!prediction.grad && !target.grad) return;
+        ops.sub(prediction.value, target.value, this.interim);
+
         if (prediction.grad) {
-            // gradient of MSE loss w.r.t. prediction: 2 * (prediction - target) / N
-            ops.sub(prediction.value, target.value, this.grad);
-            ops.mul(this.grad, 2 / prediction.value.size, this.grad);
-            ops.add(prediction.grad, this.grad, prediction.grad);
+            // gradient of MSE loss w.r.t. prediction: 2 * (prediction - target) / N       
+            ops.mul_acc(this.interim, 2 / prediction.value.size, prediction.grad);
+        }
+
+        // todo fix: no need to to this twice
+        if (target.grad) {
+            ops.mul_acc(this.interim, -2 / prediction.value.size, target.grad);
         }
     }
 }
 
-export class Relu extends CompGraphNode {
-    value: Tensor;
-    grad: Tensor;
-    interim: Tensor;
+export class Relu extends Tensor {
+    value: RawTensor;
+    grad: RawTensor;
+    interim: RawTensor;
 
-    constructor(parents: CompGraphNode[]) {
+    constructor(parents: Tensor[]) {
         super(parents);
-        this.value = tensor_like(parents[0].value);
-        this.grad = tensor_like(parents[0].value);
-        this.interim = tensor_like(parents[0].value);
+        this.value = RawTensor.like(parents[0].value);
+        this.grad = RawTensor.like(parents[0].value);
+        this.interim = RawTensor.like(parents[0].value);
     }
 
     fw() {
@@ -304,5 +374,293 @@ export class Relu extends CompGraphNode {
             ops.binstep(this.parents[0].value, this.interim);
             ops.mul_acc(this.parents[0].grad, this.grad, this.parents[0].grad);
         }
+    }
+}
+
+/********* THE CLASSES HERE ONLY HAVE FW IMPLEMENTED FOR TESTING *********/
+
+export class Binstep extends Tensor {
+    value: RawTensor;
+
+    constructor(parents: Tensor[]) {
+        super(parents);
+        this.value = RawTensor.like(parents[0].value);
+    }
+
+    fw() {
+        ops.binstep(this.parents[0].value, this.value);
+    }
+}
+
+export class Logistic extends Tensor {
+    value: RawTensor;
+
+    constructor(parents: Tensor[]) {
+        super(parents);
+        this.value = RawTensor.like(parents[0].value);
+    }
+
+    fw() {
+        ops.logistic(this.parents[0].value, this.value);
+    }
+}
+
+export class Negate extends Tensor {
+    value: RawTensor;
+
+    constructor(parents: Tensor[]) {
+        super(parents);
+        this.value = RawTensor.like(parents[0].value);
+    }
+
+    fw() {
+        ops.negate(this.parents[0].value, this.value);
+    }
+}
+
+export class Sin extends Tensor {
+    value: RawTensor;
+
+    constructor(parents: Tensor[]) {
+        super(parents);
+        this.value = RawTensor.like(parents[0].value);
+    }
+
+    fw() {
+        ops.sin(this.parents[0].value, this.value);
+    }
+}
+
+export class Cos extends Tensor {
+    value: RawTensor;
+
+    constructor(parents: Tensor[]) {
+        super(parents);
+        this.value = RawTensor.like(parents[0].value);
+    }
+
+    fw() {
+        ops.cos(this.parents[0].value, this.value);
+    }
+}
+
+export class Tan extends Tensor {
+    value: RawTensor;
+
+    constructor(parents: Tensor[]) {
+        super(parents);
+        this.value = RawTensor.like(parents[0].value);
+    }
+
+    fw() {
+        ops.tan(this.parents[0].value, this.value);
+    }
+}
+
+export class Asin extends Tensor {
+    value: RawTensor;
+
+    constructor(parents: Tensor[]) {
+        super(parents);
+        this.value = RawTensor.like(parents[0].value);
+    }
+
+    fw() {
+        ops.asin(this.parents[0].value, this.value);
+    }
+}
+
+export class Acos extends Tensor {
+    value: RawTensor;
+
+    constructor(parents: Tensor[]) {
+        super(parents);
+        this.value = RawTensor.like(parents[0].value);
+    }
+
+    fw() {
+        ops.acos(this.parents[0].value, this.value);
+    }
+}
+
+export class Atan extends Tensor {
+    value: RawTensor;
+
+    constructor(parents: Tensor[]) {
+        super(parents);
+        this.value = RawTensor.like(parents[0].value);
+    }
+
+    fw() {
+        ops.atan(this.parents[0].value, this.value);
+    }
+}
+
+export class Sinh extends Tensor {
+    value: RawTensor;
+
+    constructor(parents: Tensor[]) {
+        super(parents);
+        this.value = RawTensor.like(parents[0].value);
+    }
+
+    fw() {
+        ops.sinh(this.parents[0].value, this.value);
+    }
+}
+
+export class Cosh extends Tensor {
+    value: RawTensor;
+
+    constructor(parents: Tensor[]) {
+        super(parents);
+        this.value = RawTensor.like(parents[0].value);
+    }
+
+    fw() {
+        ops.cosh(this.parents[0].value, this.value);
+    }
+}
+
+export class Tanh extends Tensor {
+    value: RawTensor;
+
+    constructor(parents: Tensor[]) {
+        super(parents);
+        this.value = RawTensor.like(parents[0].value);
+    }
+
+    fw() {
+        ops.tanh(this.parents[0].value, this.value);
+    }
+}
+
+export class Exp extends Tensor {
+    value: RawTensor;
+
+    constructor(parents: Tensor[]) {
+        super(parents);
+        this.value = RawTensor.like(parents[0].value);
+    }
+
+    fw() {
+        ops.exp(this.parents[0].value, this.value);
+    }
+}
+
+export class Log extends Tensor {
+    value: RawTensor;
+
+    constructor(parents: Tensor[]) {
+        super(parents);
+        this.value = RawTensor.like(parents[0].value);
+    }
+
+    fw() {
+        ops.log(this.parents[0].value, this.value);
+    }
+}
+
+export class Log10 extends Tensor {
+    value: RawTensor;
+
+    constructor(parents: Tensor[]) {
+        super(parents);
+        this.value = RawTensor.like(parents[0].value);
+    }
+
+    fw() {
+        ops.log10(this.parents[0].value, this.value);
+    }
+}
+
+export class Log2 extends Tensor {
+    value: RawTensor;
+
+    constructor(parents: Tensor[]) {
+        super(parents);
+        this.value = RawTensor.like(parents[0].value);
+    }
+
+    fw() {
+        ops.log2(this.parents[0].value, this.value);
+    }
+}
+
+export class Invsqrt extends Tensor {
+    value: RawTensor;
+
+    constructor(parents: Tensor[]) {
+        super(parents);
+        this.value = RawTensor.like(parents[0].value);
+    }
+
+    fw() {
+        ops.invsqrt(this.parents[0].value, this.value);
+    }
+}
+
+export class Sqrt extends Tensor {
+    value: RawTensor;
+
+    constructor(parents: Tensor[]) {
+        super(parents);
+        this.value = RawTensor.like(parents[0].value);
+    }
+
+    fw() {
+        ops.sqrt(this.parents[0].value, this.value);
+    }
+}
+
+export class Ceil extends Tensor {
+    value: RawTensor;
+
+    constructor(parents: Tensor[]) {
+        super(parents);
+        this.value = RawTensor.like(parents[0].value);
+    }
+
+    fw() {
+        ops.ceil(this.parents[0].value, this.value);
+    }
+}
+
+export class Floor extends Tensor {
+    value: RawTensor;
+
+    constructor(parents: Tensor[]) {
+        super(parents);
+        this.value = RawTensor.like(parents[0].value);
+    }
+
+    fw() {
+        ops.floor(this.parents[0].value, this.value);
+    }
+}
+
+export class Abs extends Tensor {
+    value: RawTensor;
+
+    constructor(parents: Tensor[]) {
+        super(parents);
+        this.value = RawTensor.like(parents[0].value);
+    }
+
+    fw() {
+        ops.abs(this.parents[0].value, this.value);
+    }
+}
+
+export class Reciprocal extends Tensor {
+    value: RawTensor;
+
+    constructor(parents: Tensor[]) {
+        super(parents);
+        this.value = RawTensor.like(parents[0].value);
+    }
+
+    fw() {
+        ops.reciprocal(this.parents[0].value, this.value);
     }
 }
