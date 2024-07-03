@@ -1,13 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import { add } from "../src/base/raw_tensor_operations.ts";
-import { source_node } from "../src/node_factory";
+import { tensor_producer } from "../src/tensor_factory.ts";
 import { RawTensor } from "../src/base/RawTensor.ts";
 
 describe("node operations", () => {
 
     test("source nodes", () => {
         const input = RawTensor.scalar(0);
-        const source = source_node([1], () => {
+        const source = tensor_producer([1], () => {
             add(input, 1, input);
             return input;
         });
@@ -27,7 +27,7 @@ describe("node operations", () => {
     });
 
     test("parameter nodes", () => {
-        // todo: it may be a little too early to write tests for this
+        // todo: it may be a little too early to write tests for this.
         //       the api needs to be refined further.
         //       the library needs a refactor in general.
     });

@@ -218,6 +218,15 @@ export class Dot extends Tensor {
     }
 }
 
+export class Transpose extends Tensor {
+    value: RawTensor;
+
+    constructor(parents: Tensor[], ...permutation: number[]) {
+        super(parents);
+        this.value = parents[0].value.transpose(...permutation);
+    }
+}
+
 export class Min extends Tensor {
     value: RawTensor;
 

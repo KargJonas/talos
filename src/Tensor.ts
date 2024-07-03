@@ -1,10 +1,10 @@
 import { RawTensor } from "./base/RawTensor.ts";
-import { tensor_scalar } from "./node_factory.ts";
+import { tensor_scalar } from "./tensor_factory.ts";
 import * as graph_ops from "./node_operations.ts";
 import Graph from "./Graph.ts";
 import ITensor from "./base/ITensor.ts";
 
-type OperationClass<T> = new (parents: Tensor[]) => T;
+type OperationClass<T> = new (parents: Tensor[], ...params: any[]) => T;
 
 export default abstract class Tensor implements ITensor<Tensor> {
     // State of the node
@@ -69,6 +69,9 @@ export default abstract class Tensor implements ITensor<Tensor> {
 
     matmul = this.create_binary_op(graph_ops.Matmul);
     dot = this.create_binary_op(graph_ops.Dot);
+
+    transpose = this.create_unary_op(graph_ops.Transpose);
+    public get T() { return this.transpose(); }
 
     // unary operations
     relu = this.create_unary_op(graph_ops.Relu);
@@ -146,12 +149,12 @@ export default abstract class Tensor implements ITensor<Tensor> {
     }
 
     private create_binary_op<T extends Tensor>(op_class: OperationClass<T>) {
-        return (_other: Tensor | number, requires_grad = true) => {
+        return (_other: Tensor | number, requires_grad = true, ...params: any[]) => {
 
             // If _other is a scalar, create a tensor that holds the scalar value such that it can be referenced in the graph
             const other: Tensor = _other instanceof Tensor ? _other : tensor_scalar(_other, requires_grad);
             const parents: Tensor[] = [this, other];
-            const new_node: Tensor = new op_class(parents);
+            const new_node: Tensor = new op_class(parents, ...params);
 
             // Register the new node as a child of its parents. This is necessary because
             // we will need access to each node's children during graph acquisition.
@@ -163,11 +166,11 @@ export default abstract class Tensor implements ITensor<Tensor> {
     }
 
     private create_unary_op<T extends Tensor>(op_class: OperationClass<T>) {
-        return () => {
+        return (...params: any[]) => {
 
             // If _other is a scalar, create a tensor that holds the scalar value such that it can be referenced in the graph
             const parents: Tensor[] = [this];
-            const new_node: Tensor = new op_class(parents);
+            const new_node: Tensor = new op_class(parents, ...params);
 
             // Register the new node as a child of its parents. This is necessary because
             // we will need access to each node's children during graph acquisition.

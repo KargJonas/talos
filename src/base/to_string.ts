@@ -1,8 +1,8 @@
-import { RawTensor } from "./RawTensor.ts";
-import { max, min } from "./raw_tensor_operations.ts";
+import {RawTensor} from "./RawTensor.ts";
+import {max, min} from "./raw_tensor_operations.ts";
 
 // usability methods
-export default function tensor_to_string(a: RawTensor, num_width = 5, space_before = 0) {
+export function tensor_to_string(a: RawTensor, num_width = 5, space_before = 0) {
     switch (a.rank) {
         case 0: return "[]";
         case 1: return vec_to_string(a, num_width);
@@ -22,10 +22,11 @@ function vec_to_string(vec: RawTensor, n_decimals: number) {
     // todo: make this configurable
     // if (vec.is_scalar) return `[ ${(vec.item | 0) === vec.item ? vec.item.toString() : vec.item.toFixed(n_decimals)} ]`;
     if (vec.is_scalar) {
+        if ((vec.item | 0) === vec.item) return `[ ${vec.item} ]`;
         const exp = Math.log10(vec.item) | 0;
-        return `[ ${(exp < 4 - n_decimals || exp > 21) ? vec.item.toExponential(n_decimals) : vec.item.toFixed(n_decimals)} ]`;
+        return `[ ${((exp < 4 - n_decimals || exp > 21) && n_decimals !== 0) ? vec.item.toExponential(n_decimals) : vec.item.toFixed(n_decimals)} ]`;
     }
-
+ 
     const n_integer = Math.floor(max(vec)).toString().length;
     const cols = vec.cols;
     const col_stride = vec.strides[0];
@@ -107,4 +108,15 @@ export function tensor_info_to_string(a: RawTensor) {
         `  size:    ${a.size} bytes\n` +
         `  offset:  ${a.offset}\n` +
         `  data: [${data.join(", ")}${a.data.length > max_entries ? ", ..." : ""}]\n`);
+}
+
+export function ordinal_str(n: number): string {
+    const last_digit = n % 10;
+    const last_two_digits = n % 100;
+
+    const suffix = (last_digit == 1 && last_two_digits != 11 ? "st" :
+        last_digit == 2 && last_two_digits != 12 ? "nd" :
+            last_digit == 3 && last_two_digits != 13 ? "rd" : "th");
+
+    return `${n}${suffix}`;
 }

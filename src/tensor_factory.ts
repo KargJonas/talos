@@ -1,6 +1,8 @@
 import { Parameter, Source } from "./node_operations.ts";
 import { RawTensor } from "./base/RawTensor.ts";
 import Shape from "./base/Shape.ts";
+import {NDArray} from "./base/util.ts";
+import Tensor from "./Tensor.ts";
 
 /**
  * Creates an input node.
@@ -12,8 +14,16 @@ import Shape from "./base/Shape.ts";
  * @param producer Function that returns a tensor each time it is called.
  *  These tensors should have the same shape as specified by the shape parameter.
  */
-export function tensor_producer(shape: Shape | number[], producer: () => RawTensor): Source {
-    return new Source(shape, producer);
+export function tensor_producer(shape: Shape | number[], producer: () => (NDArray | RawTensor | Tensor | number)): Source {
+    // todo: fix, this is not memory safe because we allocate memory
+    return new Source(shape, () => {
+        const item = producer();
+        if (item instanceof Array) return RawTensor.from_array(item);
+        if (item instanceof RawTensor) return item;
+        if (item instanceof Tensor) return item.value;
+
+        throw new Error("Producer returned an element that is not Tensor, RawTensor or Array.");
+    });
 }
 
 // export function tensor_scalar(): Parameter;

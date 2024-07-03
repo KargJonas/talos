@@ -303,7 +303,7 @@ export function transpose(a: RawTensor, permutation?: number[]): RawTensor {
     const new_shape   = _permutation.map(i => a.shape[i]);
     const new_strides = _permutation.map(i => a.strides[i]);
 
-    const new_tensor = RawTensor.view_from(a);
+    const new_tensor = RawTensor.view_of(a);
     new_tensor.shape.set(new_shape);
     new_tensor.strides.set(new_strides);
 

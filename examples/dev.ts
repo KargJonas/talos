@@ -2,8 +2,8 @@
  * This file is used for validation and debugging during development. 
  */
 
-import { core_ready } from "../index";
-import { tensor } from "../src/node_factory.ts";
+import {core_ready, set_rand_seed} from "../index";
+import { tensor } from "../src/tensor_factory.ts";
 import { get_total_allocated } from "../src/base/Management.ts";
 import { mul_acc } from "../src/base/raw_tensor_operations.ts";
 
@@ -25,6 +25,16 @@ console.log("\nRunning SGD demo...\n");
 // const input = RawTensor.create([3], [2, -3, 9]);  // random but constant "input data"
 // const target = RawTensor.create([3], [23, 2, -3]); // random but constant target/label
 
+const A = tensor([2, 3], [1, 2, 3, 4, 5, 6]);
+const B = tensor([2, 3], [7, 8, 9, 10, 11, 12]);
+// const nn = A.T.matmul(B).lossFn();
+// => A.grad = B.matmul(loss_grad.T)
+// => B.grad = A.matmul(loss_node.grad)
+
+const y = A.add(B).T;
+y.realize().print();
+
+set_rand_seed(Date.now());
 const weight = tensor([3], true).rand();
 const bias   = tensor([3], true).rand();
 const input  = tensor([3]).rand();
