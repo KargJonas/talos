@@ -12,6 +12,7 @@
 #define get_colstride(a) get_strides_bwd(a, 0)
 #define get_rowstride(a) get_strides_bwd(a, 1)
 
+
 // we are tearing open a healed wound here
 void mul_mat(struct tensor_t* a, struct tensor_t* b, struct tensor_t* res, bool dot) {
     size_t nrow_a = dot ? 1 : get_nrows(a); // todo remove redundancy
@@ -23,6 +24,8 @@ void mul_mat(struct tensor_t* a, struct tensor_t* b, struct tensor_t* res, bool 
 
     for (r = 0; r < nrow_a; r++) {
         for (c = 0; c < ncol_b; c++) {
+            // todo optimization potential: replace multiplications by looped increments
+
             ires =  res->offset +
                     r * get_rowstride(res) +
                     c * get_colstride(res);
@@ -42,28 +45,12 @@ void mul_mat(struct tensor_t* a, struct tensor_t* b, struct tensor_t* res, bool 
             }
         }
     }
-
-    // todo optimization potential: replace multiplications by looped increments
-
-    // for (size_t r = 0; r < nrow_a; r++) {
-    //     for (c = 0; c < ncol_b; c++) {
-    //         ires       = r * ncol_b + c;
-    //         offset_row = r * ncol_a;
-
-    //         for (i = 0; i < ncol_a; i++) {
-    //             ib = i * ncol_b + c;
-    //             // result[ires] += a[offset_row + i] * b[ib];
-                
-    //             res->data[ires] +=
-    //                 a->data[a->offset + offset_row + i] *
-    //                 b->data[b->offset + ib];
-    //         }
-    //     }
-    // }
 }
 
+
 // pairwise multiplication of the matrices in two tensors
-void mul_tns(struct tensor_t* a, struct tensor_t* b, struct tensor_t* result) {
+#define MATMUL_OP(NAME, FILL_DESTINATION) [[[
+void NAME(struct tensor_t* a, struct tensor_t* b, struct tensor_t* result) {
     size_t nrow_a = get_nrows(a);
     size_t ncol_a = get_ncols(a);
     size_t nrow_b = get_nrows(b);
@@ -72,14 +59,16 @@ void mul_tns(struct tensor_t* a, struct tensor_t* b, struct tensor_t* result) {
     size_t nmat_a = get_nsubtns(a, 2);
     size_t nmat_b = get_nsubtns(b, 2);
 
-    size_t stride_res = nrow_a * ncol_b; // todo: think i could replace this by using result->strides    // size_t stride_a = nmat_a > 1 ? nrow_a * ncol_a : 0;
+    // size_t stride_res = nrow_a * ncol_b; // todo: think i could replace this by using result->strides    // size_t stride_a = nmat_a > 1 ? nrow_a * ncol_a : 0;
+    size_t stride_res = result->strides[result->rank - 3]; // todo: validate (this is what i was talking about above)
     size_t stride_b = nmat_b > 1 ? nrow_b * ncol_b : 0;
     size_t stride_a = nmat_a > 1 ? nrow_a * ncol_a : 0;
 
     size_t nmat_max = MAX(nmat_a, nmat_b);
     register size_t ia = 0, ib = 0, ires = 0;
 
-    fill(result->data, result->nelem, 0);
+    // fill(result->data, result->nelem, 0);
+    FILL_DESTINATION;
 
     struct tensor_t* view_a   = create_view(a, a->rank - 2, 0);
     struct tensor_t* view_b   = create_view(b, b->rank - 2, 0);
@@ -97,9 +86,11 @@ void mul_tns(struct tensor_t* a, struct tensor_t* b, struct tensor_t* result) {
     free_tensor(view_b);
     free_tensor(view_res);
 }
+]]]
 
 // numpy-style tensor multiplication
-void dot_tns(struct tensor_t* a, struct tensor_t* b, struct tensor_t* result) {
+#define DOT_OP(NAME, FILL_DESTINATION) [[[
+void NAME(struct tensor_t* a, struct tensor_t* b, struct tensor_t* result) {
     size_t ncol_a = get_ncols(a);
     size_t nvec_a = get_nsubtns(a, 1);
 
@@ -110,7 +101,7 @@ void dot_tns(struct tensor_t* a, struct tensor_t* b, struct tensor_t* result) {
     size_t stride_b = nrow_b * ncol_b; // number of elements in one matrix of b
     size_t iv, im, ires = 0;
 
-    fill(result->data, result->nelem, 0);
+    FILL_DESTINATION;
 
     // Correctly setting the initial view for a and b
     struct tensor_t* view_a = create_view(a, a->rank - 1, 0);
@@ -141,5 +132,12 @@ void dot_tns(struct tensor_t* a, struct tensor_t* b, struct tensor_t* result) {
     free_tensor(view_b);
     free_tensor(view_res);
 }
+]]]
+
+MATMUL_OP(matmul, fill(result->data, result->nelem, 0));
+MATMUL_OP(matmul_acc, );
+
+DOT_OP(dot, fill(result->data, result->nelem, 0));
+DOT_OP(dot_acc, );
 
 #endif //CORE_MATMUL

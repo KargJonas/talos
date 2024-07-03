@@ -8,13 +8,13 @@ EF = [ \
 	_alloc_farr, _alloc_starr, _create_tensor, \
 	_free_farr, _free_starr, _free_tensor, \
 	_copy_farr, _copy_starr, \
-	_clone_tensor, _create_view, \
+	_clone_tensor, _create_view, _create_reshape_view, \
 	\
 	_rand_seed, _rand_f, _rand_i, _fill, \
 	\
 	_get_mgmt_ptr, \
 	\
-	_mul_tns, _dot_tns,\
+	_matmul, _matmul_acc, _dot, _dot_acc,\
 	_max_red_scl, _min_red_scl, _sum_red_scl, _mean_red_scl, \
 	_max_red_tns, _min_red_tns, _sum_red_tns, _mean_red_tns, \
 	\

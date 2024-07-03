@@ -1,7 +1,7 @@
 import { Parameter, Source } from "./node_operations.ts";
 import { RawTensor } from "./base/RawTensor.ts";
 import Shape from "./base/Shape.ts";
-import {NDArray} from "./base/util.ts";
+import {NDArray, flatten} from "./base/util.ts";
 import Tensor from "./Tensor.ts";
 
 /**
@@ -70,4 +70,9 @@ export function tensor(shape: number[], arg_1?: number[] | boolean, arg_2?: bool
     }
 
     throw new Error("Cant create tensor with the provided arguments.");
+}
+
+export function tensor_from_array(_data: NDArray, requires_grad?: boolean): Parameter {
+    const [shape, data] = flatten(_data);
+    return tensor(shape, data, requires_grad);
 }

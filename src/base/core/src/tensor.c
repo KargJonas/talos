@@ -62,14 +62,31 @@ struct tensor_t* create_view(struct tensor_t* source, size_t axis, size_t offset
     return new_tensor;
 }
 
-void free_tensor(struct tensor_t* a) {
-    if (!a->isview) free(a->data);
-    free(a->shape);
-    free(a->strides);
-    free(a);
+// creates a (potentially differently-ranked) view of a source tensor for use in reshape operations
+// the shape and strides will not be set here as it is expected that these will be set from js
+struct tensor_t* create_reshape_view(struct tensor_t* source, size_t rank) {
+    // allocate memory for the struct
+    struct tensor_t* new_tensor = (struct tensor_t*)malloc(sizeof(struct tensor_t));
+    
+    // reference data of source tensor
+    new_tensor->data    = source->data;
 
-    mgmt.allocated -= a->size;
-    mgmt.ntensors--;
+    // allocate memory for shape/strides
+    new_tensor->shape   = alloc_starr(rank);
+    new_tensor->strides = alloc_starr(rank);
+
+    // set default values for view
+    new_tensor->rank = rank;
+    new_tensor->nelem = source->nelem;
+    new_tensor->ndata = source->ndata;
+    new_tensor->offset = source->offset;
+    new_tensor->isview = true;
+    new_tensor->size = sizeof(struct tensor_t) + sizeof(size_t) * rank * 2;
+
+    mgmt.allocated += new_tensor->size;
+    mgmt.ntensors++;
+
+    return new_tensor;
 }
 
 /**
@@ -131,4 +148,14 @@ void clone_tensor(struct tensor_t* source, struct tensor_t* dest) {
 
     mgmt.allocated += dest->size;
     mgmt.ntensors++;
+}
+
+void free_tensor(struct tensor_t* a) {
+    if (!a->isview) free(a->data);
+    free(a->shape);
+    free(a->strides);
+    free(a);
+
+    mgmt.allocated -= a->size;
+    mgmt.ntensors--;
 }

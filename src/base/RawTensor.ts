@@ -87,6 +87,24 @@ export class RawTensor {
     public clone = () => ops.clone(this);
     public create_view = (axis = 0, offset = 0) => RawTensor.view_of(this, axis, offset);
 
+    public reshape(shape: Shape | number[], strides?: Strides | number[]) {
+        const _shape = [...shape];
+        const _strides = strides || get_strides_row_major(_shape);
+        const rank = _shape.length;
+        const nelem = _shape.reduce((acc: number, val: number) => acc * val, 1);
+
+        if (this.nelem !== nelem)
+            throw new Error(`Cannot reshape tensor of shape [${this.shape}] into [${shape}] because the number of elements does not match.`);
+
+        const ptr = core._create_reshape_view(this.ptr, rank);
+        const new_tensor = new RawTensor(ptr);
+
+        new_tensor.shape.set(shape);
+        new_tensor.strides.set(_strides);
+
+        return new_tensor;
+    }
+
     // metadata operations
     public transpose  = (...permutation: number[]) => ops.transpose(this, permutation);
     public get T(): RawTensor { return ops.transpose(this); }
@@ -100,9 +118,9 @@ export class RawTensor {
     [Symbol.iterator]() { return this.get_axis_iterable(0); }
 
     // builders
-    static scalar = (scalar?: number): RawTensor => RawTensor.create([1], scalar ? [scalar] : undefined);
-    static like = (other: RawTensor): RawTensor => RawTensor.create([...other.shape]);
-    static view_of = (a: RawTensor, axis = 0, offset = 0): RawTensor => new RawTensor(core._create_view(a.ptr, axis, offset));
+    static scalar   = (scalar?: number): RawTensor => RawTensor.create([1], scalar ? [scalar] : undefined);
+    static like     = (other: RawTensor): RawTensor => RawTensor.create([...other.shape]);
+    static view_of  = (a: RawTensor, axis = 0, offset = 0): RawTensor => new RawTensor(core._create_view(a.ptr, axis, offset));
     static create(shape: number[] | Shape, data?: number[]): RawTensor {
         const _shape = [...shape];
         const nelem = _shape.reduce((acc: number, val: number) => acc * val, 1);

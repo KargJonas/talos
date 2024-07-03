@@ -186,10 +186,18 @@ export class Pow extends Tensor {
 
 export class Matmul extends Tensor {
     value: RawTensor;
+    grad: RawTensor;
+
+    // these are views and therefore don't need a lot of memory
+    A_T: RawTensor;
+    B_T: RawTensor;
 
     constructor(parents: Tensor[]) {
         super(parents);
         this.value = RawTensor.create(get_shape_matmul(this.parents[0].value, this.parents[1].value));
+        this.grad = RawTensor.like(this.value);
+        this.A_T = this.parents[0].value.T;
+        this.B_T = this.parents[1].value.T;
     }
 
     fw() {
@@ -197,16 +205,27 @@ export class Matmul extends Tensor {
     }
 
     bw() {
-        // todo
+        const A = this.parents[0];
+        const B = this.parents[1];
+
+        if (A.grad) ops.matmul_acc(this.grad, this.B_T, A.grad);
+        if (B.grad) ops.matmul_acc(this.A_T, this.grad, B.grad);
     }
 }
 
 export class Dot extends Tensor {
     value: RawTensor;
+    grad: RawTensor;
+
+    A_T: RawTensor;
+    B_T: RawTensor;
 
     constructor(parents: Tensor[]) {
         super(parents);
         this.value = RawTensor.create(get_shape_dot(this.parents[0].value, this.parents[1].value));
+        this.grad = RawTensor.like(this.value);
+        this.A_T = this.parents[0].value.T;
+        this.B_T = this.parents[1].value.T;
     }
 
     fw() {
@@ -214,7 +233,13 @@ export class Dot extends Tensor {
     }
 
     bw() {
-        // todo
+        // todo: validate - this is likely that we need to handle dot differently than matmul
+
+        const A = this.parents[0];
+        const B = this.parents[1];
+
+        if (A.grad) ops.dot_acc(this.grad, this.B_T, A.grad);
+        if (B.grad) ops.dot_acc(this.A_T, this.grad, B.grad);
     }
 }
 

@@ -13,17 +13,21 @@ type CoreUnaryOp =  (src_ptr: number, dest_ptr: number) => void;
 type CoreBinaryOp = (src_a_ptr: number, src_b_ptr_or_imm: number, dest_ptr: number) => void;
 
 // binary operations (dest = a <OP> b)
-export const add = create_binary_op("add");
-export const sub = create_binary_op("sub");
-export const mul = create_binary_op("mul");
-export const div = create_binary_op("div");
-export const pow = create_binary_op("pow");
+export const add    = create_binary_op("add");
+export const sub    = create_binary_op("sub");
+export const mul    = create_binary_op("mul");
+export const div    = create_binary_op("div");
+export const pow    = create_binary_op("pow");
+export const dot    = create_dot_op("dot");
+export const matmul = create_matmul_op("matmul");
 
-export const add_acc = create_binary_op("add", true);
-export const sub_acc = create_binary_op("sub", true);
-export const mul_acc = create_binary_op("mul", true);
-export const div_acc = create_binary_op("div", true);
-export const pow_acc = create_binary_op("pow", true);
+export const add_acc    = create_binary_op("add", true);
+export const sub_acc    = create_binary_op("sub", true);
+export const mul_acc    = create_binary_op("mul", true);
+export const div_acc    = create_binary_op("div", true);
+export const pow_acc    = create_binary_op("pow", true);
+export const dot_acc    = create_dot_op("dot", true);
+export const matmul_acc = create_matmul_op("matmul", true);
 
 // unary operations
 export const relu       = create_unary_op("relu");
@@ -124,27 +128,6 @@ export function get_shape_matmul(a: RawTensor, b: RawTensor): Shape {
     return new Shape([...high_level_shape, a.rows, b.cols]);
 }
 
-// standard matmul on tensors 
-export const matmul: BinaryOp<RawTensor> = (src_a: RawTensor, src_b: RawTensor, dest?: RawTensor): RawTensor => {
-    const result_shape = get_shape_matmul(src_a, src_b);
-    const result = dest || RawTensor.create(result_shape);
-
-    if (dest && !dest.shape.equals(result_shape))
-        throw new Error(`Cannot perform matmul. Result tensor [${result_shape}] has different shape than destination tensor [${dest.shape}].`);
-
-    // todo: decide if data should be passed into op from Tensor.forward()
-    //   or if we can just pass in the data like here
-
-    // perform computation using core
-    core._mul_tns(
-        src_a.ptr,
-        src_b.ptr,
-        result.ptr
-    );
-
-    return result;
-};
-
 export function get_shape_dot(a: RawTensor, b: RawTensor): Shape {
     check_row_col_compat(a, b);
 
@@ -155,24 +138,52 @@ export function get_shape_dot(a: RawTensor, b: RawTensor): Shape {
     return result_shape;
 }
 
-// numpy-style dot-product
-export const dot = (a: RawTensor, b: RawTensor, dest?: RawTensor): RawTensor => {
-    const result_shape = get_shape_dot(a, b);
-    const result = dest || RawTensor.create(result_shape);
+function create_matmul_op(opcode: string, accumulative = false):  BinaryOp<RawTensor> {
+    const postfix = accumulative ? "_acc" : "";
+    const core_fn: CoreBinaryOp = core[`_${opcode}${postfix}`];
 
-    if (dest && !dest.shape.equals(result_shape))
-        throw new Error(`Cannot compute dot product. Result tensor [${result_shape}] has different shape than destination tensor [${dest.shape}].`);
+    console.log(`_${opcode}${postfix}`);
 
-    core._dot_tns(
-        a.ptr,
-        b.ptr,
-        result.ptr);
+    return (src_a: RawTensor, src_b: RawTensor, dest?: RawTensor): RawTensor => {
+        const result_shape = get_shape_matmul(src_a, src_b);
+        const result = dest || RawTensor.create(result_shape);
+    
+        if (dest && !dest.shape.equals(result_shape))
+            throw new Error(`Cannot perform matmul. Result tensor [${result_shape}] has different shape than destination tensor [${dest.shape}].`);
+    
+        // todo: decide if data should be passed into op from Tensor.forward()
+        //   or if we can just pass in the data like here
+    
+        // perform computation using core
+        core_fn(
+            src_a.ptr,
+            src_b.ptr,
+            result.ptr
+        );
+    
+        return result;
+    };
+}
 
-    return result;
-};
+function create_dot_op(opcode: string, accumulative = false):  BinaryOp<RawTensor> {
+    const postfix = accumulative ? "_acc" : "";
+    const core_fn: CoreBinaryOp = core[`_${opcode}${postfix}`];
 
-export function grad_acc(src: RawTensor, dest: RawTensor) {
-    core._sum_red_brc(src.ptr, dest.ptr);
+    return (a: RawTensor, b: RawTensor, dest?: RawTensor): RawTensor => {
+        const result_shape = get_shape_dot(a, b);
+        const result = dest || RawTensor.create(result_shape);
+    
+        if (dest && !dest.shape.equals(result_shape))
+            throw new Error(`Cannot compute dot product. Result tensor [${result_shape}] has different shape than destination tensor [${dest.shape}].`);
+    
+        core_fn(
+            a.ptr,
+            b.ptr,
+            result.ptr
+        );
+    
+        return result;
+    };
 }
 
 function create_binary_op(opcode: string, accumulative = false): BinaryOp<RawTensor | number> {
@@ -292,20 +303,26 @@ export function transpose(a: RawTensor, permutation?: number[]): RawTensor {
 
     // todo: handle rank=1: shape should be 1-extended to the right
 
-    if (!permutation || permutation.length === 0) {
-        _permutation = get_matrix_transpose_permutation(a.rank);
+    let new_shape, new_strides;
+
+    // // vectors need to be 1-extended to the right
+    if (a.rank === 1) {
+        if (!permutation || permutation.length !== 0)
+            throw new Error("Can't transpose tensors of rank 1 with a specific permutation because there is only one axis.");
+
+        new_shape = [...a.shape, 1];
+        new_strides = [1, ...a.shape];
+    } else {
+        if (!permutation || permutation.length === 0) {
+            _permutation = get_matrix_transpose_permutation(a.rank);
+        } else {
+            _permutation = [...permutation];
+            validate_permutation(permutation, a.rank);
+        }
+
+        new_shape   = _permutation.map(i => a.shape[i]);
+        new_strides = _permutation.map(i => a.strides[i]);
     }
-    else {
-        _permutation = [...permutation];
-        validate_permutation(permutation, a.rank);
-    }
 
-    const new_shape   = _permutation.map(i => a.shape[i]);
-    const new_strides = _permutation.map(i => a.strides[i]);
-
-    const new_tensor = RawTensor.view_of(a);
-    new_tensor.shape.set(new_shape);
-    new_tensor.strides.set(new_strides);
-
-    return new_tensor;
+    return a.reshape(new_shape, new_strides);
 }
