@@ -12,7 +12,6 @@
 #define get_colstride(a) get_strides_bwd(a, 0)
 #define get_rowstride(a) get_strides_bwd(a, 1)
 
-
 // we are tearing open a healed wound here
 void mul_mat(struct tensor_t* a, struct tensor_t* b, struct tensor_t* res, bool dot) {
     size_t nrow_a = dot ? 1 : get_nrows(a); // todo remove redundancy

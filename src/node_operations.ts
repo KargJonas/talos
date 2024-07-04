@@ -189,19 +189,38 @@ export class Matmul extends Tensor {
     grad: RawTensor;
 
     // these are views and therefore don't need a lot of memory
+    A: RawTensor;
+    B: RawTensor;
     A_T: RawTensor;
     B_T: RawTensor;
 
     constructor(parents: Tensor[]) {
         super(parents);
-        this.value = RawTensor.create(get_shape_matmul(this.parents[0].value, this.parents[1].value));
+        
+        const A = this.parents[0].value;
+        const B = this.parents[1].value;
+
+        // extend vectors such that they can be multiplied
+        this.A = A.rank === 1 ? A.left_extend() : A;
+        this.B = B.rank === 1 ? B.right_extend() : B;
+
+        this.A_T = this.A.T;
+        this.B_T = this.B.T;
+
+        this.value = RawTensor.create(get_shape_matmul(this.A, this.B));
         this.grad = RawTensor.like(this.value);
-        this.A_T = this.parents[0].value.T;
-        this.B_T = this.parents[1].value.T;
+
+        // todo: YOU LEFT OFF HERE
+        // this is nice and all but i think the real solution would be to
+        // just support vec-mat, mat-vec and vec-vec ops in matmul and dot.
+        // i think we might only need to support the cases where the tensor
+        // rank is 1 or 2, because it might be impossible to tell if the
+        // user wants to perform vec-wise or mat-wise operation when when
+        // input tensor rank is higher than that...
     }
 
     fw() {
-        ops.matmul(this.parents[0].value, this.parents[1].value, this.value);
+        ops.matmul(this.A, this.B, this.value);
     }
 
     bw() {
@@ -213,19 +232,9 @@ export class Matmul extends Tensor {
     }
 }
 
-export class Dot extends Tensor {
-    value: RawTensor;
-    grad: RawTensor;
-
-    A_T: RawTensor;
-    B_T: RawTensor;
-
+export class Dot extends Matmul {
     constructor(parents: Tensor[]) {
         super(parents);
-        this.value = RawTensor.create(get_shape_dot(this.parents[0].value, this.parents[1].value));
-        this.grad = RawTensor.like(this.value);
-        this.A_T = this.parents[0].value.T;
-        this.B_T = this.parents[1].value.T;
     }
 
     fw() {
@@ -233,8 +242,6 @@ export class Dot extends Tensor {
     }
 
     bw() {
-        // todo: validate - this is likely that we need to handle dot differently than matmul
-
         const A = this.parents[0];
         const B = this.parents[1];
 
@@ -242,6 +249,36 @@ export class Dot extends Tensor {
         if (B.grad) ops.dot_acc(this.A_T, this.grad, B.grad);
     }
 }
+
+// export class Dot extends Tensor {
+//     value: RawTensor;
+//     grad: RawTensor;
+
+//     A_T: RawTensor;
+//     B_T: RawTensor;
+
+//     constructor(parents: Tensor[]) {
+//         super(parents);
+//         this.value = RawTensor.create(get_shape_dot(this.parents[0].value, this.parents[1].value));
+//         this.grad = RawTensor.like(this.value);
+//         this.A_T = this.parents[0].value.T;
+//         this.B_T = this.parents[1].value.T;
+//     }
+
+//     fw() {
+//         ops.dot(this.parents[0].value, this.parents[1].value, this.value);
+//     }
+
+//     bw() {
+//         // todo: validate - this is likely that we need to handle dot differently than matmul
+
+//         const A = this.parents[0];
+//         const B = this.parents[1];
+
+//         if (A.grad) ops.dot_acc(this.grad, this.B_T, A.grad);
+//         if (B.grad) ops.dot_acc(this.A_T, this.grad, B.grad);
+//     }
+// }
 
 export class Transpose extends Tensor {
     value: RawTensor;

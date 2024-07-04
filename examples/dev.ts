@@ -2,10 +2,11 @@
  * This file is used for validation and debugging during development. 
  */
 
-import {core_ready, set_rand_seed} from "../index";
 import { tensor, tensor_from_array as tensor_from_arr } from "../src/tensor_factory.ts";
-import { get_total_allocated } from "../src/base/Management.ts";
+import { core_ready, get_total_allocated } from "../src/base/Management.ts";
 import { matmul_acc, mul_acc } from "../src/base/raw_tensor_operations.ts";
+import { set_rand_seed } from "../src/base/util.ts";
+import { RawTensor } from "../src/base/RawTensor.ts";
 
 // if your runtime does not support top-level await,
 // you'll have to use core_ready.then(() => { ... }) instead
@@ -34,13 +35,11 @@ console.log("\nRunning SGD demo...\n");
 // const y = A.add(B).T;
 // y.realize().print();
 
-
 const A = tensor([2, 3], [1, 2, 3, 4, 5, 6]);
 const B = tensor([3], [10, 11, 12]);
 
 A.print();
-B.T.print_info();
-A.matmul(B).print();
+A.matmul(B).realize().print_info();
 
 // set_rand_seed(Date.now());
 // // const weight = tensor([3], true).rand();

@@ -105,6 +105,20 @@ export class RawTensor {
         return new_tensor;
     }
 
+    // todo: validate
+    public left_extend(n: number = 1): RawTensor {
+        const new_shape = [...(new Array(n).fill(1)), ...this.shape];
+        const new_strides = [...(new Array(n).fill(this.strides[0] * this.shape[0])), ...this.strides];
+        return this.reshape(new_shape, new_strides);
+    }
+    
+    // todo: validate
+    public right_extend(n: number = 1): RawTensor {
+        const new_shape = [...this.shape, ...(new Array(n).fill(1))];
+        const new_strides = [...this.strides, ...(new Array(n).fill(1))];
+        return this.reshape(new_shape, new_strides);
+    }
+
     // metadata operations
     public transpose  = (...permutation: number[]) => ops.transpose(this, permutation);
     public get T(): RawTensor { return ops.transpose(this); }
@@ -118,10 +132,10 @@ export class RawTensor {
     [Symbol.iterator]() { return this.get_axis_iterable(0); }
 
     // builders
-    static scalar   = (scalar?: number): RawTensor => RawTensor.create([1], scalar ? [scalar] : undefined);
-    static like     = (other: RawTensor): RawTensor => RawTensor.create([...other.shape]);
-    static view_of  = (a: RawTensor, axis = 0, offset = 0): RawTensor => new RawTensor(core._create_view(a.ptr, axis, offset));
-    static create(shape: number[] | Shape, data?: number[]): RawTensor {
+    public static scalar   = (scalar?: number): RawTensor => RawTensor.create([1], scalar ? [scalar] : undefined);
+    public static like     = (other: RawTensor): RawTensor => RawTensor.create([...other.shape]);
+    public static view_of  = (a: RawTensor, axis = 0, offset = 0): RawTensor => new RawTensor(core._create_view(a.ptr, axis, offset));
+    public static create(shape: number[] | Shape, data?: number[]): RawTensor {
         const _shape = [...shape];
         const nelem = _shape.reduce((acc: number, val: number) => acc * val, 1);
 
@@ -138,7 +152,7 @@ export class RawTensor {
         return new_tensor;
     }
 
-    static from_array(_data: NDArray): RawTensor {
+    public static from_array(_data: NDArray): RawTensor {
         const [shape, data] = flatten(_data);
         return RawTensor.create(shape, data);
     }
