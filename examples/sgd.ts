@@ -1,6 +1,7 @@
-import { RawTensor, core_ready } from "../index";
-import { parameter_node, source_node } from "../src/tensor_factory.ts";
+import { RawTensor, core_ready, set_rand_seed } from "../index";
+import { get_total_allocated } from "../src/base/Management.ts";
 import { mul_acc } from "../src/base/raw_tensor_operations.ts";
+import { tensor, tensor_producer } from "../src/tensor_factory.ts";
 
 // if your runtime does not support top-level await,
 // you'll have to use core_ready.then(() => { ... }) instead
@@ -8,43 +9,45 @@ await core_ready;
 
 console.log("\nRunning SGD demo...\n");
 
-// Input and target tensors
-const weight = parameter_node(RawTensor.create([30]).rand(), true);
-const bias = parameter_node(RawTensor.create([30]).rand(), true);
-const input = RawTensor.create([30]).rand();  // random but constant "input data"
-const target = RawTensor.create([30]).rand(); // random but constant target/label
+set_rand_seed(Date.now());
 
-// Create a source node for input
-const a = source_node([30], () => input);
+const size = 100;
 
-// Modify the computation graph to include the weight
-const nn = a.mul(weight).add(bias).mse_loss(target);
+const weight = tensor([2, size], true).rand(0, 1);
+const bias = tensor([size], true).rand(0, 1);
+const target = tensor([size]).rand(0, 1);
 
-// this is identical to mse_loss
-// const nn = a.mul(weight).sub(target).pow(2).mean();
+const a = RawTensor.create([size]);
+const input = tensor_producer([size], () =>  a.normal(3, 1));
 
-const graph = nn.get_computation_graph();
+// define computation graph: mean((target - relu(Weight * input + Bias))^2)
+const nn = weight.matmul(input).add(bias).relu().set_name("relu").mse_loss(target);
 
-// Define learning rate
+// this is identical to above
+// const nn = weight.matmul(input).add(bias).relu().set_name("relu").sub(target).pow(2).mean();
+
+// finds an execution sequence for the operations involved in the previously defined graph
+const graph = nn.graph;
+
 const learningRate = 10;
 
 console.time();
 
-// Training loop
+// training loop
 for (let epoch = 0; epoch < 30; epoch++) {
     graph.zero_grad();
     graph.forward();
     graph.backward();
 
-    // Print loss value
-    console.log(`Epoch ${epoch + 1}: Loss = ${graph.outputs[0].value.toString()}`);
+    // print loss value
+    console.log(`\x1b[35m[${get_total_allocated()} Bytes]\x1b[0m Epoch ${epoch + 1}: Loss = ${graph.outputs[0].value.toString()}`);
 
-    // Update weights using SGD
+    // update weights using SGD
     mul_acc(weight.grad!, -learningRate, weight.value);
     mul_acc(bias.grad!, -learningRate, bias.value);
+
+    // graph.get_node("relu")?.grad?.print();
 }
 
-console.write("\n\nTraining completed in: ");
+console.write("\nTraining completed in: ");
 console.timeEnd();
-console.log(`  Weight value: ${weight.value.toString()}`);
-console.log(`  Weight grad:  ${weight.grad!.toString()}`);

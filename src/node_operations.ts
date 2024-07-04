@@ -232,9 +232,19 @@ export class Matmul extends Tensor {
     }
 }
 
-export class Dot extends Matmul {
+export class Dot extends Tensor {
+    value: RawTensor;
+    grad: RawTensor;
+
+    A_T: RawTensor;
+    B_T: RawTensor;
+
     constructor(parents: Tensor[]) {
         super(parents);
+        this.value = RawTensor.create(get_shape_dot(this.parents[0].value, this.parents[1].value));
+        this.grad = RawTensor.like(this.value);
+        this.A_T = this.parents[0].value.T;
+        this.B_T = this.parents[1].value.T;
     }
 
     fw() {
@@ -242,6 +252,8 @@ export class Dot extends Matmul {
     }
 
     bw() {
+        // todo: validate - it is likely that we need to handle dot differently than matmul
+
         const A = this.parents[0];
         const B = this.parents[1];
 
@@ -249,36 +261,6 @@ export class Dot extends Matmul {
         if (B.grad) ops.dot_acc(this.A_T, this.grad, B.grad);
     }
 }
-
-// export class Dot extends Tensor {
-//     value: RawTensor;
-//     grad: RawTensor;
-
-//     A_T: RawTensor;
-//     B_T: RawTensor;
-
-//     constructor(parents: Tensor[]) {
-//         super(parents);
-//         this.value = RawTensor.create(get_shape_dot(this.parents[0].value, this.parents[1].value));
-//         this.grad = RawTensor.like(this.value);
-//         this.A_T = this.parents[0].value.T;
-//         this.B_T = this.parents[1].value.T;
-//     }
-
-//     fw() {
-//         ops.dot(this.parents[0].value, this.parents[1].value, this.value);
-//     }
-
-//     bw() {
-//         // todo: validate - this is likely that we need to handle dot differently than matmul
-
-//         const A = this.parents[0];
-//         const B = this.parents[1];
-
-//         if (A.grad) ops.dot_acc(this.grad, this.B_T, A.grad);
-//         if (B.grad) ops.dot_acc(this.A_T, this.grad, B.grad);
-//     }
-// }
 
 export class Transpose extends Tensor {
     value: RawTensor;
@@ -364,7 +346,7 @@ export class Mean extends Tensor {
     bw() {
         const input = this.parents[0];
         if (input.grad) {
-            ops.div(this.grad, input.value.size, this.interim);
+            ops.div(this.grad, input.value.nelem, this.interim);
             ops.add(input.grad, this.interim, input.grad);
         }
     }
@@ -405,12 +387,12 @@ export class MseLoss extends Tensor {
 
         if (prediction.grad) {
             // gradient of MSE loss w.r.t. prediction: 2 * (prediction - target) / N       
-            ops.mul_acc(this.interim, 2 / prediction.value.size, prediction.grad);
+            ops.mul_acc(this.interim, 2 / prediction.value.nelem, prediction.grad);
         }
 
         // todo fix: no need to to this twice
         if (target.grad) {
-            ops.mul_acc(this.interim, -2 / prediction.value.size, target.grad);
+            ops.mul_acc(this.interim, -2 / prediction.value.nelem, target.grad);
         }
     }
 }
@@ -434,7 +416,7 @@ export class Relu extends Tensor {
     bw() {
         if (this.parents[0].grad) {
             ops.binstep(this.parents[0].value, this.interim);
-            ops.mul_acc(this.parents[0].grad, this.grad, this.parents[0].grad);
+            ops.mul_acc(this.interim, this.grad, this.parents[0].grad);
         }
     }
 }

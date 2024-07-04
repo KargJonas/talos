@@ -370,42 +370,6 @@ describe("tensor operations", async () => {
         });
     });
 
-    // checks if all values in the tensor data array are within the specified range
-    function values_in_range(a: RawTensor, min: number, max: number) {
-        [...a.data].map((value) => {
-            expect(value).toBeGreaterThanOrEqual(min);
-            expect(value).toBeLessThanOrEqual(max);
-        });
-    }
-
-    // warning - these tests contain nondeterminism and may thus yield
-    // different results at different pints in time
-    describe("tensor initialization", () => {
-        test("RawTensor.rand()", () => {
-            // check that the tensor is initialized with *some data*
-            const old_tensor = RawTensor.create([100]).rand();
-            const new_tensor = old_tensor.clone().rand();
-            expect(old_tensor.data).not.toEqual(new_tensor.data);
-
-            // check that the initialized values are correct
-            values_in_range(new_tensor, -1, 1);
-            values_in_range(new_tensor.rand(-5.6, 19.3), -5.6, 19.3);
-            values_in_range(new_tensor.rand(100.1, 150.7), 100.1, 150.7);
-        });
-
-        test("RawTensor.rand_int()", () => {
-            // check that the tensor is initialized with *some data*
-            const old_tensor = RawTensor.create([100]).rand_int();
-            const new_tensor = old_tensor.clone().rand_int();
-            expect(old_tensor.data).not.toEqual(new_tensor.data);
-
-            // check that the initialized values are correct
-            values_in_range(new_tensor, -1, 1);
-            values_in_range(new_tensor.rand_int(-5, 19), -5, 19);
-            values_in_range(new_tensor.rand_int(100, 150), 100, 150);
-        });
-    });
-
     // const t1 = tensor([2, 2, 3], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
     // const t2  = tensor([3, 2], [1, 2, 3, 4, 5, 6]);
     // const t13 = tensor([2, 2, 5, 2], [0.261, 0.983, 0.857, 0.279, 0.211, 0.75, 0.671, 0.32, 0.641, 0.317, 0.003, 0.951, 0.332, 0.226, 0.409, 0.475, 0.348, 0.205, 0.11, 0.353, 0.557, 0.309, 0.06, 0.963, 0.368, 0.607, 0.047, 0.52, 0.5, 0.532, 0.138, 0.686, 0.982, 0.134, 0.984, 0.488, 0.856, 0.766, 0.208, 0.29]);

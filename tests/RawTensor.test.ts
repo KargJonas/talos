@@ -3,6 +3,7 @@ import { RawTensor } from "../src/base/RawTensor.ts";
 import { core_ready } from "../src/base/Management";
 import Shape from "../src/base/Shape";
 import Strides from "../src/base/Strides";
+import { mean } from "../src/base/raw_tensor_operations.ts";
 
 describe("tensor creation", async () => {
     await core_ready;
@@ -163,6 +164,55 @@ describe("tensor creation", async () => {
             // - proper offsets in get_axis_iterable
             // - transposition correctness (shape, stride, offset)
             // - views of views
+        });
+    });
+
+    // checks if all values in the tensor data array are within the specified range
+    function values_in_range(a: RawTensor, min: number, max: number) {
+        [...a.data].map((value) => {
+            expect(value).toBeGreaterThanOrEqual(min);
+            expect(value).toBeLessThanOrEqual(max);
+        });
+    }
+
+    // warning - these tests contain nondeterminism and may thus yield
+    // different results at different pints in time
+    describe("tensor initialization", () => {
+        test("RawTensor.rand()", () => {
+            // check that the tensor is initialized with *some data*
+            const old_tensor = RawTensor.create([100]).rand();
+            const new_tensor = old_tensor.clone().rand();
+            expect(old_tensor.data).not.toEqual(new_tensor.data);
+
+            // check that the initialized values are correct
+            values_in_range(new_tensor, -1, 1);
+            values_in_range(new_tensor.rand(-5.6, 19.3), -5.6, 19.3);
+            values_in_range(new_tensor.rand(100.1, 150.7), 100.1, 150.7);
+        });
+
+        test("RawTensor.normal()", () => {
+            // check that the tensor is initialized with *some data*
+            const old_tensor = RawTensor.create([100000]).normal(3.14, 1);
+            const new_tensor = old_tensor.clone().normal(-100, 2);
+            expect(old_tensor.data).not.toEqual(new_tensor.data);
+
+            // check that the initialized values are correct
+            expect(mean(old_tensor)).toBeCloseTo(3.14, 2);
+            expect(mean(new_tensor)).toBeCloseTo(-100, 2);
+
+            old_tensor.free();
+            new_tensor.free();
+        });
+
+        test("RawTensor.fill()", () => {
+            // check that the tensor is initialized with *some data*
+            const old_tensor = RawTensor.create([100]).fill(5);
+            const new_tensor = old_tensor.clone().fill(2);
+            expect(old_tensor.data).not.toEqual(new_tensor.data);
+
+            // check that the initialized values are correct
+            values_in_range(old_tensor, 5, 5);
+            values_in_range(new_tensor, 2, 2);
         });
     });
 });

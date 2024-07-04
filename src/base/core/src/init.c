@@ -8,23 +8,36 @@ void rand_seed(int seed) {
     srand(seed);
 }
 
-void rand_f(float* a, size_t size, float min, float max) {
+void init_rand(struct tensor_t* a, float min, float max) {
     float range = max - min;
 
-    for (size_t i = 0; i < size; i++)
-        a[i] = rand() / (float)RAND_MAX * range + min;
+    if (a->isview) for (size_t i = 0; i < a->nelem; i++) {
+        a->data[get_index(a, i)] = rand() / (float)RAND_MAX * range + min;
+    }
+
+    else for (size_t i = 0; i < a->nelem; i++) {
+        a->data[i] = rand() / (float)RAND_MAX * range + min;
+    }
 }
 
-void rand_i(float* a, size_t size, int min, int max) {
-    int range = max - min + 1;
+void init_normal(struct tensor_t* a, float mean, float std_dev) {
+    if (a->isview) for (size_t i = 0; i < a->nelem; i++) {
+        a->data[get_index(a, i)] = normal(mean, std_dev);
+    }
 
-    for (size_t i = 0; i < size; i++)
-        a[i] = (rand() % range) + min;
+    else for (size_t i = 0; i < a->nelem; i++) {
+        a->data[i] = normal(mean, std_dev);
+    }
 }
 
-void fill(float* a, size_t size, float value) {
-    for (size_t i = 0; i < size; i++)
-        a[i] = value;
+void init_fill(struct tensor_t* a, float value) {
+    if (a->isview) for (size_t i = 0; i < a->nelem; i++) {
+        a->data[get_index(a, i)] = value;
+    }
+
+    else for (size_t i = 0; i < a->nelem; i++) {
+        a->data[i] = value;
+    }
 }
 
 #endif //CORE_RAND

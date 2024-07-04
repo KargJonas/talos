@@ -66,7 +66,6 @@ void NAME(struct tensor_t* a, struct tensor_t* b, struct tensor_t* result) {
     size_t nmat_max = MAX(nmat_a, nmat_b);
     register size_t ia = 0, ib = 0, ires = 0;
 
-    // fill(result->data, result->nelem, 0);
     FILL_DESTINATION;
 
     struct tensor_t* view_a   = create_view(a, a->rank - 2, 0);
@@ -133,10 +132,10 @@ void NAME(struct tensor_t* a, struct tensor_t* b, struct tensor_t* result) {
 }
 ]]]
 
-MATMUL_OP(matmul, fill(result->data, result->nelem, 0));
+MATMUL_OP(matmul, init_fill(result, 0));
 MATMUL_OP(matmul_acc, );
 
-DOT_OP(dot, fill(result->data, result->nelem, 0));
+DOT_OP(dot, init_fill(result, 0));
 DOT_OP(dot_acc, );
 
 #endif //CORE_MATMUL

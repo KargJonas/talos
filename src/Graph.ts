@@ -89,4 +89,8 @@ export default class Graph {
             node.bw();
         }
     }
+
+    public get_node(name: string): Tensor | undefined {
+        return this.topological_ordering.find((value: Tensor) => value.name === name);
+    }
 }

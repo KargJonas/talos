@@ -1,14 +1,7 @@
-import {RawTensor} from "./RawTensor.ts";
 import core from "./core/build";
 
 export type NDArray = (NDArray | number)[];
-
 export const set_rand_seed = (n: number) => core._rand_seed(n);
-
-export function check_row_col_compat(a: RawTensor, b: RawTensor) {
-    if (a.cols !== b.rows)
-        throw new Error(`Cannot multiply tensors of shape [${a.shape}] and [${b.shape}]`);
-}
 
 /**
  * Finds the row-major strides of a tensor with the specified shape

@@ -16,6 +16,7 @@ export default abstract class Tensor implements ITensor<Tensor> {
     readonly children: Tensor[];
 
     private cached_graph: Graph | undefined;
+    name?: string;
 
     protected constructor(parents: Tensor[]) {
         this.parents = parents;
@@ -24,38 +25,43 @@ export default abstract class Tensor implements ITensor<Tensor> {
         // value is initialized in extending classes
     }
 
-    public get rank()           { return this.value.rank; }
-    public get nelem()          { return this.value.nelem; }
-    public get size()           { return this.value.size; }
-    public get rows()           { return this.value.get_axis_size(this.rank - 2); }
-    public get cols()           { return this.value.get_axis_size(this.rank - 1); }
-    public get_axis_size = (axis_index: number) => this.value.get_axis_size(axis_index);
+    get rank()           { return this.value.rank; }
+    get nelem()          { return this.value.nelem; }
+    get size()           { return this.value.size; }
+    get rows()           { return this.value.get_axis_size(this.rank - 2); }
+    get cols()           { return this.value.get_axis_size(this.rank - 1); }
+    get_axis_size = (axis_index: number) => this.value.get_axis_size(axis_index);
 
     fw() {} // forward
     bw() {} // backward
 
-    public zero_grad() {
+    zero_grad() {
         this.grad?.zeros(); // todo: should we throw?
         return this;
     }
 
-    public rand(min = -1, max = 1) {
+    rand(min = -1, max = 1) {
         this.value.rand(min, max);
         return this;
     }
 
-    public rand_int(min = -1, max = 1) {
-        this.value.rand_int(min, max);
+    normal(mean = 0, std_dev = 1) {
+        this.value.normal(mean, std_dev);
         return this;
     }
 
-    public fill(value: number) {
+    fill(value: number) {
         this.value.fill(value);
         return this;
     }
 
-    public zeros = () => this.fill(0);
-    public ones = () => this.fill(1);
+    zeros = () => this.fill(0);
+    ones = () => this.fill(1);
+
+    set_name(name: string) {
+        this.name = name;
+        return this;
+    }
 
     print = (precision?: number) => this.value.print(precision);
     print_info = () => this.value.print_info();
@@ -71,7 +77,7 @@ export default abstract class Tensor implements ITensor<Tensor> {
     dot = this.create_binary_op(graph_ops.Dot);
 
     transpose = this.create_unary_op(graph_ops.Transpose);
-    public get T() { return this.transpose(); }
+    get T() { return this.transpose(); }
 
     // unary operations
     relu = this.create_unary_op(graph_ops.Relu);

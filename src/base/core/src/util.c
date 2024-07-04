@@ -1,4 +1,7 @@
 #include "./util.h"
+#include <math.h>
+
+#define PI 3.1415926535
 
 // allocation functions
 
@@ -122,4 +125,27 @@ float get_item(struct tensor_t* a, size_t linear_index) {
     }
 
     return a->data[ia];
+}
+
+// normal distribution based on box-muller transform
+float normal(float mean, float sigma) {
+    static int hasSpare = 0;
+    static double spare;
+
+    if(hasSpare) {
+        hasSpare = 0;
+        return mean + sigma * spare;
+    }
+
+    hasSpare = 1;
+    double u, v, s;
+    do {
+        u = drand48() * 2.0 - 1.0;
+        v = drand48() * 2.0 - 1.0;
+        s = u * u + v * v;
+    } while (s >= 1.0 || s == 0);
+
+    s = sqrt(-2.0 * log(s) / s);
+    spare = v * s;
+    return mean + sigma * u * s;
 }

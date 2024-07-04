@@ -66,17 +66,17 @@ export class RawTensor {
     }
 
     public rand(min = -1, max = 1) {
-        core._rand_f(this.data_ptr, this.data.length, min, max);
+        core._init_rand(this.ptr, min, max);
         return this;
     }
 
-    public rand_int(min = -1, max = 1) {
-        core._rand_i(this.data_ptr, this.data.length, min, max);
+    public normal(mean = 0, std_dev = 1) {
+        core._init_normal(this.ptr, mean, std_dev);
         return this;
     }
 
     public fill(value: number) {
-        core._fill(this.data_ptr, this.data.length, value);
+        core._init_fill(this.ptr, value);
         return this;
     }
 

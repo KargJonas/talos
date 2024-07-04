@@ -25,8 +25,8 @@ const t1 = tensor([2, 2, 3], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
 const t2 = tensor([3, 2],    [1, 2, 3, 4, 5, 6]);
 const t3 = tensor([3],       [-1, 2, 3]);
 
-const t4 = tensor([2, 2]).rand_int(1, 6);
 const t5 = tensor([2, 2]).rand(1, 6);
+const t6 = tensor([2, 2]).normal(0, 3);
 
 for (const e of t1) {
     e.T.add(t2).print();
@@ -93,7 +93,7 @@ console.log(t4.mean());
   - view creation
   - iteration over specific axes
 - Initialization
-    - rand, rand_int, fill, zeros, ones, tensor(shape[], data[]?), tensor_like(other_tensor), tensor_scalar(number?)
+    - rand, normal, fill, zeros, ones, tensor(shape[], data[]?), tensor_like(other_tensor), tensor_scalar(number?)
 
 ### How to build
 #### Prerequisites

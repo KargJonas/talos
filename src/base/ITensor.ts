@@ -17,7 +17,7 @@ export default interface ITensor<TensorType> {
     ones: () => TensorType;
     // clone: () => TensorType;
     rand: (min: number, max: number) => TensorType;
-    rand_int: (min: number, max: number) => TensorType;
+    normal: (mean: number, std_dev: number) => TensorType;
     fill: (value: number) => TensorType;
     
     // // memory dealloc operation

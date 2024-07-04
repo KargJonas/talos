@@ -1,4 +1,3 @@
-import { check_row_col_compat } from "./util";
 import { RawTensor } from "./RawTensor.ts";
 import core from "./core/build";
 import Shape from "./Shape";
@@ -110,7 +109,8 @@ export const clone = (src: RawTensor, dest?: RawTensor) => {
 };
 
 export function get_shape_matmul(a: RawTensor, b: RawTensor): Shape {
-    check_row_col_compat(a, b);
+    if (a.cols !== b.rows)
+        throw new Error(`Cannot perform matmul on tensors of shape [${a.shape}] and [${b.shape}]`);
 
     // flatten tensors to a "list of matrices" and get the size of that list
     const nmat_a = a.shape.flatten(3)[0];
@@ -129,7 +129,8 @@ export function get_shape_matmul(a: RawTensor, b: RawTensor): Shape {
 }
 
 export function get_shape_dot(a: RawTensor, b: RawTensor): Shape {
-    check_row_col_compat(a, b);
+    if (a.cols !== b.rows)
+        throw new Error(`Cannot perform dot on tensors of shape [${a.shape}] and [${b.shape}]`);
 
     const result_shape = new Shape([
         ...[...a.shape].slice(0, a.rank - 1),
