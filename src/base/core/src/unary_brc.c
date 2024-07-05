@@ -59,6 +59,7 @@ void NAME(struct tensor_t *_a, struct tensor_t *res) {
     ceil_brc:       ceil(a)
     floor_brc:      floor(a)
     abs_brc:        fabs(a)
+    sign_brc:       SIGN(a)
     negate_brc:     -a
     reciprocal_brc: 1. / a
     relu_brc:       a < 0 ? 0 : a

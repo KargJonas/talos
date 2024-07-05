@@ -9,6 +9,7 @@
 #include <emscripten.h>
 
 #define MAX(A, B) A > B ? A : B
+#define SIGN(x) (x > 0) - (x < 0)
 #define print_js(msg, var) EM_ASM({ console.log(msg, $0); }, var);
 
 // allocation functions

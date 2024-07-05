@@ -51,6 +51,7 @@ export const sqrt       = create_unary_op("sqrt");
 export const ceil       = create_unary_op("ceil");
 export const floor      = create_unary_op("floor");
 export const abs        = create_unary_op("abs");
+export const sign       = create_unary_op("sign");
 export const reciprocal = create_unary_op("reciprocal");
 
 export const relu_acc       = create_unary_op("relu", true);
@@ -75,6 +76,7 @@ export const sqrt_acc       = create_unary_op("sqrt", true);
 export const ceil_acc       = create_unary_op("ceil", true);
 export const floor_acc      = create_unary_op("floor", true);
 export const abs_acc        = create_unary_op("abs", true);
+export const sign_acc       = create_unary_op("sign", true);
 export const reciprocal_acc = create_unary_op("reciprocal", true);
 
 // reduce operations

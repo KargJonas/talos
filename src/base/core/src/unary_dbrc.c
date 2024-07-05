@@ -76,6 +76,7 @@ void NAME(struct tensor_t *_a, struct tensor_t *dest) {
     ceil_dbrc:       ceil(a)
     floor_dbrc:      floor(a)
     abs_dbrc:        fabs(a)
+    sign_dbrc:       SIGN(a)
     negate_dbrc:     -a
     reciprocal_dbrc: 1. / a
     relu_dbrc:       a < 0 ? 0 : a
