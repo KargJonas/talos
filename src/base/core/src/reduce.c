@@ -51,30 +51,34 @@ float mean_red_scl(struct tensor_t* a) {
     return mean;
 }
 
-
-// these functions operate in-place on a source and a destination tensor tensor.
-// the destination tensor should be a scalar tensor (only one component)
-
+/**
+ * @brief Finds the largest element in a tensor.
+ * The destination must be a scalar view of the source.
+ * It will reference the largest element in the source tensor.
+ * @param src Source tensor.
+ * @param dest Scalar destination tensor.
+ *             Must either be a scalar view of the source.
+ */
 void max_red_tns(struct tensor_t* src, struct tensor_t* dest) {
-    register float val, max = FLT_MIN;
+    register size_t index, max_index = src->offset;
 
-    for (size_t ires = 0; ires < src->nelem; ires++) {
-        val = get_item(src, ires);
-        if (val > max) max = val;
+    for (size_t i = 0; i < src->nelem; i++) {
+        index = get_index(src, i);
+        if (src->data[index] > src->data[max_index]) max_index = index;
     }
 
-    dest->data[get_index(dest, 0)] = max;
+    dest->offset = max_index;    
 }
 
 void min_red_tns(struct tensor_t* src, struct tensor_t* dest) {
-    register float val, min = FLT_MAX;
+    register size_t index, min_index = src->offset;
 
-    for (size_t ires = 0; ires < src->nelem; ires++) {
-        val = get_item(src, ires);
-        if (val < min) min = val;
+    for (size_t i = 0; i < src->nelem; i++) {
+        index = get_index(src, i);
+        if (src->data[index] < src->data[min_index]) min_index = index;
     }
 
-    dest->data[get_index(dest, 0)] = min;
+    dest->offset = min_index;    
 }
 
 void sum_red_tns(struct tensor_t* src, struct tensor_t* dest) {

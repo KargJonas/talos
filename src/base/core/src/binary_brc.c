@@ -34,7 +34,7 @@ void NAME(struct tensor_t *_a, struct tensor_t *_b, struct tensor_t *res) {
             ires += iaxis * res->strides[dim];
         }
 
-        float a = _a->data[_a->offset + ia], b = _b->data[_b->offset + ib];
+        float a = _a->data[ia], b = _b->data[ib];
         res->data[ires] ASSIGNMENT RESULT;
     }
 }

@@ -31,25 +31,34 @@ struct tensor_t* create_tensor(size_t rank, size_t nelem) {
 // nice feature of this function - automatically resizes view tensor to size of elements
 // of the desired axis so you can use this to e.g. iterate over larger tensors
 struct tensor_t* create_view(struct tensor_t* source, size_t axis, size_t offset) {
+    bool is_scalar = source->rank == axis;
+
+    // determine the rank if the view
+    size_t new_rank = is_scalar ? 1 : source->rank - axis;
+
     // allocate memory for the struct
     struct tensor_t* new_tensor = (struct tensor_t*)malloc(sizeof(struct tensor_t));
 
-    // assertion: axis may not be larger than rank - 1
+    // assertion: axis may not be larger than rank
 
     // reference data of source tensor
     new_tensor->data    = source->data;
 
     // allocate memory for shape/strides
-    new_tensor->shape   = alloc_starr(source->rank - axis);
-    new_tensor->strides = alloc_starr(source->rank - axis);
+    new_tensor->shape   = alloc_starr(new_rank);
+    new_tensor->strides = alloc_starr(new_rank);
 
-    // copy shape/strides from source but omit first n (=axis) elements
-    size_t new_rank = source->rank - axis;
-    memcpy(new_tensor->shape,   &source->shape[axis],   new_rank * sizeof(size_t));
-    memcpy(new_tensor->strides, &source->strides[axis], new_rank * sizeof(size_t));
+    if (is_scalar) {
+        new_tensor->shape[0] = 1;
+        new_tensor->strides[0] = 1;
+    } else {
+        // copy shape/strides from source but omit first n (=axis) elements
+        memcpy(new_tensor->shape,   &source->shape[axis],   new_rank * sizeof(size_t));
+        memcpy(new_tensor->strides, &source->strides[axis], new_rank * sizeof(size_t));
+    }
 
     // set default values for view
-    new_tensor->rank = source->rank - axis;
+    new_tensor->rank = new_rank;
     new_tensor->nelem = get_nelem_of_axis_elements(source, axis);
     new_tensor->ndata = source->ndata;
     new_tensor->offset = source->offset + offset;

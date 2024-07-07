@@ -295,7 +295,7 @@ export class Max extends Tensor {
 
     constructor(parents: Tensor[]) {
         super(parents);
-        this.value = RawTensor.scalar();
+        this.value = RawTensor.view_of(parents[0].value, parents[0].value.rank);
     }
 
     fw() {
@@ -303,6 +303,8 @@ export class Max extends Tensor {
     }
 
     bw() {
+
+        
         // todo: for bw, we need to propagate the gradient only to the location of the largest
         //       element. currently we dont have information about what element it was.
         //       solution: max_tns and min_tns as should return scalar views of the source tensor

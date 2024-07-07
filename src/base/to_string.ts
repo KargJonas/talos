@@ -107,7 +107,7 @@ export function tensor_info_to_string(a: RawTensor) {
         `  ndata:   ${a.ndata}\n` +
         `  size:    ${a.size} bytes\n` +
         `  offset:  ${a.offset}\n` +
-        `  data: [${data.join(", ")}${a.data.length > max_entries ? ", ..." : ""}]\n`);
+        `  data:    [${data.join(", ")}${a.data.length > max_entries ? ", ..." : ""}]\n`);
 }
 
 export function ordinal_str(n: number): string {

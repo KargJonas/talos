@@ -85,8 +85,8 @@ export const max  = (a: RawTensor) => core._max_red_scl(a.ptr);
 export const min  = (a: RawTensor) => core._min_red_scl(a.ptr);
 export const sum  = (a: RawTensor) => core._sum_red_scl(a.ptr);
 export const mean = (a: RawTensor) => core._mean_red_scl(a.ptr);
-export const max_tns = create_reduce_op(core._max_red_tns);
-export const min_tns = create_reduce_op(core._min_red_tns);
+export const max_tns = create_select_op(core._max_red_tns);
+export const min_tns = create_select_op(core._min_red_tns);
 export const sum_tns = create_reduce_op(core._sum_red_tns);
 export const mean_tns = create_reduce_op(core._mean_red_tns);
 
@@ -255,6 +255,23 @@ function create_unary_op(opcode: string, accumulative = false): UnaryOp {
         else if (src.nelem > dest.nelem) core_fn_dbrc(src.ptr, dest.ptr); // debroadcasting
     
         return dest;
+    };
+}
+
+// these operations select one element from a source tensor
+// the result is a scalar view of the source
+// example: min finds the smallest element of the source
+function create_select_op(core_fn: CoreUnaryOp) {
+    return (src: RawTensor, dest?: RawTensor) => {
+        if (dest && !dest.shape.is_scalar)
+            throw new Error(`Cannot perform reduce operation. Provided destination tensor is not scalar. Destination shape: [${dest.shape}]`);
+
+        if (dest && dest.data_ptr !== src.data_ptr)
+            throw new Error("Cannot perform reduce operation. Destination is a view that does not reference the source pointer.");
+
+        const result: RawTensor = dest || RawTensor.view_of(src, src.rank);
+        core_fn(src.ptr, result.ptr);
+        return result;
     };
 }
 
