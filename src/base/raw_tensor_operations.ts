@@ -4,12 +4,12 @@ import Shape from "./Shape";
 
 
 // types for high level operations
-export type UnaryOp = (src: RawTensor, dest?: RawTensor) => RawTensor;
+export type UnaryOp = (src: RawTensor, dest?: RawTensor, param?: number) => RawTensor;
 export type BinaryOp<OtherType> = (src_a: RawTensor, src_b: OtherType, dest?: RawTensor) => RawTensor;
 export type DropoutOp = (src: RawTensor, dest?: RawTensor, p?: number, seed?: number) => RawTensor;
 
 // types of core functions
-type CoreUnaryOp   =  (src_ptr: number, dest_ptr: number) => void;
+type CoreUnaryOp   =  (src_ptr: number, dest_ptr: number, param?: number) => void;
 type CoreBinaryOp  = (src_a_ptr: number, src_b_ptr_or_imm: number, dest_ptr: number) => void;
 type CoreDropoutOp =  (src_ptr: number, dest_ptr: number, p: number, seed: number) => void;
 
@@ -86,6 +86,28 @@ export const floor_acc      = create_unary_op("floor", true);
 export const abs_acc        = create_unary_op("abs", true);
 export const sign_acc       = create_unary_op("sign", true);
 export const reciprocal_acc = create_unary_op("reciprocal", true);
+
+// derivatives of (some of the) unary operations
+export const df_relu       = create_unary_op("df_relu");
+export const df_leaky_relu = create_unary_op("df_leaky_relu");
+export const df_negate     = create_unary_op("df_negate");
+export const df_sin        = create_unary_op("df_sin");
+export const df_cos        = create_unary_op("df_cos");
+export const df_tan        = create_unary_op("df_tan");
+export const df_asin       = create_unary_op("df_asin");
+export const df_acos       = create_unary_op("df_acos");
+export const df_atan       = create_unary_op("df_atan");
+export const df_sinh       = create_unary_op("df_sinh");
+export const df_cosh       = create_unary_op("df_cosh");
+export const df_tanh       = create_unary_op("df_tanh");
+export const df_exp        = create_unary_op("df_exp");
+export const df_log        = create_unary_op("df_log");
+export const df_log10      = create_unary_op("df_log10");
+export const df_log2       = create_unary_op("df_log2");
+export const df_invsqrt    = create_unary_op("df_invsqrt");
+export const df_sqrt       = create_unary_op("df_sqrt");
+export const df_abs        = create_unary_op("df_abs");
+export const df_reciprocal = create_unary_op("df_reciprocal");
 
 // reduce operations
 // todo: add pairwise functionality (tensor-valued functions)
@@ -256,7 +278,7 @@ function create_unary_op(opcode: string, accumulative = false): UnaryOp {
     const core_fn_brc: CoreUnaryOp = core[`_${opcode}_brc${postfix}`];   // broadcasting
     const core_fn_dbrc: CoreUnaryOp = core[`_${opcode}_dbrc${postfix}`]; // debroadcasting
 
-    return (src: RawTensor, _dest?: RawTensor) => {
+    return (src: RawTensor, _dest?: RawTensor, param?: number) => {
         if (_dest && !src.shape.broadcastable(_dest.shape))
             throw new Error(`Cannot perform unary operation because broadcasting is not possible between source tensor [${src.shape}] and destination tensor [${_dest.shape}].`);
 
@@ -264,7 +286,7 @@ function create_unary_op(opcode: string, accumulative = false): UnaryOp {
 
         // pairwise
         if (src.nelem === dest.nelem) {
-            core_fn_prw(src.ptr, dest.ptr);
+            core_fn_prw(src.ptr, dest.ptr, param);
             return dest;
         }
 

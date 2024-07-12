@@ -502,7 +502,7 @@ export class Relu extends UnaryOpTensor {
     bw() {
         // d/dx relu(x) = binstep(x)
         if (!this.parents[0].grad) return;
-        ops.binstep(this.parents[0].value, this.interim);
+        ops.df_relu(this.parents[0].value, this.interim);
         ops.mul_acc(this.interim, this.grad, this.parents[0].grad);
     }
 }
@@ -518,13 +518,14 @@ export class LeakyRelu extends UnaryOpTensor {
     }
 
     fw() {
-        ops.leaky_relu(this.parents[0].value, this.value);
+        ops.leaky_relu(this.parents[0].value, this.value, this.neg_slope);
     }
 
     bw() {
         // d/dx leaky_relu(x) = x < 0 ? neg_slope : 1
         if (!this.parents[0].grad) return;
-        // todo
+        ops.df_leaky_relu(this.parents[0].value, this.interim, this.neg_slope);
+        ops.mul_acc(this.grad, this.interim, this.parents[0].grad);
     }
 }
 
@@ -582,7 +583,7 @@ export class Sin extends UnaryOpTensor {
     bw() {
         // d/dx sin(x) = cos(x)
         if (!this.parents[0].grad) return;
-        ops.cos(this.parents[0].value, this.interim);
+        ops.df_sin(this.parents[0].value, this.interim);
         ops.mul_acc(this.grad, this.interim, this.parents[0].grad);
     }
 }
@@ -602,8 +603,7 @@ export class Cos extends UnaryOpTensor {
     bw() {
         // d/dx cos(x) = -sin(x)
         if (!this.parents[0].grad) return;
-        ops.sin(this.parents[0].value, this.interim);
-        ops.negate_acc(this.interim, this.interim);
+        ops.df_cos(this.parents[0].value, this.interim);
         ops.mul_acc(this.grad, this.interim, this.parents[0].grad);
     }
 }
@@ -623,9 +623,7 @@ export class Tan extends UnaryOpTensor {
     bw() {
         // d/dx tan(x) = sec^2(x) = 1 / cos^2(x)
         if (!this.parents[0].grad) return;
-        ops.cos(this.parents[0].value, this.interim);
-        ops.pow(this.interim, 2, this.interim);
-        ops.reciprocal(this.interim, this.interim);
+        ops.df_tan(this.parents[0].value, this.interim);
         ops.mul_acc(this.grad, this.interim, this.parents[0].grad);
     }
 }
@@ -643,18 +641,9 @@ export class Asin extends UnaryOpTensor {
     }
 
     bw() {
-        if (!this.parents[0].grad) return;
-        // todo: use this derivative calculation if the result is actually identical to the one below
-        // d/dx asin(x) = acos(x)
-        // ops.acos(this.parents[0].value, this.interim);
-        // ops.mul_acc(this.grad, this.interim, this.parents[0].grad);
-
         // d/dx asin(x) = 1 / sqrt(1 - x^2)
-        ops.pow(this.parents[0].value, 2, this.interim);
-        ops.negate(this.interim, this.interim);
-        ops.add(this.interim, 1, this.interim);
-        ops.sqrt(this.interim, this.interim);
-        ops.reciprocal(this.interim, this.interim);
+        if (!this.parents[0].grad) return;
+        ops.df_asin(this.parents[0].value, this.interim);
         ops.mul_acc(this.grad, this.interim, this.parents[0].grad);
     }
 }
@@ -672,21 +661,9 @@ export class Acos extends UnaryOpTensor {
     }
 
     bw() {
-        // d/dx
-        if (!this.parents[0].grad) return;
-        // todo: use this derivative calculation if the result is actually identical to the one below
-        // d/dx acos(x) = -asin(x)
-        // ops.asin(this.parents[0].value, this.interim);
-        // ops.negate_acc(this.interim, this.interim);
-        // ops.mul_acc(this.grad, this.interim, this.parents[0].grad);
-
         // d/dx asin(x) = -1 / sqrt(1 - x^2)
-        ops.pow(this.parents[0].value, 2, this.interim);
-        ops.negate(this.interim, this.interim);
-        ops.add(this.interim, 1, this.interim);
-        ops.sqrt(this.interim, this.interim);
-        ops.reciprocal(this.interim, this.interim);
-        ops.negate(this.interim, this.interim);
+        if (!this.parents[0].grad) return;
+        ops.df_acos(this.parents[0].value, this.interim);
         ops.mul_acc(this.grad, this.interim, this.parents[0].grad);
     }
 }
@@ -706,9 +683,7 @@ export class Atan extends UnaryOpTensor {
     bw() {
         // d/dx atan(x) = asec^2(x) = 1 / (x^2 + 1)
         if (!this.parents[0].grad) return;
-        ops.pow(this.parents[0].value, 2, this.interim);
-        ops.add(this.interim, 1, this.interim);
-        ops.reciprocal(this.interim, this.interim);
+        ops.df_atan(this.parents[0].value, this.interim);
         ops.mul_acc(this.grad, this.interim, this.parents[0].grad);
     }
 }
@@ -728,7 +703,7 @@ export class Sinh extends UnaryOpTensor {
     bw() {
         // d/dx sinh(x) = cosh(x)
         if (!this.parents[0].grad) return;
-        ops.cosh(this.parents[0].value, this.interim);
+        ops.df_sinh(this.parents[0].value, this.interim);
         ops.mul_acc(this.grad, this.interim, this.parents[0].grad);
     }
 }
@@ -748,7 +723,7 @@ export class Cosh extends UnaryOpTensor {
     bw() {
         // d/dx cosh(x) = sinh(x)
         if (!this.parents[0].grad) return;
-        ops.sinh(this.parents[0].value, this.interim);
+        ops.df_cosh(this.parents[0].value, this.interim);
         ops.mul_acc(this.grad, this.interim, this.parents[0].grad);
     }
 }
@@ -768,9 +743,7 @@ export class Tanh extends UnaryOpTensor {
     bw() {
         // d/dx tanh(x) = 1 - tanh^2(x)
         if (!this.parents[0].grad) return;
-        ops.pow(this.value, 2, this.interim);
-        ops.negate(this.interim, this.interim);
-        ops.add(this.interim, 1, this.interim);
+        ops.df_tanh(this.parents[0].value, this.interim);
         ops.mul_acc(this.grad, this.interim, this.parents[0].grad);
     }
 }
@@ -809,7 +782,7 @@ export class Log extends UnaryOpTensor {
     bw() {
         // d/dx ln(x) = 1/x
         if (!this.parents[0].grad) return;
-        ops.reciprocal(this.parents[0].value, this.interim);
+        ops.df_log(this.parents[0].value, this.interim);
         ops.mul_acc(this.grad, this.interim, this.parents[0].value);
     }
 }
@@ -830,8 +803,7 @@ export class Log10 extends UnaryOpTensor {
     bw() {
         // d/dx log10(x) = 1 / (x * ln(10))
         if (!this.parents[0].grad) return;
-        ops.mul(this.parents[0].grad, this.ln10, this.interim);
-        ops.reciprocal(this.interim, this.interim);
+        ops.df_log10(this.parents[0].value, this.interim);
         ops.mul_acc(this.grad, this.interim, this.parents[0].grad);
     }
 }
@@ -852,8 +824,7 @@ export class Log2 extends UnaryOpTensor {
     bw() {
         // d/dx log2(x) = 1 / (x * ln(2))
         if (!this.parents[0].grad) return;
-        ops.mul(this.parents[0].grad, this.ln2, this.interim);
-        ops.reciprocal(this.interim, this.interim);
+        ops.df_log2(this.parents[0].value, this.interim);
         ops.mul_acc(this.grad, this.interim, this.parents[0].grad);
     }
 }
@@ -873,10 +844,7 @@ export class Invsqrt extends UnaryOpTensor {
     bw() {
         // d/dx 1 / sqrt(x) = - 1 / (2x^(3/2))
         if (!this.parents[0].grad) return;
-        ops.mul(this.parents[0].value, 2, this.interim);
-        ops.pow(this.interim, 3 / 2, this.interim);
-        ops.reciprocal(this.interim, this.interim);
-        ops.negate(this.interim, this.interim);
+        ops.df_invsqrt(this.parents[0].value, this.interim);
         ops.mul_acc(this.grad, this.interim, this.parents[0].grad);
     }
 }
@@ -896,8 +864,7 @@ export class Sqrt extends UnaryOpTensor {
     bw() {
         // d/dx sqrt(x) = 1 / (2 * sqrt(x))
         if (!this.parents[0].grad) return;
-        ops.mul(this.value, 2, this.interim);
-        ops.reciprocal(this.interim, this.interim);
+        ops.df_sqrt(this.parents[0].value, this.interim);
         ops.mul_acc(this.grad, this.interim, this.parents[0].grad);
     }
 }
@@ -917,7 +884,7 @@ export class Abs extends UnaryOpTensor {
     bw() {
         // d/dx |x| = sign(x)
         if (!this.parents[0].grad) return;
-        ops.sign(this.parents[0].value, this.interim);
+        ops.df_abs(this.parents[0].value, this.interim);
         ops.mul_acc(this.grad, this.interim, this.parents[0].grad);
     }
 }
@@ -937,9 +904,7 @@ export class Reciprocal extends UnaryOpTensor {
     bw() {
         // d/dx 1 / x = -1 / (x^2)
         if (!this.parents[0].grad) return;
-        ops.pow(this.parents[0].value, 2, this.interim);
-        ops.reciprocal(this.interim, this.interim);
-        ops.negate(this.interim, this.interim);
+        ops.df_reciprocal(this.parents[0].value, this.interim);
         ops.mul_acc(this.grad, this.interim, this.parents[0].grad);
     }
 }
