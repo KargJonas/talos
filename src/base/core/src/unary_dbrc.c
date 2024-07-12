@@ -85,4 +85,27 @@ void NAME(struct tensor_t *_a, struct tensor_t *dest, float param) {
     logistic_dbrc:   1. / (exp(-a) + 1.)
 ]]]
 
+@GENERATE (DEBROADCASTING_UNARY_OP) [[[
+    df_sin_dbrc:           cos(a)
+    df_cos_dbrc:           -sin(a)
+    df_tan_dbrc:           1. / pow(cos(a), 2.)
+    df_asin_dbrc:          1. / sqrt(1 - pow(a, 2.))
+    df_acos_dbrc:          -1. / sqrt(1 - pow(a, 2.))
+    df_atan_dbrc:          1. / (pow(a, 2.) + 1.)
+    df_sinh_dbrc:          cosh(a)
+    df_cosh_dbrc:          sinh(a)
+    df_tanh_dbrc:          1. - pow(tanh(a), 2.)
+    df_exp_dbrc:           exp(a)
+    df_log_dbrc:           1. / a
+    df_log2_dbrc:          1. / (a * log(2.))
+    df_log10_dbrc:         1. / (a * log(10.))
+    df_invsqrt_dbrc:       -.5 / pow(a, 3. / 2.)
+    df_sqrt_dbrc:          .5 / sqrt(a)
+    df_abs_dbrc:           SIGN(a)
+    df_negate_dbrc:        -1
+    df_reciprocal_dbrc:    -1. / pow(a, 2.)
+    df_relu_dbrc:          a < 0. ? 0. : 1.
+    df_leaky_relu_dbrc:    a < 0 ? param : 1
+]]]
+
 #endif //CORE_UNARY_DBRC

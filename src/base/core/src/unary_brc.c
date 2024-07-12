@@ -63,10 +63,33 @@ void NAME(struct tensor_t *_a, struct tensor_t *res, float param) {
     sign_brc:          SIGN(a)
     negate_brc:        -a
     reciprocal_brc:    1. / a
-    relu_brc:          a < 0 ? 0 : a
-    leaky_relu_brc:    a < 0 ? param * a : a
-    binstep_brc:       a < 0 ? 0 : 1
+    relu_brc:          a < 0. ? 0. : a
+    leaky_relu_brc:    a < 0. ? param * a : a
+    binstep_brc:       a < 0. ? 0. : 1.
     logistic_brc:      1. / (exp(-a) + 1.)
+]]]
+
+@GENERATE (BROADCASTING_UNARY_OP) [[[
+    df_sin_brc:           cos(a)
+    df_cos_brc:           -sin(a)
+    df_tan_brc:           1. / pow(cos(a), 2.)
+    df_asin_brc:          1. / sqrt(1 - pow(a, 2.))
+    df_acos_brc:          -1. / sqrt(1 - pow(a, 2.))
+    df_atan_brc:          1. / (pow(a, 2.) + 1.)
+    df_sinh_brc:          cosh(a)
+    df_cosh_brc:          sinh(a)
+    df_tanh_brc:          1. - pow(tanh(a), 2.)
+    df_exp_brc:           exp(a)
+    df_log_brc:           1. / a
+    df_log2_brc:          1. / (a * log(2.))
+    df_log10_brc:         1. / (a * log(10.))
+    df_invsqrt_brc:       -.5 / pow(a, 3. / 2.)
+    df_sqrt_brc:          .5 / sqrt(a)
+    df_abs_brc:           SIGN(a)
+    df_negate_brc:        -1
+    df_reciprocal_brc:    -1. / pow(a, 2.)
+    df_relu_brc:          a < 0. ? 0. : 1.
+    df_leaky_relu_brc:    a < 0 ? param : 1
 ]]]
 
 #endif //CORE_UNARY_BRC

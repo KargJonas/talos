@@ -55,4 +55,27 @@ void NAME(struct tensor_t* _a, struct tensor_t* res, float param) {
     logistic_prw:   1. / (exp(-a) + 1.)
 ]]]
 
+@GENERATE (PAIRWISE_UNARY_OP) [[[
+    df_sin_prw:           cos(a)
+    df_cos_prw:           -sin(a)
+    df_tan_prw:           1. / pow(cos(a), 2.)
+    df_asin_prw:          1. / sqrt(1 - pow(a, 2.))
+    df_acos_prw:          -1. / sqrt(1 - pow(a, 2.))
+    df_atan_prw:          1. / (pow(a, 2.) + 1.)
+    df_sinh_prw:          cosh(a)
+    df_cosh_prw:          sinh(a)
+    df_tanh_prw:          1. - pow(tanh(a), 2.)
+    df_exp_prw:           exp(a)
+    df_log_prw:           1. / a
+    df_log2_prw:          1. / (a * log(2.))
+    df_log10_prw:         1. / (a * log(10.))
+    df_invsqrt_prw:       -.5 / pow(a, 3. / 2.)
+    df_sqrt_prw:          .5 / sqrt(a)
+    df_abs_prw:           SIGN(a)
+    df_negate_prw:        -1
+    df_reciprocal_prw:    -1. / pow(a, 2.)
+    df_relu_prw:          a < 0. ? 0. : 1.
+    df_leaky_relu_prw:    a < 0 ? param : 1
+]]]
+
 #endif //CORE_UNARY_PRW

@@ -518,13 +518,14 @@ export class LeakyRelu extends UnaryOpTensor {
     }
 
     fw() {
-        ops.leaky_relu(this.parents[0].value, this.value);
+        ops.leaky_relu(this.parents[0].value, this.value, this.neg_slope);
     }
 
     bw() {
         // d/dx leaky_relu(x) = x < 0 ? neg_slope : 1
         if (!this.parents[0].grad) return;
-        // todo
+        ops.df_leaky_relu(this.parents[0].value, this.interim, this.neg_slope);
+        ops.mul_acc(this.grad, this.interim, this.parents[0].grad);
     }
 }
 

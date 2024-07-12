@@ -76,6 +76,7 @@ export default abstract class Tensor implements ITensor<Tensor> {
 
     // unary operations
     relu = this.create_unary_op(graph_ops.Relu);
+    leaky_relu = this.create_unary_op(graph_ops.LeakyRelu);
     binstep = this.create_unary_op(graph_ops.Binstep);
     logistic = this.create_unary_op(graph_ops.Logistic);
     negate = this.create_unary_op(graph_ops.Negate);
