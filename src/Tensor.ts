@@ -25,43 +25,36 @@ export default abstract class Tensor implements ITensor<Tensor> {
         // value is initialized in extending classes
     }
 
-    get rank()           { return this.value.rank; }
-    get nelem()          { return this.value.nelem; }
-    get size()           { return this.value.size; }
-    get rows()           { return this.value.get_axis_size(this.rank - 2); }
-    get cols()           { return this.value.get_axis_size(this.rank - 1); }
+    get rank()  { return this.value.rank; }
+    get nelem() { return this.value.nelem; }
+    get size()  { return this.value.size; }
+    get rows()  { return this.value.get_axis_size(this.rank - 2); }
+    get cols()  { return this.value.get_axis_size(this.rank - 1); }
+    get item()  { return this.value.item; }
     get_axis_size = (axis_index: number) => this.value.get_axis_size(axis_index);
 
     fw() {} // forward
     bw() {} // backward
 
-    zero_grad() {
-        this.grad?.zeros(); // todo: should we throw?
-        return this;
+    private chain_op<T extends any[]>(operation: (...params: T) => void): (...params: T) => Tensor {
+        return (...params: T): Tensor => {
+            operation.apply(this, params);
+            return this;
+        };
     }
 
-    rand(min = -1, max = 1) {
-        this.value.rand(min, max);
-        return this;
-    }
-
-    normal(mean = 0, std_dev = 1) {
-        this.value.normal(mean, std_dev);
-        return this;
-    }
-
-    fill(value: number) {
-        this.value.fill(value);
-        return this;
-    }
-
-    zeros = () => this.fill(0);
-    ones = () => this.fill(1);
-
-    set_name(name: string) {
-        this.name = name;
-        return this;
-    }
+    uniform         = this.chain_op((min = -1, max = 1, seed?: number) => this.value.rand(min, max, seed));
+    normal          = this.chain_op((mean = 0, std_dev = 1, seed?: number) => this.value.normal(mean, std_dev, seed));
+    kaiming_uniform = this.chain_op((n_in: number, seed?: number) => this.value.kaiming_uniform(n_in, seed));
+    kaiming_normal  = this.chain_op((n_in: number, seed?: number) => this.value.kaiming_normal(n_in, seed));
+    xavier_uniform  = this.chain_op((n_in: number, n_out: number, seed?: number) => this.value.xavier_uniform(n_in, n_out, seed));
+    xavier_normal   = this.chain_op((n_in: number, n_out: number, seed?: number) => this.value.xavier_uniform(n_in, n_out, seed));
+    fill            = this.chain_op((value: number) => this.value.fill(value));
+    set_name        = this.chain_op((name: string) => this.name = name);
+    zero_grad       = this.chain_op(() => this.grad?.zeros());
+    realize         = this.chain_op(() => this.graph.forward());
+    zeros           = () => this.fill(0);
+    ones            = () => this.fill(1);
 
     print = (precision?: number) => this.value.print(precision);
     print_info = () => this.value.print_info();
@@ -75,6 +68,8 @@ export default abstract class Tensor implements ITensor<Tensor> {
 
     matmul = this.create_binary_op(graph_ops.Matmul);
     dot = this.create_binary_op(graph_ops.Dot);
+
+    dropout = this.create_unary_op(graph_ops.Dropout);
 
     transpose = this.create_unary_op(graph_ops.Transpose);
     get T() { return this.transpose(); }
@@ -127,11 +122,6 @@ export default abstract class Tensor implements ITensor<Tensor> {
         }
 
         return node_set;
-    }
-
-    realize(): Tensor {
-        this.graph.forward();
-        return this;
     }
 
     /**

@@ -2,6 +2,7 @@ import * as ops from "./base/raw_tensor_operations.ts";
 import { get_shape_dot, get_shape_matmul } from "./base/raw_tensor_operations.ts";
 import {RawTensor} from "./base/RawTensor.ts";
 import Shape from "./base/Shape.ts";
+import { get_global_seed } from "./base/util.ts";
 import Tensor from "./Tensor.ts";
 
 // This file contains all operations of the graph-node abstraction-level
@@ -51,7 +52,7 @@ export class Add extends Tensor {
         // d/da (a+b) = 1
         if (this.parents[0].grad) ops.add(this.grad, this.parents[0].grad, this.parents[0].grad); // parents[0].grad = 1 * this.grad
 
-        // d/da (a+b) = 1
+        // d/db (a+b) = 1
         if (this.parents[1].grad) ops.add(this.grad, this.parents[1].grad, this.parents[1].grad); // parents[0].grad = 1 * this.grad
     }
 }
@@ -129,15 +130,16 @@ export class Div extends Tensor {
 
         // d/da (a/b) = 1/b
         if (a.grad) {
-            ops.div(this.grad, b.value, this.interim);
-            ops.add_acc(this.interim, a.grad, a.grad);
+            ops.div(this.grad, b.value, this.interim); // interim = this.grad * 1/b = this.grad / b
+            ops.add(a.grad, this.interim, a.grad); // a.grad += interim
         }
 
         // d/db (a/b) = -a/(b^2)
-        if (b.grad) {
-            ops.pow(b.value, 2, this.interim);
-            ops.div(a.value, this.interim, this.interim);
-            ops.sub_acc(this.interim, b.grad, b.grad);
+        if (b.grad) {       
+            ops.pow(b.value, 2, this.interim);              // interim = b^2
+            ops.div(a.value, this.interim, this.interim);   // interim = a / b^2
+            ops.negate(this.interim, this.interim);         // interim = -a / b^2
+            ops.mul_acc(this.grad, this.interim, b.grad);   // b.grad += this.grad * (-a / b^2)
         }
     }
 }
@@ -161,14 +163,14 @@ export class Pow extends Tensor {
     }
 
     bw() {
-        const base = this.parents[0].value;
-        const exponent = this.parents[1].value;
+        const a = this.parents[0].value; // base
+        const b = this.parents[1].value; // exponent
 
         if (this.parents[0].grad) {
             // d/da (a^b) = b * a^(b-1)
-            ops.sub(exponent, 1, this.interim_1); // interim = b - 1
-            ops.pow(base, this.interim_1, this.interim_0); // interim = a^(b-1)
-            ops.mul(exponent, this.interim_0, this.interim_0); // interim = b * a^(b-1)
+            ops.sub(b, 1, this.interim_1); // interim = b - 1
+            ops.pow(a, this.interim_1, this.interim_0); // interim = a^(b-1)
+            ops.mul(b, this.interim_0, this.interim_0); // interim = b * a^(b-1)
             ops.mul(this.grad, this.interim_0, this.interim_0); // interim = grad * b * a^(b-1)
             ops.add_acc(this.interim_0, this.parents[0].grad, this.parents[0].grad); // parents[0].grad += interim
         }
@@ -176,7 +178,7 @@ export class Pow extends Tensor {
         if (this.parents[1].grad) {
             // todo validate
             // d/db (a^b) = a^b * ln(a)
-            ops.log(base, this.interim_0); // interim = ln(a)
+            ops.log(a, this.interim_0); // interim = ln(a)
             ops.mul(this.value, this.interim_0, this.interim_0); // interim = a^b * ln(a)
             ops.mul(this.grad, this.interim_0, this.interim_0); // interim = grad * a^b * ln(a)
             ops.add_acc(this.interim_0, this.parents[1].grad, this.parents[1].grad); // parents[1].grad += interim
@@ -280,7 +282,12 @@ export class Min extends Tensor {
     }
 
     fw() {
+        throw new Error("Min is not implemented.");
         ops.min_tns(this.parents[0].value, this.value);
+    }
+
+    bw() {
+        throw new Error("Min is not implemented.");
     }
 
     // todo: for bw, we need to propagate the gradient only to the location of the largest
@@ -292,18 +299,34 @@ export class Min extends Tensor {
 
 export class Max extends Tensor {
     value: RawTensor;
+    grad?: RawTensor;
 
     constructor(parents: Tensor[]) {
         super(parents);
         this.value = RawTensor.view_of(parents[0].value, parents[0].value.rank);
+        if (this.parents[0].grad) this.grad = RawTensor.view_of(this.parents[0].grad, this.parents[0].grad.rank);
     }
 
     fw() {
+        throw new Error("Max is not implemented.");
+
+        // const index = ops.get_max_index(this.parents[0].value);
+        // const local_index = index - this.parents[0].value.offset;
+
+        // // todo:
+        // // sync_scl_views();
+
+        // // this.value.set_offset();
+
         ops.max_tns(this.parents[0].value, this.value);
+        // if (this.grad) {
+            
+        //     this.grad.set_offset(this.parents.offset);
+        // }
     }
 
     bw() {
-
+        throw new Error("Max is not implemented.");
         
         // todo: for bw, we need to propagate the gradient only to the location of the largest
         //       element. currently we dont have information about what element it was.
@@ -333,6 +356,7 @@ export class Sum extends Tensor {
     }
 }
 
+// OLD MEAN IMPL. APPARENTLY INCORRECT
 export class Mean extends Tensor {
     value: RawTensor;
     grad: RawTensor;
@@ -341,7 +365,7 @@ export class Mean extends Tensor {
     constructor(parents: Tensor[]) {
         super(parents);
         this.value = RawTensor.scalar(); // Scalar tensor to hold the mean value
-        this.grad = RawTensor.like(this.parents[0].value); // Gradient tensor with the same shape as input
+        this.grad = RawTensor.like(this.value); // Gradient tensor with the same shape as input
         this.interim = RawTensor.like(this.parents[0].value);
     }
 
@@ -356,6 +380,31 @@ export class Mean extends Tensor {
         ops.add(this.parents[0].grad, this.interim, this.parents[0].grad);
     }
 }
+
+
+// export class Mean extends Tensor {
+//     value: RawTensor;
+//     grad: RawTensor;
+//     interim: RawTensor;
+
+//     constructor(parents: Tensor[]) {
+//         super(parents);
+//         this.value = RawTensor.scalar(); // Scalar tensor to hold the mean value
+//         this.grad = RawTensor.like(this.parents[0].value); // Gradient tensor with the same shape as input
+//         this.interim = RawTensor.like(this.parents[0].value);
+//     }
+
+//     fw() {
+//         ops.mean_tns(this.parents[0].value, this.value);
+//     }
+
+//     bw() {
+//         if (!this.parents[0].grad) return;
+
+//         ops.div(this.grad, this.parents[0].value.nelem, this.interim);
+//         ops.add(this.parents[0].grad, this.interim, this.parents[0].grad);
+//     }
+// }
 
 export class MseLoss extends Tensor {
     value: RawTensor;
@@ -402,15 +451,47 @@ export class MseLoss extends Tensor {
     }
 }
 
-export class Relu extends Tensor {
+export class UnaryOpTensor extends Tensor {
     value: RawTensor;
     grad: RawTensor;
-    interim: RawTensor;
 
     constructor(parents: Tensor[]) {
         super(parents);
         this.value = RawTensor.like(parents[0].value);
-        this.grad = RawTensor.like(parents[0].value);
+        this.grad = RawTensor.like(this.value);
+    }
+}
+
+export class Dropout extends UnaryOpTensor {
+    p: number;
+    seed: number = 0;
+
+    constructor(parents: Tensor[], p: number) {
+        super(parents);
+        this.p = p;
+    }
+
+    fw() {
+        // todo: figure out when a new dropout mask should be used
+        //       during mini-batch gradient descent
+        //       (currently, we create a new mask on every fw)
+
+        // changing the seed is equal to using a new dropout mask
+        this.seed = get_global_seed();
+        ops.dropout(this.parents[0].value, this.value, this.p, this.seed);
+    }
+
+    bw() {
+        // todo: figure out which mask to use for backprop after a mini batch
+        ops.dropout_acc(this.grad, this.parents[0].grad, this.p, this.seed);
+    }
+}
+
+export class Relu extends UnaryOpTensor {
+    interim: RawTensor;
+
+    constructor(parents: Tensor[]) {
+        super(parents);
         this.interim = RawTensor.like(parents[0].value);
     }
 
@@ -426,14 +507,24 @@ export class Relu extends Tensor {
     }
 }
 
-export class UnaryOpTensor extends Tensor {
-    value: RawTensor;
-    grad: RawTensor;
+export class LeakyRelu extends UnaryOpTensor {
+    interim: RawTensor;
+    neg_slope: number;
 
-    constructor(parents: Tensor[]) {
+    constructor(parents: Tensor[], neg_slope: number) {
         super(parents);
-        this.value = RawTensor.like(parents[0].value);
-        this.grad = RawTensor.like(this.value);
+        this.neg_slope = neg_slope;
+        this.interim = RawTensor.like(parents[0].value);
+    }
+
+    fw() {
+        ops.leaky_relu(this.parents[0].value, this.value);
+    }
+
+    bw() {
+        // d/dx leaky_relu(x) = x < 0 ? neg_slope : 1
+        if (!this.parents[0].grad) return;
+        // todo
     }
 }
 

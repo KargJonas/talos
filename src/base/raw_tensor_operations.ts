@@ -6,10 +6,12 @@ import Shape from "./Shape";
 // types for high level operations
 export type UnaryOp = (src: RawTensor, dest?: RawTensor) => RawTensor;
 export type BinaryOp<OtherType> = (src_a: RawTensor, src_b: OtherType, dest?: RawTensor) => RawTensor;
+export type DropoutOp = (src: RawTensor, dest?: RawTensor, p?: number, seed?: number) => RawTensor;
 
 // types of core functions
-type CoreUnaryOp =  (src_ptr: number, dest_ptr: number) => void;
-type CoreBinaryOp = (src_a_ptr: number, src_b_ptr_or_imm: number, dest_ptr: number) => void;
+type CoreUnaryOp   =  (src_ptr: number, dest_ptr: number) => void;
+type CoreBinaryOp  = (src_a_ptr: number, src_b_ptr_or_imm: number, dest_ptr: number) => void;
+type CoreDropoutOp =  (src_ptr: number, dest_ptr: number, p: number, seed: number) => void;
 
 // binary operations (dest = a <OP> b)
 export const add    = create_binary_op("add");
@@ -28,8 +30,13 @@ export const pow_acc    = create_binary_op("pow", true);
 export const dot_acc    = create_dot_op("dot", true);
 export const matmul_acc = create_matmul_op("matmul", true);
 
+// misc operations
+export const dropout     = create_dropout_op("dropout");
+export const dropout_acc = create_dropout_op("dropout", true);
+
 // unary operations
 export const relu       = create_unary_op("relu");
+export const leaky_relu = create_unary_op("leaky_relu");
 export const binstep    = create_unary_op("binstep");
 export const logistic   = create_unary_op("logistic");
 export const negate     = create_unary_op("negate");
@@ -55,6 +62,7 @@ export const sign       = create_unary_op("sign");
 export const reciprocal = create_unary_op("reciprocal");
 
 export const relu_acc       = create_unary_op("relu", true);
+export const leaky_relu_acc = create_unary_op("leaky_relu", true);
 export const binstep_acc    = create_unary_op("binstep", true);
 export const logistic_acc   = create_unary_op("logistic", true);
 export const negate_acc     = create_unary_op("negate", true);
@@ -145,8 +153,6 @@ function create_matmul_op(opcode: string, accumulative = false):  BinaryOp<RawTe
     const postfix = accumulative ? "_acc" : "";
     const core_fn: CoreBinaryOp = core[`_${opcode}${postfix}`];
 
-    console.log(`_${opcode}${postfix}`);
-
     return (src_a: RawTensor, src_b: RawTensor, dest?: RawTensor): RawTensor => {
         const result_shape = get_shape_matmul(src_a, src_b);
         const result = dest || RawTensor.create(result_shape);
@@ -185,6 +191,21 @@ function create_dot_op(opcode: string, accumulative = false):  BinaryOp<RawTenso
             result.ptr
         );
     
+        return result;
+    };
+}
+
+function create_dropout_op(opcode: string, accumulative = false): DropoutOp {
+    const postfix = accumulative ? "_acc" : "";
+    const core_fn: CoreDropoutOp = core[`_${opcode}${postfix}`];
+
+    return (src: RawTensor, dest?: RawTensor, p = .5, seed = 0): RawTensor => {
+        const result = dest || RawTensor.create(src.shape);
+    
+        if (dest && !dest.shape.equals(src.shape))
+            throw new Error(`Cannot compute dropout. Destination tensor [${dest.shape}] has different shape than source tensor [${src.shape}].`);
+    
+        core_fn(src.ptr, result.ptr, p, seed);
         return result;
     };
 }
@@ -346,3 +367,44 @@ export function transpose(a: RawTensor, permutation?: number[]): RawTensor {
 
     return a.reshape(new_shape, new_strides);
 }
+
+// size_t get_index(struct tensor_t* a, size_t linear_index) {
+//     size_t ia = a->offset;
+//     size_t remainder = linear_index;
+//     size_t iaxis;
+
+//     for (size_t dim = a->rank; dim-- > 0;) {
+//         iaxis = remainder % a->shape[dim];
+//         ia += iaxis * a->strides[dim];
+//         remainder /= a->shape[dim];
+//     }
+
+//     return ia;
+// }
+
+// function for making two scalar views of independent but equally shaped tensors
+// point to the same element of said tensors.
+// example:
+//   let A, B be two identically shaped tensors
+//   let a, b be two scalar views of these tensors (shape = [1])
+//   where a points to some element A_ijk... of A and b points to some element of B
+//   then sync_scl_views(a, b) will make b point to the element B_ijk... in tensor B.
+// export function sync_scl_views(a: RawTensor, b: RawTensor, linear_index: number) {
+//     if (a.shape !== b.shape)
+//         throw new Error("Can't synchronize differently shaped views.");
+
+//     if (!a.shape.is_scalar)
+//         throw new Error("Synchronization of non-scalar views is not supported.");
+
+//     let ib = b.offset;
+//     let remainder = linear_index;
+//     let iaxis;
+
+//     for (let dim = b.rank; dim-- > 0;) {
+//         iaxis = remainder % b.shape[dim];
+//         ib += iaxis * b.strides[dim];
+//         remainder /= b.shape[dim];
+//     }
+
+//     b.set_offset(ib);
+// }

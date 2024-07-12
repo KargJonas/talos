@@ -4,29 +4,27 @@
 #include <stddef.h>
 #include <stdlib.h>
 
-void rand_seed(int seed) {
-    srand(seed);
-}
+unsigned int global_seed = 0;
 
-void init_rand(struct tensor_t* a, float min, float max) {
+void init_uniform(struct tensor_t* a, float min, float max, unsigned int seed) {
     float range = max - min;
 
     if (a->isview) for (size_t i = 0; i < a->nelem; i++) {
-        a->data[get_index(a, i)] = rand() / (float)RAND_MAX * range + min;
+        a->data[get_index(a, i)] = rand_r(&seed) / (float)RAND_MAX * range + min;
     }
 
     else for (size_t i = 0; i < a->nelem; i++) {
-        a->data[i] = rand() / (float)RAND_MAX * range + min;
+        a->data[i] = rand_r(&seed) / (float)RAND_MAX * range + min;
     }
 }
 
-void init_normal(struct tensor_t* a, float mean, float std_dev) {
+void init_normal(struct tensor_t* a, float mean, float std_dev, unsigned int seed) {
     if (a->isview) for (size_t i = 0; i < a->nelem; i++) {
-        a->data[get_index(a, i)] = normal(mean, std_dev);
+        a->data[get_index(a, i)] = normal(mean, std_dev, &seed);
     }
 
     else for (size_t i = 0; i < a->nelem; i++) {
-        a->data[i] = normal(mean, std_dev);
+        a->data[i] = normal(mean, std_dev, &seed);
     }
 }
 

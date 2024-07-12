@@ -1,7 +1,8 @@
-import core from "./core/build";
-
 export type NDArray = (NDArray | number)[];
-export const set_rand_seed = (n: number) => core._rand_seed(n);
+
+let global_seed = 0xc0ffee;
+export const get_global_seed = () => global_seed++;
+export const set_rand_seed = (seed: number) => global_seed = seed;
 
 /**
  * Finds the row-major strides of a tensor with the specified shape

@@ -10,7 +10,7 @@ EF = [ \
 	_copy_farr, _copy_starr, \
 	_clone_tensor, _create_view, _create_reshape_view, \
 	\
-	_rand_seed, _init_rand, _init_normal, _init_fill, \
+	_init_uniform, _init_normal, _init_fill, \
 	\
 	_get_mgmt_ptr, \
 	\

@@ -2,10 +2,10 @@ import Shape from "./Shape";
 import Strides from "./Strides";
 import core from "./core/build";
 import {tensor_to_string, ordinal_str, tensor_info_to_string} from "./to_string";
-import {flatten, get_strides_row_major, NDArray} from "./util";
+import {flatten, get_global_seed, get_strides_row_major, NDArray} from "./util";
 import * as ops from "./raw_tensor_operations.ts";
 
-enum  STRUCT_LAYOUT { DATA, SHAPE, STRIDES, RANK, NELEM, NDATA, OFFSET, SIZE, ISVIEW }
+enum  STRUCT_LAYOUT { DATA, SHAPE, STRIDES, RANK, NELEM, NDATA, OFFSET, SIZE, ISVIEW, VIEWSRC }
 const STRUCT_SIZE = Object.entries(STRUCT_LAYOUT).length / 2;
 
 /**
@@ -35,6 +35,7 @@ export class RawTensor {
     public get ndata(): number       { return this.view[STRUCT_LAYOUT.NDATA]; }
     public get size(): number        { return this.view[STRUCT_LAYOUT.SIZE]; }
     public get isview(): number      { return this.view[STRUCT_LAYOUT.ISVIEW]; }
+    public get viewsrc(): number     { return this.view[STRUCT_LAYOUT.VIEWSRC]; }
     public get ptr(): number         { return this.view.byteOffset; }
     public get data_ptr(): number    { return this.view[STRUCT_LAYOUT.DATA]; }
     public get shape_ptr(): number   { return this.view[STRUCT_LAYOUT.SHAPE]; }
@@ -65,13 +66,36 @@ export class RawTensor {
         }
     }
 
-    public rand(min = -1, max = 1) {
-        core._init_rand(this.ptr, min, max);
+    public rand = this.uniform;
+    public uniform(min = -1, max = 1, seed = get_global_seed()) {
+        core._init_uniform(this.ptr, min, max, seed);
         return this;
     }
 
-    public normal(mean = 0, std_dev = 1) {
-        core._init_normal(this.ptr, mean, std_dev);
+    public xavier_uniform(n_in: number, n_out: number, seed = get_global_seed()) {
+        const bound = Math.sqrt(6) / Math.sqrt(n_in + n_out);
+        core._init_uniform(this.ptr, -bound, bound, seed);
+        return this;
+    }
+
+    public xavier_normal(n_in: number, n_out: number, seed = get_global_seed()) {
+        core._init_normal(this.ptr, 0, 2 / (n_in + n_out), seed);
+        return this;
+    }
+
+    public kaiming_uniform(n_in: number, seed = get_global_seed()) {
+        const bound = Math.sqrt(6 / n_in);
+        core._init_uniform(this.ptr, -bound, bound, seed);
+        return this;
+    }
+
+    public kaiming_normal(n_in: number, seed = get_global_seed()) {
+        core._init_normal(this.ptr, 0, Math.sqrt(2 / n_in), seed);
+        return this;
+    }
+
+    public normal(mean = 0, std_dev = 1, seed = get_global_seed()) {
+        core._init_normal(this.ptr, mean, std_dev, seed);
         return this;
     }
 

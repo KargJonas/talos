@@ -9,30 +9,34 @@ set_rand_seed(Date.now());
 
 console.log("\nRunning SGD demo...\n");
 
-const size = 100;
-const weight = tensor([2, size], true).rand(0, 1);
-const bias = tensor([size], true).rand(0, 1);
-const target = tensor([size]).rand(0, 1);
+const size = 10;
+const weight = tensor([2, size], true).kaiming_normal(size);
+const bias = tensor([size], true).kaiming_normal(size);
+const target = tensor([size]).uniform(0, 1);
+
+weight.print();
+bias.print();
 
 const a = RawTensor.create([size]);
 const input = tensor_producer([size], () => a.normal(3, 1));
 
 // define computation graph: mean((target - relu(Weight * input + Bias))^2)
-const nn = weight.matmul(input).add(bias).relu().mse_loss(target);
+const nn = weight.matmul(input).add(bias).set_name("add").relu().mse_loss(target);
 
 // finds an execution sequence for the operations involved in the previously defined graph
 const graph = nn.graph;
-const learningRate = 10;
+const learningRate = 3;
 
 console.time();
 
 // training loop
-for (let epoch = 0; epoch < 30; epoch++) {
+for (let epoch = 0; epoch < 100; epoch++) {
     graph.zero_grad();
     graph.forward();
     graph.backward();
 
     console.log(`\x1b[35m[${mgmt.get_total_allocated()} Bytes]\x1b[0m Epoch ${epoch + 1}: Loss = ${graph.outputs[0].value.toString()}`);
+    graph.get_node("add")?.grad?.print(10);
 
     // update weights using SGD
     mul_acc(weight.grad!, -learningRate, weight.value);

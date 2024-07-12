@@ -19,6 +19,7 @@ struct tensor_t* create_tensor(size_t rank, size_t nelem) {
     new_tensor->ndata = nelem;
     new_tensor->offset = 0;
     new_tensor->isview = false;
+    new_tensor->viewsrc = NULL;
     new_tensor->size = sizeof(struct tensor_t) + sizeof(size_t) * rank * 2 + sizeof(float) * nelem;
 
     mgmt.allocated += new_tensor->size;
@@ -63,6 +64,7 @@ struct tensor_t* create_view(struct tensor_t* source, size_t axis, size_t offset
     new_tensor->ndata = source->ndata;
     new_tensor->offset = source->offset + offset;
     new_tensor->isview = true;
+    new_tensor->viewsrc = source;
     new_tensor->size = sizeof(struct tensor_t) + sizeof(size_t) * new_rank * 2;
 
     mgmt.allocated += new_tensor->size;
@@ -90,6 +92,7 @@ struct tensor_t* create_reshape_view(struct tensor_t* source, size_t rank) {
     new_tensor->ndata = source->ndata;
     new_tensor->offset = source->offset;
     new_tensor->isview = true;
+    new_tensor->viewsrc = source;
     new_tensor->size = sizeof(struct tensor_t) + sizeof(size_t) * rank * 2;
 
     mgmt.allocated += new_tensor->size;
@@ -122,6 +125,7 @@ void clone_tensor(struct tensor_t* source, struct tensor_t* dest) {
     dest->ndata = source->ndata;
     dest->offset = source->offset;
     dest->isview = false;
+    dest->viewsrc = NULL;
 
     // source tensor is not a view, so we can naively copy the data
     if (!source->isview) {

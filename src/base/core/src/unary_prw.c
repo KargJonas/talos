@@ -10,7 +10,7 @@
 #include "./tensor.h"
 
 #define PAIRWISE_UNARY_OP(NAME, ASSIGNMENT, RESULT) [[[
-void NAME(struct tensor_t* _a, struct tensor_t* res) {
+void NAME(struct tensor_t* _a, struct tensor_t* res, float param) {
     if (_a->isview || res->isview) {
         for (size_t i = 0; i < _a->nelem; i++) {
             float a = get_index(_a, i);
@@ -50,6 +50,7 @@ void NAME(struct tensor_t* _a, struct tensor_t* res) {
     negate_prw:     -a
     reciprocal_prw: 1. / a
     relu_prw:       a < 0 ? 0 : a
+    leaky_relu_prw: a < 0 ? param * a : a
     binstep_prw:    a < 0 ? 0 : 1
     logistic_prw:   1. / (exp(-a) + 1.)
 ]]]

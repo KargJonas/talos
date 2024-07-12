@@ -99,7 +99,7 @@ export function tensor_info_to_string(a: RawTensor) {
     return (
         "TENSOR INFO\n" +
         `  address: 0x${a.ptr.toString(16)}\n` +
-        `  is view: ${a.isview ? "true" : "false"}\n` +
+        `  is view: ${a.isview ? "true" : "false"} [src: 0x${a.viewsrc.toString(16)}]\n` +
         `  shape:   [${a.shape.join(", ")}]\n` +
         `  strides: [${a.strides.join(", ")}]\n` +
         `  rank:    ${a.rank}\n` +

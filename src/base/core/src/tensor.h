@@ -16,10 +16,12 @@ struct tensor_t {
     size_t offset;      // if view: offset of this view inside the parent tensor in number of elements default 0
     size_t size;        // total size of tensor in bytes
     bool isview;        // indicates if this tensor is a view of another tensor
+    struct tensor_t* viewsrc; // if this tensor is a view, view_parent will reference the original tensor
 };
 
 struct tensor_t* create_tensor(size_t rank, size_t nelem);
 struct tensor_t* create_view(struct tensor_t* source, size_t axis, size_t offset);
+struct tensor_t* create_reshape_view(struct tensor_t* source, size_t rank);
 void free_tensor(struct tensor_t* a);
 void clone_tensor(struct tensor_t* a, struct tensor_t* res);
 

@@ -9,8 +9,9 @@
 #include "./util.h"
 #include "./tensor.h"
 
+// NOTE: param is an optional floating point value that may or may not be used
 #define BROADCASTING_UNARY_OP(NAME, ASSIGNMENT, RESULT) [[[
-void NAME(struct tensor_t *_a, struct tensor_t *res) {
+void NAME(struct tensor_t *_a, struct tensor_t *res, float param) {
     size_t ia, ires, iaxis, remainder, dim;
     size_t strides_a[res->rank];
 
@@ -41,30 +42,31 @@ void NAME(struct tensor_t *_a, struct tensor_t *res) {
 ]]]
 
 @GENERATE (BROADCASTING_UNARY_OP) [[[
-    sin_brc:        sin(a)
-    cos_brc:        cos(a)
-    tan_brc:        tan(a)
-    asin_brc:       asin(a)
-    acos_brc:       acos(a)
-    atan_brc:       atan(a)
-    sinh_brc:       sinh(a)
-    cosh_brc:       cosh(a)
-    tanh_brc:       tanh(a)
-    exp_brc:        exp(a)
-    log_brc:        log(a)
-    log2_brc:       log2(a)
-    log10_brc:      log10(a)
-    invsqrt_brc:    fast_inv_sqrt(a)
-    sqrt_brc:       sqrt(a)
-    ceil_brc:       ceil(a)
-    floor_brc:      floor(a)
-    abs_brc:        fabs(a)
-    sign_brc:       SIGN(a)
-    negate_brc:     -a
-    reciprocal_brc: 1. / a
-    relu_brc:       a < 0 ? 0 : a
-    binstep_brc:    a < 0 ? 0 : 1
-    logistic_brc:   1. / (exp(-a) + 1.)
+    sin_brc:           sin(a)
+    cos_brc:           cos(a)
+    tan_brc:           tan(a)
+    asin_brc:          asin(a)
+    acos_brc:          acos(a)
+    atan_brc:          atan(a)
+    sinh_brc:          sinh(a)
+    cosh_brc:          cosh(a)
+    tanh_brc:          tanh(a)
+    exp_brc:           exp(a)
+    log_brc:           log(a)
+    log2_brc:          log2(a)
+    log10_brc:         log10(a)
+    invsqrt_brc:       fast_inv_sqrt(a)
+    sqrt_brc:          sqrt(a)
+    ceil_brc:          ceil(a)
+    floor_brc:         floor(a)
+    abs_brc:           fabs(a)
+    sign_brc:          SIGN(a)
+    negate_brc:        -a
+    reciprocal_brc:    1. / a
+    relu_brc:          a < 0 ? 0 : a
+    leaky_relu_brc:    a < 0 ? param * a : a
+    binstep_brc:       a < 0 ? 0 : 1
+    logistic_brc:      1. / (exp(-a) + 1.)
 ]]]
 
 #endif //CORE_UNARY_BRC

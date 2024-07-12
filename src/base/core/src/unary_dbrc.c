@@ -10,7 +10,7 @@
 #include "./tensor.h"
 
 #define DEBROADCASTING_UNARY_OP(NAME, ASSIGNMENT, RESULT) [[[
-void NAME(struct tensor_t *_a, struct tensor_t *dest) {
+void NAME(struct tensor_t *_a, struct tensor_t *dest, float param) {
     size_t diff = dest->nelem == 1 ? _a->rank : _a->rank - dest->rank, n_elem_var_shape = 1;
 
     // compute number of elements of the source tensor
@@ -80,6 +80,7 @@ void NAME(struct tensor_t *_a, struct tensor_t *dest) {
     negate_dbrc:     -a
     reciprocal_dbrc: 1. / a
     relu_dbrc:       a < 0 ? 0 : a
+    leaky_relu_dbrc: a < 0 ? param * a : a
     binstep_dbrc:    a < 0 ? 0 : 1
     logistic_dbrc:   1. / (exp(-a) + 1.)
 ]]]

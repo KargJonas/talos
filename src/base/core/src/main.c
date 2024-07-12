@@ -14,6 +14,9 @@
 // reduce operations
 #include "./reduce.c"
 
+// misc operations
+#include "./dropout.c"
+
 #include "./tensor.c"
 #include "./mgmt.c"
 
