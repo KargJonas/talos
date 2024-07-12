@@ -65,7 +65,6 @@ void NAME(struct tensor_t* _a, struct tensor_t* res, float param) {
     df_sinh_prw:          cosh(a)
     df_cosh_prw:          sinh(a)
     df_tanh_prw:          1. - pow(tanh(a), 2.)
-    df_exp_prw:           exp(a)
     df_log_prw:           1. / a
     df_log2_prw:          1. / (a * log(2.))
     df_log10_prw:         1. / (a * log(10.))
