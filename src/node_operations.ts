@@ -8,6 +8,36 @@ import Tensor from "./Tensor.ts";
 // This file contains all operations of the graph-node abstraction-level
 // These are essentially all operations of the tensor level plus their derivatives
 
+// FwOps only have primals (no grad, no backprop)
+export class FwOp extends Tensor {
+    value: RawTensor;
+
+    constructor(parents: Tensor[]) {
+        super(parents);
+        this.value = RawTensor.like(parents[0].value);
+    }
+}
+
+// FwBwOps have primals and gradients
+export class FwBwOp extends FwOp {
+    grad: RawTensor;
+
+    constructor(parents: Tensor[]) {
+        super(parents);
+        this.grad = RawTensor.like(this.value);
+    }
+}
+
+// FwBwInterimOps have primals, grads and an interim to hold intermediate results
+export class FwBwInterimOp extends FwBwOp {
+    interim: RawTensor;
+
+    constructor(parents: Tensor[]) {
+        super(parents);
+        this.interim = RawTensor.like(this.value);
+    }
+}
+
 export class Parameter extends Tensor {
     value: RawTensor;
 
@@ -29,9 +59,7 @@ export class Source extends Tensor {
         this.producer = producer;
     }
 
-    fw() {
-        this.value = this.producer();
-    }
+    fw = () => this.value = this.producer();
 }
 
 export class Add extends Tensor {
@@ -44,9 +72,7 @@ export class Add extends Tensor {
         this.grad = RawTensor.like(this.value);
     }
 
-    fw() {
-        ops.add(this.parents[0].value, this.parents[1].value, this.value);
-    }
+    fw = () => ops.add(this.parents[0].value, this.parents[1].value, this.value);
 
     bw() {
         // d/da (a+b) = 1
@@ -67,9 +93,7 @@ export class Sub extends Tensor {
         this.grad = RawTensor.like(this.value);
     }
 
-    fw() {
-        ops.sub(this.parents[0].value, this.parents[1].value, this.value);
-    }
+    fw = () => ops.sub(this.parents[0].value, this.parents[1].value, this.value);
 
     bw() {
         // d/da (a-b) = 1
@@ -92,9 +116,7 @@ export class Mul extends Tensor {
         this.interim = RawTensor.like(this.value);
     }
 
-    fw() {
-        ops.mul(this.parents[0].value, this.parents[1].value, this.value);
-    }
+    fw = () => ops.mul(this.parents[0].value, this.parents[1].value, this.value);
 
     bw() {
         const a = this.parents[0];
@@ -120,9 +142,7 @@ export class Div extends Tensor {
         this.interim = RawTensor.like(this.value);
     }
 
-    fw() {
-        ops.div(this.parents[0].value, this.parents[1].value, this.value);
-    }
+    fw = () => ops.div(this.parents[0].value, this.parents[1].value, this.value);
 
     bw() {
         const a = this.parents[0];
@@ -158,9 +178,7 @@ export class Pow extends Tensor {
         this.interim_1 = RawTensor.like(this.parents[1].value);
     }
 
-    fw() {
-        ops.pow(this.parents[0].value, this.parents[1].value, this.value);
-    }
+    fw = () => ops.pow(this.parents[0].value, this.parents[1].value, this.value);
 
     bw() {
         const a = this.parents[0].value; // base
@@ -221,9 +239,7 @@ export class Matmul extends Tensor {
         // input tensor rank is higher than that...
     }
 
-    fw() {
-        ops.matmul(this.A, this.B, this.value);
-    }
+    fw = () => ops.matmul(this.A, this.B, this.value);
 
     bw() {
         const A = this.parents[0];
@@ -249,9 +265,7 @@ export class Dot extends Tensor {
         this.B_T = this.parents[1].value.T;
     }
 
-    fw() {
-        ops.dot(this.parents[0].value, this.parents[1].value, this.value);
-    }
+    fw = () => ops.dot(this.parents[0].value, this.parents[1].value, this.value);
 
     bw() {
         // todo: validate - it is likely that we need to handle dot differently than matmul
@@ -271,6 +285,8 @@ export class Transpose extends Tensor {
         super(parents);
         this.value = parents[0].value.transpose(...permutation);
     }
+
+    // todo
 }
 
 export class Min extends Tensor {
@@ -346,9 +362,7 @@ export class Sum extends Tensor {
         this.grad = RawTensor.scalar();
     }
 
-    fw() {
-        ops.sum_tns(this.parents[0].value, this.value);
-    }
+    fw = () => ops.sum_tns(this.parents[0].value, this.value);
 
     bw() {
         if (!this.parents[0].grad) return;
@@ -369,42 +383,14 @@ export class Mean extends Tensor {
         this.interim = RawTensor.like(this.parents[0].value);
     }
 
-    fw() {
-        ops.mean_tns(this.parents[0].value, this.value);
-    }
+    fw = () => ops.mean_tns(this.parents[0].value, this.value);
 
     bw() {
         if (!this.parents[0].grad) return;
-
         ops.div(this.grad, this.parents[0].value.nelem, this.interim);
         ops.add(this.parents[0].grad, this.interim, this.parents[0].grad);
     }
 }
-
-
-// export class Mean extends Tensor {
-//     value: RawTensor;
-//     grad: RawTensor;
-//     interim: RawTensor;
-
-//     constructor(parents: Tensor[]) {
-//         super(parents);
-//         this.value = RawTensor.scalar(); // Scalar tensor to hold the mean value
-//         this.grad = RawTensor.like(this.parents[0].value); // Gradient tensor with the same shape as input
-//         this.interim = RawTensor.like(this.parents[0].value);
-//     }
-
-//     fw() {
-//         ops.mean_tns(this.parents[0].value, this.value);
-//     }
-
-//     bw() {
-//         if (!this.parents[0].grad) return;
-
-//         ops.div(this.grad, this.parents[0].value.nelem, this.interim);
-//         ops.add(this.parents[0].grad, this.interim, this.parents[0].grad);
-//     }
-// }
 
 export class MseLoss extends Tensor {
     value: RawTensor;
@@ -451,18 +437,7 @@ export class MseLoss extends Tensor {
     }
 }
 
-export class UnaryOpTensor extends Tensor {
-    value: RawTensor;
-    grad: RawTensor;
-
-    constructor(parents: Tensor[]) {
-        super(parents);
-        this.value = RawTensor.like(parents[0].value);
-        this.grad = RawTensor.like(this.value);
-    }
-}
-
-export class Dropout extends UnaryOpTensor {
+export class Dropout extends FwBwOp {
     p: number;
     seed: number = 0;
 
@@ -487,18 +462,8 @@ export class Dropout extends UnaryOpTensor {
     }
 }
 
-export class Relu extends UnaryOpTensor {
-    interim: RawTensor;
-
-    constructor(parents: Tensor[]) {
-        super(parents);
-        this.interim = RawTensor.like(parents[0].value);
-    }
-
-    fw() {
-        ops.relu(this.parents[0].value, this.value);
-    }
-
+export class Relu extends FwBwInterimOp {
+    fw = () => ops.relu(this.parents[0].value, this.value);
     bw() {
         // d/dx relu(x) = binstep(x)
         if (!this.parents[0].grad) return;
@@ -507,20 +472,15 @@ export class Relu extends UnaryOpTensor {
     }
 }
 
-export class LeakyRelu extends UnaryOpTensor {
-    interim: RawTensor;
+export class LeakyRelu extends FwBwInterimOp {
     neg_slope: number;
 
     constructor(parents: Tensor[], neg_slope: number) {
         super(parents);
         this.neg_slope = neg_slope;
-        this.interim = RawTensor.like(parents[0].value);
     }
 
-    fw() {
-        ops.leaky_relu(this.parents[0].value, this.value, this.neg_slope);
-    }
-
+    fw = () => ops.leaky_relu(this.parents[0].value, this.value, this.neg_slope);
     bw() {
         // d/dx leaky_relu(x) = x < 0 ? neg_slope : 1
         if (!this.parents[0].grad) return;
@@ -529,20 +489,10 @@ export class LeakyRelu extends UnaryOpTensor {
     }
 }
 
-export class Logistic extends UnaryOpTensor {
-    interim: RawTensor;
-    one: RawTensor;
+export class Logistic extends FwBwInterimOp {
+    one = RawTensor.scalar(1);
 
-    constructor(parents: Tensor[]) {
-        super(parents);
-        this.interim = RawTensor.like(this.value);
-        this.one = RawTensor.scalar(1);
-    }
-
-    fw() {
-        ops.logistic(this.parents[0].value, this.value);
-    }
-
+    fw = () => ops.logistic(this.parents[0].value, this.value);
     bw() {
         // df/dx = f(x) * (1 - f(x))
         if (!this.parents[0].grad) return;
@@ -552,15 +502,8 @@ export class Logistic extends UnaryOpTensor {
     }
 }
 
-export class Negate extends UnaryOpTensor {
-    constructor(parents: Tensor[]) {
-        super(parents);
-    }
-
-    fw() {
-        ops.negate(this.parents[0].value, this.value);
-    }
-
+export class Negate extends FwBwOp {
+    fw = () => ops.negate(this.parents[0].value, this.value);
     bw() {
         // d/dx -x = -1
         if (!this.parents[0].grad) return;
@@ -568,18 +511,8 @@ export class Negate extends UnaryOpTensor {
     }
 }
 
-export class Sin extends UnaryOpTensor {
-    interim: RawTensor;
-
-    constructor(parents: Tensor[]) {
-        super(parents);
-        this.interim = RawTensor.like(this.value);
-    }
-
-    fw() {
-        ops.sin(this.parents[0].value, this.value);
-    }
-
+export class Sin extends FwBwInterimOp {
+    fw = () => ops.sin(this.parents[0].value, this.value);
     bw() {
         // d/dx sin(x) = cos(x)
         if (!this.parents[0].grad) return;
@@ -588,18 +521,8 @@ export class Sin extends UnaryOpTensor {
     }
 }
 
-export class Cos extends UnaryOpTensor {
-    interim: RawTensor;
-
-    constructor(parents: Tensor[]) {
-        super(parents);
-        this.interim = RawTensor.like(this.value);
-    }
-
-    fw() {
-        ops.cos(this.parents[0].value, this.value);
-    }
-
+export class Cos extends FwBwInterimOp {
+    fw = () => ops.cos(this.parents[0].value, this.value);
     bw() {
         // d/dx cos(x) = -sin(x)
         if (!this.parents[0].grad) return;
@@ -608,18 +531,8 @@ export class Cos extends UnaryOpTensor {
     }
 }
 
-export class Tan extends UnaryOpTensor {
-    interim: RawTensor;
-
-    constructor(parents: Tensor[]) {
-        super(parents);
-        this.interim = RawTensor.like(this.value);
-    }
-
-    fw() {
-        ops.tan(this.parents[0].value, this.value);
-    }
-
+export class Tan extends FwBwInterimOp {
+    fw = () => ops.tan(this.parents[0].value, this.value);
     bw() {
         // d/dx tan(x) = sec^2(x) = 1 / cos^2(x)
         if (!this.parents[0].grad) return;
@@ -628,18 +541,8 @@ export class Tan extends UnaryOpTensor {
     }
 }
 
-export class Asin extends UnaryOpTensor {
-    interim: RawTensor;
-
-    constructor(parents: Tensor[]) {
-        super(parents);
-        this.interim = RawTensor.like(this.value);
-    }
-
-    fw() {
-        ops.asin(this.parents[0].value, this.value);
-    }
-
+export class Asin extends FwBwInterimOp {
+    fw = () => ops.asin(this.parents[0].value, this.value);
     bw() {
         // d/dx asin(x) = 1 / sqrt(1 - x^2)
         if (!this.parents[0].grad) return;
@@ -648,18 +551,8 @@ export class Asin extends UnaryOpTensor {
     }
 }
 
-export class Acos extends UnaryOpTensor {
-    interim: RawTensor;
-
-    constructor(parents: Tensor[]) {
-        super(parents);
-        this.interim = RawTensor.like(this.value);
-    }
-
-    fw() {
-        ops.acos(this.parents[0].value, this.value);
-    }
-
+export class Acos extends FwBwInterimOp {
+    fw = () => ops.acos(this.parents[0].value, this.value);
     bw() {
         // d/dx asin(x) = -1 / sqrt(1 - x^2)
         if (!this.parents[0].grad) return;
@@ -668,18 +561,8 @@ export class Acos extends UnaryOpTensor {
     }
 }
 
-export class Atan extends UnaryOpTensor {
-    interim: RawTensor;
-    
-    constructor(parents: Tensor[]) {
-        super(parents);
-        this.interim = RawTensor.like(this.value);
-    }
-
-    fw() {
-        ops.atan(this.parents[0].value, this.value);
-    }
-
+export class Atan extends FwBwInterimOp {
+    fw = () => ops.atan(this.parents[0].value, this.value);
     bw() {
         // d/dx atan(x) = asec^2(x) = 1 / (x^2 + 1)
         if (!this.parents[0].grad) return;
@@ -688,18 +571,8 @@ export class Atan extends UnaryOpTensor {
     }
 }
 
-export class Sinh extends UnaryOpTensor {
-    interim: RawTensor;
-
-    constructor(parents: Tensor[]) {
-        super(parents);
-        this.interim = RawTensor.like(this.value);
-    }
-
-    fw() {
-        ops.sinh(this.parents[0].value, this.value);
-    }
-
+export class Sinh extends FwBwInterimOp {
+    fw = () => ops.sinh(this.parents[0].value, this.value);
     bw() {
         // d/dx sinh(x) = cosh(x)
         if (!this.parents[0].grad) return;
@@ -708,18 +581,8 @@ export class Sinh extends UnaryOpTensor {
     }
 }
 
-export class Cosh extends UnaryOpTensor {
-    interim: RawTensor;
-
-    constructor(parents: Tensor[]) {
-        super(parents);
-        this.interim = RawTensor.like(this.value);
-    }
-
-    fw() {
-        ops.cosh(this.parents[0].value, this.value);
-    }
-
+export class Cosh extends FwBwInterimOp {
+    fw = () => ops.cosh(this.parents[0].value, this.value);
     bw() {
         // d/dx cosh(x) = sinh(x)
         if (!this.parents[0].grad) return;
@@ -728,18 +591,8 @@ export class Cosh extends UnaryOpTensor {
     }
 }
 
-export class Tanh extends UnaryOpTensor {
-    interim: RawTensor;
-    
-    constructor(parents: Tensor[]) {
-        super(parents);
-        this.interim = RawTensor.like(this.value);
-    }
-
-    fw() {
-        ops.tanh(this.parents[0].value, this.value);
-    }
-
+export class Tanh extends FwBwInterimOp {
+    fw = () => ops.tanh(this.parents[0].value, this.value);
     bw() {
         // d/dx tanh(x) = 1 - tanh^2(x)
         if (!this.parents[0].grad) return;
@@ -748,18 +601,8 @@ export class Tanh extends UnaryOpTensor {
     }
 }
 
-export class Exp extends UnaryOpTensor {
-    interim: RawTensor;
-
-    constructor(parents: Tensor[]) {
-        super(parents);
-        this.interim = RawTensor.like(this.value);
-    }
-
-    fw() {
-        ops.exp(this.parents[0].value, this.value);
-    }
-
+export class Exp extends FwBwOp {
+    fw = () => ops.exp(this.parents[0].value, this.value);
     bw() {
         // d/dx e^x = e^x
         if (!this.parents[0].grad) return;
@@ -767,18 +610,8 @@ export class Exp extends UnaryOpTensor {
     }
 }
 
-export class Log extends UnaryOpTensor {
-    interim: RawTensor;
-
-    constructor(parents: Tensor[]) {
-        super(parents);
-        this.interim = RawTensor.like(this.value);
-    }
-
-    fw() {
-        ops.log(this.parents[0].value, this.value);
-    }
-
+export class Log extends FwBwInterimOp {
+    fw = () => ops.log(this.parents[0].value, this.value);
     bw() {
         // d/dx ln(x) = 1/x
         if (!this.parents[0].grad) return;
@@ -787,19 +620,9 @@ export class Log extends UnaryOpTensor {
     }
 }
 
-export class Log10 extends UnaryOpTensor {
-    interim: RawTensor;
+export class Log10 extends FwBwInterimOp {
     ln10 = Math.log(10);
-
-    constructor(parents: Tensor[]) {
-        super(parents);
-        this.interim = RawTensor.like(this.value);
-    }
-
-    fw() {
-        ops.log10(this.parents[0].value, this.value);
-    }
-
+    fw = () => ops.log10(this.parents[0].value, this.value);
     bw() {
         // d/dx log10(x) = 1 / (x * ln(10))
         if (!this.parents[0].grad) return;
@@ -808,19 +631,10 @@ export class Log10 extends UnaryOpTensor {
     }
 }
 
-export class Log2 extends UnaryOpTensor {
-    interim: RawTensor;
+export class Log2 extends FwBwInterimOp {
     ln2 = Math.log(2);
 
-    constructor(parents: Tensor[]) {
-        super(parents);
-        this.interim = RawTensor.like(this.value);
-    }
-
-    fw() {
-        ops.log2(this.parents[0].value, this.value);
-    }
-
+    fw = () => ops.log2(this.parents[0].value, this.value);
     bw() {
         // d/dx log2(x) = 1 / (x * ln(2))
         if (!this.parents[0].grad) return;
@@ -829,18 +643,8 @@ export class Log2 extends UnaryOpTensor {
     }
 }
 
-export class Invsqrt extends UnaryOpTensor {
-    interim: RawTensor;
-
-    constructor(parents: Tensor[]) {
-        super(parents);
-        this.interim = RawTensor.like(this.value);
-    }
-
-    fw() {
-        ops.invsqrt(this.parents[0].value, this.value);
-    }
-
+export class Invsqrt extends FwBwInterimOp {
+    fw = () => ops.invsqrt(this.parents[0].value, this.value);
     bw() {
         // d/dx 1 / sqrt(x) = - 1 / (2x^(3/2))
         if (!this.parents[0].grad) return;
@@ -849,18 +653,8 @@ export class Invsqrt extends UnaryOpTensor {
     }
 }
 
-export class Sqrt extends UnaryOpTensor {
-    interim: RawTensor;
-
-    constructor(parents: Tensor[]) {
-        super(parents);
-        this.interim = RawTensor.like(this.value);
-    }
-
-    fw() {
-        ops.sqrt(this.parents[0].value, this.value);
-    }
-
+export class Sqrt extends FwBwInterimOp {
+    fw = () => ops.sqrt(this.parents[0].value, this.value);
     bw() {
         // d/dx sqrt(x) = 1 / (2 * sqrt(x))
         if (!this.parents[0].grad) return;
@@ -869,18 +663,8 @@ export class Sqrt extends UnaryOpTensor {
     }
 }
 
-export class Abs extends UnaryOpTensor {
-    interim: RawTensor;
-
-    constructor(parents: Tensor[]) {
-        super(parents);
-        this.interim = RawTensor.like(this.value);
-    }
-
-    fw() {
-        ops.abs(this.parents[0].value, this.value);
-    }
-
+export class Abs extends FwBwInterimOp {
+    fw = () => ops.abs(this.parents[0].value, this.value);
     bw() {
         // d/dx |x| = sign(x)
         if (!this.parents[0].grad) return;
@@ -889,18 +673,8 @@ export class Abs extends UnaryOpTensor {
     }
 }
 
-export class Reciprocal extends UnaryOpTensor {
-    interim: RawTensor;
-
-    constructor(parents: Tensor[]) {
-        super(parents);
-        this.interim = RawTensor.like(this.value);
-    }
-
-    fw() {
-        ops.reciprocal(this.parents[0].value, this.value);
-    }
-
+export class Reciprocal extends FwBwInterimOp {
+    fw = () => ops.reciprocal(this.parents[0].value, this.value);
     bw() {
         // d/dx 1 / x = -1 / (x^2)
         if (!this.parents[0].grad) return;
@@ -908,7 +682,6 @@ export class Reciprocal extends UnaryOpTensor {
         ops.mul_acc(this.grad, this.interim, this.parents[0].grad);
     }
 }
-
 
 /**
  * The following operations are special in the sense that they
@@ -918,51 +691,14 @@ export class Reciprocal extends UnaryOpTensor {
  * maybe we should notify the user that these can prevent
  * branches of the graph from receiving gradients.
  */
-
-export class Ceil extends UnaryOpTensor {
-    interim: RawTensor;
-
-    constructor(parents: Tensor[]) {
-        super(parents);
-        this.interim = RawTensor.like(this.value);
-    }
-
-    fw() {
-        ops.ceil(this.parents[0].value, this.value);
-    }
-
-    // todo: validate
-    // ceil does not propagate gradients back
+export class Ceil extends FwOp {
+    fw = () => ops.ceil(this.parents[0].value, this.value);
 }
 
-export class Floor extends UnaryOpTensor {
-    interim: RawTensor;
-
-    constructor(parents: Tensor[]) {
-        super(parents);
-        this.interim = RawTensor.like(this.value);
-    }
-
-    fw() {
-        ops.floor(this.parents[0].value, this.value);
-    }
-
-    // todo: validate
-    // floor does not propagate gradients back
+export class Floor extends FwOp {
+    fw = () => ops.floor(this.parents[0].value, this.value);
 }
 
-export class Binstep extends Tensor {
-    value: RawTensor;
-
-    constructor(parents: Tensor[]) {
-        super(parents);
-        this.value = RawTensor.like(parents[0].value);
-    }
-
-    fw() {
-        ops.binstep(this.parents[0].value, this.value);
-    }
-
-    // todo: validate
-    // binstep does not propagate gradients back
+export class Binstep extends FwOp {
+    fw = () => ops.binstep(this.parents[0].value, this.value);
 }

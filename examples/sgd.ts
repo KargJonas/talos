@@ -25,12 +25,12 @@ const nn = weight.matmul(input).add(bias).set_name("add").leaky_relu(.05).mse_lo
 
 // finds an execution sequence for the operations involved in the previously defined graph
 const graph = nn.graph;
-const learningRate = 3;
+const learningRate = .1;
 
 console.time();
 
 // training loop
-for (let epoch = 0; epoch < 200; epoch++) {
+for (let epoch = 0; epoch < 100000; epoch++) {
     graph.zero_grad();
     graph.forward();
     graph.backward();

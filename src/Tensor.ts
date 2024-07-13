@@ -2,11 +2,10 @@ import { RawTensor } from "./base/RawTensor.ts";
 import { tensor_scalar } from "./tensor_factory.ts";
 import * as graph_ops from "./node_operations.ts";
 import Graph from "./Graph.ts";
-import ITensor from "./base/ITensor.ts";
 
 type OperationClass<T> = new (parents: Tensor[], ...params: any[]) => T;
 
-export default abstract class Tensor implements ITensor<Tensor> {
+export default abstract class Tensor {
     // State of the node
     abstract value: RawTensor;
     grad?: RawTensor = undefined;
