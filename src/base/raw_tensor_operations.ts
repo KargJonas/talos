@@ -111,14 +111,14 @@ export const df_reciprocal = create_unary_op("df_reciprocal");
 
 // reduce operations
 // todo: add pairwise functionality (tensor-valued functions)
-export const max  = (a: RawTensor) => core._max_red_scl(a.ptr);
-export const min  = (a: RawTensor) => core._min_red_scl(a.ptr);
-export const sum  = (a: RawTensor) => core._sum_red_scl(a.ptr);
-export const mean = (a: RawTensor) => core._mean_red_scl(a.ptr);
-export const max_tns = create_select_op(core._max_red_tns);
-export const min_tns = create_select_op(core._min_red_tns);
-export const sum_tns = create_reduce_op(core._sum_red_tns);
+export const sum      = (a: RawTensor) => core._sum_red_scl(a.ptr);
+export const mean     = (a: RawTensor) => core._mean_red_scl(a.ptr);
+export const min_idx  = (a: RawTensor) => core._min_red_idx(a.ptr);
+export const max_idx  = (a: RawTensor) => core._max_red_idx(a.ptr);
+export const sum_tns  = create_reduce_op(core._sum_red_tns);
 export const mean_tns = create_reduce_op(core._mean_red_tns);
+
+export const shift_view = (a: RawTensor, linear_index: number) => core._shift_view(a.ptr, linear_index);
 
 // be aware of tensor data dependencies when deallocating tensors !!
 export const free = (a: RawTensor) => core._free_tensor(a.ptr);
@@ -301,23 +301,6 @@ function create_unary_op(opcode: string, accumulative = false): UnaryOp {
     };
 }
 
-// these operations select one element from a source tensor
-// the result is a scalar view of the source
-// example: min finds the smallest element of the source
-function create_select_op(core_fn: CoreUnaryOp) {
-    return (src: RawTensor, dest?: RawTensor) => {
-        if (dest && !dest.shape.is_scalar)
-            throw new Error(`Cannot perform reduce operation. Provided destination tensor is not scalar. Destination shape: [${dest.shape}]`);
-
-        if (dest && dest.data_ptr !== src.data_ptr)
-            throw new Error("Cannot perform reduce operation. Destination is a view that does not reference the source pointer.");
-
-        const result: RawTensor = dest || RawTensor.view_of(src, src.rank);
-        core_fn(src.ptr, result.ptr);
-        return result;
-    };
-}
-
 function create_reduce_op(core_fn: CoreUnaryOp) {
     return (src: RawTensor, dest?: RawTensor) => {
         if (dest && !dest.shape.is_scalar)
@@ -368,7 +351,7 @@ export function transpose(a: RawTensor, permutation?: number[]): RawTensor {
 
     let new_shape, new_strides;
 
-    // // vectors need to be 1-extended to the right
+    // vectors need to be 1-extended to the right
     if (a.rank === 1) {
         if (permutation && permutation.length !== 0)
             throw new Error("Can't transpose tensors of rank 1 with a specific permutation because there is only one axis.");
@@ -389,44 +372,3 @@ export function transpose(a: RawTensor, permutation?: number[]): RawTensor {
 
     return a.reshape(new_shape, new_strides);
 }
-
-// size_t get_index(struct tensor_t* a, size_t linear_index) {
-//     size_t ia = a->offset;
-//     size_t remainder = linear_index;
-//     size_t iaxis;
-
-//     for (size_t dim = a->rank; dim-- > 0;) {
-//         iaxis = remainder % a->shape[dim];
-//         ia += iaxis * a->strides[dim];
-//         remainder /= a->shape[dim];
-//     }
-
-//     return ia;
-// }
-
-// function for making two scalar views of independent but equally shaped tensors
-// point to the same element of said tensors.
-// example:
-//   let A, B be two identically shaped tensors
-//   let a, b be two scalar views of these tensors (shape = [1])
-//   where a points to some element A_ijk... of A and b points to some element of B
-//   then sync_scl_views(a, b) will make b point to the element B_ijk... in tensor B.
-// export function sync_scl_views(a: RawTensor, b: RawTensor, linear_index: number) {
-//     if (a.shape !== b.shape)
-//         throw new Error("Can't synchronize differently shaped views.");
-
-//     if (!a.shape.is_scalar)
-//         throw new Error("Synchronization of non-scalar views is not supported.");
-
-//     let ib = b.offset;
-//     let remainder = linear_index;
-//     let iaxis;
-
-//     for (let dim = b.rank; dim-- > 0;) {
-//         iaxis = remainder % b.shape[dim];
-//         ib += iaxis * b.strides[dim];
-//         remainder /= b.shape[dim];
-//     }
-
-//     b.set_offset(ib);
-// }

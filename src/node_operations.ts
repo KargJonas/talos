@@ -291,64 +291,33 @@ export class Transpose extends Tensor {
 
 export class Min extends Tensor {
     value: RawTensor;
+    grad: RawTensor;
+    grad_view?: RawTensor;
 
     constructor(parents: Tensor[]) {
         super(parents);
-        this.value = RawTensor.scalar();
+        this.value = parents[0].value.create_view(parents[0].value.rank);
+        this.grad = RawTensor.scalar(0);
+        if (this.parents[0].grad) this.grad_view = this.parents[0].grad.create_view(this.parents[0].grad.rank);
     }
 
     fw() {
-        throw new Error("Min is not implemented.");
-        ops.min_tns(this.parents[0].value, this.value);
+        const linear_idx = ops.min_idx(this.parents[0].value);
+        ops.shift_view(this.value, linear_idx);
+        if (this.grad_view) ops.shift_view(this.grad_view, linear_idx);
     }
 
     bw() {
-        throw new Error("Min is not implemented.");
+        if (!this.parents[0].grad) return;
+        ops.add(this.grad_view!, this.grad, this.grad_view);
     }
-
-    // todo: for bw, we need to propagate the gradient only to the location of the largest
-    //       element. currently we dont have information about what element it was.
-    //       solution: max_tns and min_tns as should return scalar views of the source tensor
-    //                 we can then get the exact element by using the offset.
-    //       problem:  there might be issues with all ops that involve scalars
 }
 
-export class Max extends Tensor {
-    value: RawTensor;
-    grad?: RawTensor;
-
-    constructor(parents: Tensor[]) {
-        super(parents);
-        this.value = RawTensor.view_of(parents[0].value, parents[0].value.rank);
-        if (this.parents[0].grad) this.grad = RawTensor.view_of(this.parents[0].grad, this.parents[0].grad.rank);
-    }
-
+export class Max extends Min {
     fw() {
-        throw new Error("Max is not implemented.");
-
-        // const index = ops.get_max_index(this.parents[0].value);
-        // const local_index = index - this.parents[0].value.offset;
-
-        // // todo:
-        // // sync_scl_views();
-
-        // // this.value.set_offset();
-
-        ops.max_tns(this.parents[0].value, this.value);
-        // if (this.grad) {
-            
-        //     this.grad.set_offset(this.parents.offset);
-        // }
-    }
-
-    bw() {
-        throw new Error("Max is not implemented.");
-        
-        // todo: for bw, we need to propagate the gradient only to the location of the largest
-        //       element. currently we dont have information about what element it was.
-        //       solution: max_tns and min_tns as should return scalar views of the source tensor
-        //                 we can then get the exact element by using the offset.
-        //       problem:  there might be issues with all ops that involve scalars
+        const linear_idx = ops.max_idx(this.parents[0].value);
+        ops.shift_view(this.value, linear_idx);
+        if (this.grad_view) ops.shift_view(this.grad_view, linear_idx);
     }
 }
 

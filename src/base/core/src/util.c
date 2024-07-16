@@ -150,64 +150,17 @@ float normal(float mean, float std_dev, unsigned int* seed) {
     return mean + std_dev * u * s;
 }
 
-// // higher precision version of the above code
-// float normal(float mean, float sigma) {
-//     static int has_spare = 0;
-//     static double spare;
+// shifts the offset of a view to the location at a linear_index
+void shift_view(struct tensor_t* src, size_t linear_index) {   
+    size_t isrc = src->viewsrc->offset;
+    size_t remainder = linear_index;
+    size_t iaxis;
 
-//     if (has_spare) {
-//         has_spare = 0;
-//         return mean + sigma * spare;
-//     }
+    for (size_t dim = src->viewsrc->rank; dim-- > 0;) {
+        iaxis = remainder % src->viewsrc->shape[dim];
+        isrc += iaxis * src->viewsrc->strides[dim];
+        remainder /= src->viewsrc->shape[dim];
+    }
 
-//     has_spare = 1;
-//     double u, v, s;
-//     do {
-//         u = drand48() * 2.0 - 1.0;
-//         v = drand48() * 2.0 - 1.0;
-//         s = u * u + v * v;
-//     } while (s >= 1.0 || s == 0);
-
-//     s = sqrt(-2.0 * log(s) / s);
-//     spare = v * s;
-//     return mean + sigma * u * s;
-// }
-
-// the problem at hand:
-//   given two equally shaped, but potentially differently strided tensors A, B,
-//   the strides S_A, S_B of said tensors and a coordinate a = [i,j,k, ...], that
-//   locates a component of tensor A;
-//   how can we compute a coordinate b = [v, w, x, ...] that locates the element
-//   in tensor B that is "in the same location" as the element identified by a?
-//   with in the same location, we mean this:
-//   if A and B were of rank 2, then we could place the two matrices on top of one
-//   another and the components identified by a and b respectively would lie directly
-//   on top of one another.
-// in other words, we want to perform a kind of "basis transformation" from the
-// coordinate system of A to the coordinate system of B
-// solution:
-// - find coordinate of the component (that the scalar tensor a is referencing)
-//   within the parent tensor of a
-// - find linear index of scalar a within it's parent tensor from the coordinates
-//   (as if the parent were contiguous)
-// - dissect linear index into B coords
-// - find actual index of b within its parent from B coords
-
-// void sync_scl_views(struct tensor_t* a, struct tensor_t* b) {
-//     // Assertion 1: a->isview && b->isview
-//     // Assertion 2: a->viewsrc->rank == b->viewsrc->rank
-
-//     // step 1: find linear index of `a` within it's parent tensor
-    
-//     size_t ia = a->offset;
-//     size_t remainder = linear_index;
-//     size_t iaxis;
-
-//     for (size_t dim = a->rank; dim-- > 0;) {
-//         iaxis = remainder % a->shape[dim];
-//         ia += iaxis * a->strides[dim];
-//         remainder /= a->shape[dim];
-//     }
-
-//     return ia;
-// }
+    src->offset = isrc;
+}

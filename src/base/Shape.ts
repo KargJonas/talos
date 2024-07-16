@@ -1,26 +1,7 @@
-import core from "./core/build";
+import UnifiedArray from "./UnifiedArray.ts";
 import {ordinal_str} from "./to_string.ts";
 
-export default class Shape extends Int32Array {
-    constructor(shape: Int32Array | number[] | Shape, attached = false) {
-        if (attached) {
-            if (!(shape instanceof Int32Array)) throw new Error("Shape must be Int32Array!");
-            super(core.memory.buffer, shape.byteOffset, shape.length);
-        } else {
-            // create a detatched shape (not bound to a tensor)
-            super(shape.length);
-            this.set(shape);
-        }
-    }
-    
-    // public get_ndim = () => this.length;
-    // public get_rows = () => this.get_axis_size(this.ndim - 2);
-    // public get_cols = () => this.get_axis_size(this.ndim - 1);
-    // public get_mat_shape = () => new Shape([this.rows, this.cols]);
-    // public get_axis_size = (axis_index: number) => this[axis_index] === undefined ? 1 : this[axis_index];
-    // public detach = () => new Shape(this);
-    // public is_scalar = () => this.length === 1 && this[0] === 1;
-
+export default class Shape extends UnifiedArray {
     public get ndim() { return this.length; }
     public get rows() { return this.get_axis_size(this.ndim - 2); }
     public get cols() { return this.get_axis_size(this.ndim - 1); }
@@ -33,19 +14,6 @@ export default class Shape extends Int32Array {
     public get nelem(): number {
         if (this.length === 0) return 0;
         return this.reduce((acc, cur) => acc *= cur, 1);
-    }
-
-    // returns true if two shapes are identical
-    equals(other: Shape): boolean {
-        if (this.length !== other.length) return false;
-
-        for (let i = 0; i < this.length; i++) {
-            if (this[i] !== other[i] || other[i] === undefined) {
-                return false;
-            }
-        }
-    
-        return true;
     }
 
     broadcastable(other: Shape): boolean {

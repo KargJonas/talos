@@ -30,10 +30,10 @@ const learningRate = 3;
 console.time();
 
 // training loop
-for (let epoch = 0; epoch < 100; epoch++) {
+for (let epoch = 0; epoch < 40; epoch++) {
     graph.zero_grad();
     graph.forward();
-    graph.backward();
+    graph.backward();    
 
     console.log(`\x1b[35m[${mgmt.get_total_allocated()} Bytes]\x1b[0m Epoch ${epoch + 1}: Loss = ${graph.outputs[0].value.toString()}`);
     // graph.get_node("add")?.grad?.print(10);
