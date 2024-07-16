@@ -9,8 +9,8 @@ set_rand_seed(Date.now());
 
 console.log("\nRunning SGD demo...\n");
 
-const size = 100;
-const weight = tensor([2, size], true).kaiming_normal(size);
+const size = 10;
+const weight = tensor([2, size], true).kaiming_normal(size * 2);
 const bias = tensor([size], true).kaiming_normal(size);
 const target = tensor([size]).uniform(0, 1);
 
@@ -25,12 +25,12 @@ const nn = weight.matmul(input).add(bias).set_name("add").leaky_relu(.05).mse_lo
 
 // finds an execution sequence for the operations involved in the previously defined graph
 const graph = nn.graph;
-const learningRate = .1;
+const learningRate = 3;
 
 console.time();
 
 // training loop
-for (let epoch = 0; epoch < 100000; epoch++) {
+for (let epoch = 0; epoch < 100; epoch++) {
     graph.zero_grad();
     graph.forward();
     graph.backward();

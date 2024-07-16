@@ -370,7 +370,7 @@ export function transpose(a: RawTensor, permutation?: number[]): RawTensor {
 
     // // vectors need to be 1-extended to the right
     if (a.rank === 1) {
-        if (!permutation || permutation.length !== 0)
+        if (permutation && permutation.length !== 0)
             throw new Error("Can't transpose tensors of rank 1 with a specific permutation because there is only one axis.");
 
         new_shape = [...a.shape, 1];
