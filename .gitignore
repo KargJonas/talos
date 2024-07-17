@@ -1,8 +1,7 @@
 # Based on https://raw.githubusercontent.com/github/gitignore/main/Node.gitignore
 
 # Emscripten build output
-/src/core/build
-dist
+dist/
 TODO.txt
 
 # Logs
@@ -102,7 +101,6 @@ tsconfig.tsbuildinfo
 
 # dotenv environment variable files
 
-.env
 .env.development.local
 .env.test.local
 .env.production.local
@@ -179,3 +177,5 @@ out
 # Finder (MacOS) folder config
 .DS_Store
 
+/src/base/core/preprocessed/
+/src/base/core/build/

@@ -1,35 +1,23 @@
+include .env
+include $(CORE_OP_NAME_DEFINITIONS)
+
 EERM		= [ccall, cwrap, getValue, setValue]
-OUT_DIR 	= ./src/core/build
-SRC_DIR 	= ./src/core
 
 # exported functions
 EF = [ \
-	_alloc_farr, _alloc_starr, _create_tensor, \
-	_free_farr, _free_starr, _free_tensor, \
-	_copy_farr, _copy_starr, \
-	_clone_tensor, _create_view, \
+	_create_tensor, _free_tensor, \
+	_clone_tensor, _create_view, _create_reshape_view, _shift_view, \
 	\
-	_rand_seed, _rand_f, _rand_i, _fill, \
+	_init_uniform, _init_normal, _init_fill, \
 	\
-	_add_scl, _sub_scl, _mul_scl, _div_scl, _pow_scl, \
-	_add_prw, _sub_prw, _mul_prw, _div_prw, _pow_prw, \
-	_add_prw_brc, _sub_prw_brc, _mul_prw_brc, _div_prw_brc, _pow_prw_brc, \
-	_mul_tns, _dot_tns, \
+	_matmul, _matmul_acc, _dot, _dot_acc, \
+	_max_red_idx, _min_red_idx, \
+	_max_red_scl, _min_red_scl, _sum_red_scl, _mean_red_scl, \
+	_sum_red_tns, _mean_red_tns, \
 	\
-	_max_red, _min_red, _sum_red, _mean_red, \
+	_get_mgmt_ptr, \
 	\
-	_negate_tns, _reciprocal_tns, \
-	_sin_tns, _cos_tns, _tan_tns, \
-	_asin_tns, _acos_tns, _atan_tns, \
-	_sinh_tns, _cosh_tns, _tanh_tns, \
-	_exp_tns, \
-	_log_tns, _log10_tns, _log2_tns, \
-	_invsqrt_tns, _sqrt_tns, \
-	_ceil_tns, _floor_tns, _abs_tns, \
-	\
-	_relu_tns, _binstep_tns, _logistic_tns, \
-	\
-	_get_mgmt_ptr \
+	$(EXPORTED_OPS) \
 ]
 
 ##  WARNING  ##
@@ -39,15 +27,15 @@ EF = [ \
 ## Initial memory flag ##
 # -s INITIAL_MEMORY=256MB
 
-clean: $(OUT_DIR)
-	-rm -rf $(OUT_DIR)
+clean: $(CORE_OUT_DIR)
+	-rm -rf $(CORE_OUT_DIR)
 
-main: $(SRC_DIR)/main.c
-	@echo Building WASM executables from $(SRC_DIR)
-	-mkdir -p $(OUT_DIR)
+main: $(CORE_SRC_DIR)/main.c
+	@echo Building WASM executables from $(CORE_SRC_DIR)
+	-mkdir -p $(CORE_OUT_DIR)
 	-emcc -s "EXPORTED_RUNTIME_METHODS=$(EERM)" \
 				-s "EXPORTED_FUNCTIONS=$(EF)" \
 				-s WASM=1 \
 				-s ALLOW_MEMORY_GROWTH=1 \
 				-s SINGLE_FILE=1 \
-				-O3 $(SRC_DIR)/main.c -o $(OUT_DIR)/index.js
+				-O3 $(CORE_PREPROC_OUT_DIR)/main.c -o $(CORE_OUT_DIR)/index.js

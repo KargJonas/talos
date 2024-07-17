@@ -2,38 +2,35 @@
  * This file is used for validation and debugging during development. 
  */
 
-import { core_ready, tensor, mgmt, core } from "../index";
+import { RawTensor, core } from "../index.ts";
+import { core_ready } from "../src/base/management.ts";
+import { set_rand_seed } from "../src/base/util.ts";
+import { tensor } from "../src/tensor_factory.ts";
 
 // if your runtime does not support top-level await,
 // you'll have to use core_ready.then(() => { ... }) instead
 await core_ready;
 
-console.log("###########\n".repeat(2));
+try {
+    set_rand_seed(Date.now());
 
-const t1 = tensor([2, 2, 3], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
-const t2 = tensor([3, 2],    [1, 2, 3, 4, 5, 6]);
-const t3 = tensor([3],       [-1, 2, 3]);
-const t4 = tensor([2, 2]).rand_int(1, 6);
-const t5 = tensor([2, 2]).rand(1, 6);
+    const t = tensor([10], true).uniform();
+    const m = t.max().add(1);
 
-t1.sqrt().print();
+    // t.grad!.uniform();
 
-// // testing access of tensors after a growth event
-// const t2 = tensor([3, 2],    [1, 2, 3, 4, 5, 6]);
-// t2.print_info();
-//
-// // forcing a growth event by allocating a lot of memory
-// for (let i = 0; i < 100; i++) {
-//     // console.log((mgmt.get_total_allocated() / 10 ** 6).toFixed(2) + " MB");
-//     const a = tensor([100, 100, 100]);
-//     // a.print_info();
-// }
+    t.print();
+    t.grad!.print();
 
-// t2.print_info();
+    m.graph.forward();
+    m.graph.backward();
 
+    m.print();
+    m.grad!.print();
 
-// t2.print();
+    t.print();
+    t.grad!.print();
 
-// const t6 = tensor([100, 100, 100]).rand();
-// t6.print_info();
-// t6.create_view().print_info();
+} catch (e) {
+    console.log(e);
+}

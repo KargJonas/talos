@@ -5,23 +5,11 @@
 </p>
 
 ## A minimalistic, zero-deps tensor library with a NumPy-like API
-Talos is a recreational programming projects that helps me understand how machine learning works on the lowest levels. The goal for this project is to build a library that provides the basic array features of NumPy (step 1) and to then graft an autograd system and whatever else is necessary for training a basic model, onto it (step 2). Step 1 is now basically complete.
+Talos is a recreational programming project that helps me understand how machine learning works on the lowest levels. The goal for this project is to build a library that provides the basic array features of NumPy (step 1) and to then graft an autograd system and whatever else is necessary for training a basic model, onto it (step 2). I am currently working on step 2.
+
+For a working SGD demo see **[examples/sgd.ts](examples/sgd.ts)**.
 
 Talos uses C/WebAssembly to accelerate operations on tensors. All tensor data and metadata resides within WASM memory and and is accessed by JS only for validating operation parameters, printing and other things of that nature.
-
-Each tensor is represented through this struct. Views of tensors will reference the data array of another tensor (usually along with an offset and different shape/strides).
-```c
-struct tensor_t {
-    float* data;     // array that contains the actual tensor data/values
-    size_t* shape;   // tensor shape of the form [..., n_matrices, n_rows, n_cols]
-    size_t* strides; // strides same length as shape, counted in elements, not bytes like NumPy
-    size_t rank;     // rank of the tensor. dictates length of shape/strides arrays
-    size_t nelem;    // number of elements in the tensor. product of all elements of the shape array
-    size_t ndata;    // number of elements in the data array (of topmost parent tensor)
-    size_t offset;   // if view: offset of this view inside the parent tensor in number of elements default 0
-    bool isview;     // indicates if this tensor is a view of another tensor
-};
-```
 
 Here is a bit of sample code that demonstrates some of the features.
 The full feature list is below.
@@ -32,11 +20,13 @@ import { core_ready, tensor } from "../index";
 // you'll have to use core_ready.then(() => { ... }) instead
 await core_ready;
 
+//                 shape      data
 const t1 = tensor([2, 2, 3], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
 const t2 = tensor([3, 2],    [1, 2, 3, 4, 5, 6]);
 const t3 = tensor([3],       [-1, 2, 3]);
-const t4 = tensor([2, 2]).rand_int(1, 6);
-const t5 = tensor([2, 2]).rand(1, 6);
+
+const t5 = tensor([2, 2]).uniform(1, 6);
+const t6 = tensor([2, 2]).normal(0, 3);
 
 for (const e of t1) {
     e.T.add(t2).print();
@@ -47,14 +37,11 @@ t1.pow(t1).print(); // pairwise op
 t1.pow(t3).print(); // broadcasting op
 
 // some basic ops
-t1.add(t3).print();
-t1.sub(t3).print();
-t1.mul(t3).print();
-t1.div(t3).print();
+t1.add(t3).mul(t3).sub(t3).div(t2.T).print();
 
-t1.matmul(t2).print();
-t2.dot(t1).print();
-t3.logistic().print();
+t1.matmul(t2).print();       // matrix multiplication
+t2.dot(t1).print();          // tensor dot product
+
 t4.matmul(t5, true).print(); // in-place matmul of square matrix
 t4.dot(t5, true).print();    // last parameter of op is always a bool indicating in-place op
 
@@ -82,41 +69,31 @@ console.log(t4.sum());
 console.log(t4.min());
 console.log(t4.max());
 console.log(t4.mean());
-
 ```
+
+<p align="center">
+  <img src="./misc/overview.svg" />
+</p>
 
 ## Features
 ### Currently, these are the operations that Talos supports:
-Basic unary and binary operators, broadcasting, in-place and out-of-place operations. Pretty printing of tensors. A small set of tensor cloning/initialization methods.
-
-- Binary operations (**broadcasting supported on all operations**)
+- Broadcasting and de-broadcasting (summation along axes) on all operations
+- Accumulative assignments on all operations (`dest[i] += result[i]`)
+- Binary operations
     - Pairwise operations
-        - Addition
-        - Subtraction
-        - Multiplication
-        - Division
-        - Exponentiation
+        - Addition, Subtraction, Multiplication, Division, Exponentiation
     - Matrix multiplication
     - Dot product (mimics behavior of NumPy)
 - Unary operations:
   - relu, binstep, logistic, negate, sin, cos, tan, asin, acos, atan, sinh, cosh, tanh, exp, log, log10, log2, invsqrt, sqrt, ceil, floor, abs, reciprocal, free, clone
 - Reduce operations
-  - Min
-  - Max
-  - Sum
-  - Mean
+  - Min, Max, Sum, Mean
 - Metadata operations
   - transpose (with arbitrary permutation of axes)
   - view creation
   - iteration over specific axes
 - Initialization
-    - rand
-    - rand_int
-    - fill
-    - zeros
-    - ones
-    - tensor(shape[], data[]?)
-    - tensor_like(other_tensor)
+    - rand, normal, fill, zeros, ones, tensor(shape[], data[]?), tensor_like(other_tensor), tensor_scalar(number?)
 
 ### How to build
 #### Prerequisites
