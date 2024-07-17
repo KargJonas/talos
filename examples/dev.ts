@@ -3,7 +3,7 @@
  */
 
 import { RawTensor, core } from "../index.ts";
-import { core_ready } from "../src/base/Management.ts";
+import { core_ready } from "../src/base/management.ts";
 import { set_rand_seed } from "../src/base/util.ts";
 import { tensor } from "../src/tensor_factory.ts";
 

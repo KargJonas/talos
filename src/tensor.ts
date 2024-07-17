@@ -1,16 +1,19 @@
-import { RawTensor } from "./base/RawTensor.ts";
+import { RawTensor } from "./base/raw_tensor.ts";
 import { tensor_scalar } from "./tensor_factory.ts";
 import * as graph_ops from "./node_operations.ts";
-import Graph from "./Graph.ts";
+import Graph from "./graph.ts";
 
-type OperationClass<T> = new (parents: Tensor[], ...params: any[]) => T;
+// NodeOption = any additional options/parameter that can be passed into a node
+// (e.g. negative slope of leaky relu)
+type NodeOption = any;
+type OperationClass<T> = new (parents: Tensor[], ...params: NodeOption[]) => T;
 
 export default abstract class Tensor {
-    // State of the node
+    // state of the node
     abstract value: RawTensor;
     grad?: RawTensor = undefined;
 
-    // Metadata
+    // metadata
     readonly parents: Tensor[];
     readonly children: Tensor[];
 
@@ -30,6 +33,7 @@ export default abstract class Tensor {
     get rows()  { return this.value.get_axis_size(this.rank - 2); }
     get cols()  { return this.value.get_axis_size(this.rank - 1); }
     get item()  { return this.value.item; }
+    get T() { return this.transpose(); }
     get_axis_size = (axis_index: number) => this.value.get_axis_size(axis_index);
 
     fw() {} // forward
@@ -42,6 +46,7 @@ export default abstract class Tensor {
         };
     }
 
+    // initialization stuff
     uniform         = this.chain_op((min = -1, max = 1, seed?: number) => this.value.rand(min, max, seed));
     normal          = this.chain_op((mean = 0, std_dev = 1, seed?: number) => this.value.normal(mean, std_dev, seed));
     kaiming_uniform = this.chain_op((n_in: number, seed?: number) => this.value.kaiming_uniform(n_in, seed));
@@ -55,6 +60,7 @@ export default abstract class Tensor {
     zeros           = () => this.fill(0);
     ones            = () => this.fill(1);
 
+    // printing/logging stuff
     print = (precision?: number) => this.value.print(precision);
     print_info = () => this.value.print_info();
 
@@ -64,16 +70,12 @@ export default abstract class Tensor {
     mul = this.create_binary_op(graph_ops.Mul);
     div = this.create_binary_op(graph_ops.Div);
     pow = this.create_binary_op(graph_ops.Pow);
-
     matmul = this.create_binary_op(graph_ops.Matmul);
     dot = this.create_binary_op(graph_ops.Dot);
 
-    dropout = this.create_unary_op(graph_ops.Dropout);
-
-    transpose = this.create_unary_op(graph_ops.Transpose);
-    get T() { return this.transpose(); }
-
     // unary operations
+    transpose = this.create_unary_op(graph_ops.Transpose);
+    dropout = this.create_unary_op(graph_ops.Dropout);
     relu = this.create_unary_op(graph_ops.Relu);
     leaky_relu = this.create_unary_op(graph_ops.LeakyRelu);
     binstep = this.create_unary_op(graph_ops.Binstep);
@@ -145,7 +147,7 @@ export default abstract class Tensor {
     }
 
     private create_binary_op<T extends Tensor>(op_class: OperationClass<T>) {
-        return (_other: Tensor | number, requires_grad = true, ...params: any[]) => {
+        return (_other: Tensor | number, requires_grad = true, ...params: NodeOption[]) => {
 
             // If _other is a scalar, create a tensor that holds the scalar value such that it can be referenced in the graph
             const other: Tensor = _other instanceof Tensor ? _other : tensor_scalar(_other, requires_grad);
@@ -162,7 +164,7 @@ export default abstract class Tensor {
     }
 
     private create_unary_op<T extends Tensor>(op_class: OperationClass<T>) {
-        return (...params: any[]) => {
+        return (...params: NodeOption[]) => {
 
             // If _other is a scalar, create a tensor that holds the scalar value such that it can be referenced in the graph
             const parents: Tensor[] = [this];

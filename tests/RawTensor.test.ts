@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { RawTensor } from "../src/base/RawTensor.ts";
-import { core_ready } from "../src/base/Management";
-import Shape from "../src/base/Shape";
-import Strides from "../src/base/Strides";
+import { RawTensor } from "../src/base/raw_tensor.ts";
+import { core_ready } from "../src/base/management.ts";
+import Shape from "../src/base/shape.ts";
+import Strides from "../src/base/strides.ts";
 import { mean } from "../src/base/raw_tensor_operations.ts";
 
 describe("tensor creation", async () => {

@@ -9,7 +9,7 @@ set_rand_seed(Date.now());
 
 console.log("\nRunning SGD demo...\n");
 
-const size = 10;
+const size = 100;
 const weight = tensor([2, size], true).kaiming_normal(size * 2);
 const bias = tensor([size], true).kaiming_normal(size);
 const target = tensor([size]).uniform(0, 1);
@@ -30,7 +30,7 @@ const learningRate = 3;
 console.time();
 
 // training loop
-for (let epoch = 0; epoch < 40; epoch++) {
+for (let epoch = 0; epoch < 1000; epoch++) {
     graph.zero_grad();
     graph.forward();
     graph.backward();    

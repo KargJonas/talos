@@ -1,4 +1,4 @@
-import UnifiedArray from "./UnifiedArray.ts";
+import UnifiedArray from "./unified_array.ts";
 import {ordinal_str} from "./to_string.ts";
 
 export default class Shape extends UnifiedArray {

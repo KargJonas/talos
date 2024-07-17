@@ -1,8 +1,8 @@
 import { Parameter, Source } from "./node_operations.ts";
-import { RawTensor } from "./base/RawTensor.ts";
-import Shape from "./base/Shape.ts";
+import { RawTensor } from "./base/raw_tensor.ts";
+import Shape from "./base/shape.ts";
 import {NDArray, flatten} from "./base/util.ts";
-import Tensor from "./Tensor.ts";
+import Tensor from "./tensor.ts";
 
 /**
  * Creates an input node.

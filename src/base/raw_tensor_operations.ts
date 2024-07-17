@@ -1,7 +1,6 @@
-import { RawTensor } from "./RawTensor.ts";
+import { RawTensor } from "./raw_tensor.ts";
 import core from "./core/build";
-import Shape from "./Shape";
-
+import Shape from "./shape.ts";
 
 // types for high level operations
 export type UnaryOp = (src: RawTensor, dest?: RawTensor, param?: number) => RawTensor;

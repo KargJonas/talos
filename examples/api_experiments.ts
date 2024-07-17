@@ -1,5 +1,5 @@
 import {  core_ready } from "../index";
-import { get_total_allocated } from "../src/base/Management.ts";
+import { get_total_allocated } from "../src/base/management.ts";
 import { mul_acc } from "../src/base/raw_tensor_operations.ts";
 
 // if your runtime does not support top-level await,

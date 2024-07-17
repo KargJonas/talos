@@ -1,9 +1,9 @@
 import * as ops from "./base/raw_tensor_operations.ts";
 import { get_shape_dot, get_shape_matmul } from "./base/raw_tensor_operations.ts";
-import {RawTensor} from "./base/RawTensor.ts";
-import Shape from "./base/Shape.ts";
+import {RawTensor} from "./base/raw_tensor.ts";
+import Shape from "./base/shape.ts";
 import { get_global_seed } from "./base/util.ts";
-import Tensor from "./Tensor.ts";
+import Tensor from "./tensor.ts";
 
 // This file contains all operations of the graph-node abstraction-level
 // These are essentially all operations of the tensor level plus their derivatives
@@ -280,13 +280,13 @@ export class Dot extends Tensor {
 
 export class Transpose extends Tensor {
     value: RawTensor;
+    grad?: RawTensor;
 
     constructor(parents: Tensor[], ...permutation: number[]) {
         super(parents);
         this.value = parents[0].value.transpose(...permutation);
+        this.grad = parents[0].grad?.transpose(...permutation);
     }
-
-    // todo
 }
 
 export class Min extends Tensor {

@@ -1,4 +1,4 @@
-import {RawTensor} from "./RawTensor.ts";
+import {RawTensor} from "./raw_tensor.ts";
 
 // usability methods
 export function tensor_to_string(a: RawTensor, num_width = 5, space_before = 0) {

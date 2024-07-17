@@ -1,2 +1,2 @@
-import UnifiedArray from "./UnifiedArray";
+import UnifiedArray from "./unified_array";
 export default class Strides extends UnifiedArray { }

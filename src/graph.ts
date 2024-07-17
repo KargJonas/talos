@@ -1,4 +1,4 @@
-import Tensor from "./Tensor.ts";
+import Tensor from "./tensor.ts";
 
 /**
  * This is a basic implementation of the computation graph.

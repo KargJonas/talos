@@ -25,7 +25,7 @@ const t1 = tensor([2, 2, 3], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
 const t2 = tensor([3, 2],    [1, 2, 3, 4, 5, 6]);
 const t3 = tensor([3],       [-1, 2, 3]);
 
-const t5 = tensor([2, 2]).rand(1, 6);
+const t5 = tensor([2, 2]).uniform(1, 6);
 const t6 = tensor([2, 2]).normal(0, 3);
 
 for (const e of t1) {
