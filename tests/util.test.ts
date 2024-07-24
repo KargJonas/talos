@@ -1,6 +1,6 @@
 import { describe, test, expect } from "bun:test";
-import { set_rand_seed } from "../src/base/util.ts";
-import { RawTensor } from "../src/base/raw_tensor.ts";
+import { set_rand_seed } from "../src/raw_tensor/util.ts";
+import { RawTensor } from "../src/raw_tensor/raw_tensor.ts";
 
 describe("utility functions (util.js)", () => {
     test("core.set_rand_seed()", () => {

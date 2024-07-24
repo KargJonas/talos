@@ -116,7 +116,6 @@ struct tensor_t* create_reshape_view(struct tensor_t* source, size_t rank) {
  * so we should mark tensors as view-tensors and only do this
  * when necessary
  */
- // todo: rename this to copy_tensor
 void clone_tensor(struct tensor_t* source, struct tensor_t* dest) {
     copy_starr(source->shape, dest->shape, source->rank);
     copy_starr(source->strides, dest->strides, source->rank);

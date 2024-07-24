@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { add } from "../src/base/raw_tensor_operations.ts";
+import { add } from "../src/raw_tensor/raw_tensor_operations.ts";
 import { tensor_producer } from "../src/tensor_factory.ts";
-import { RawTensor } from "../src/base/raw_tensor.ts";
+import { RawTensor } from "../src/raw_tensor/raw_tensor.ts";
 
 describe("node operations", () => {
 

@@ -1,4 +1,4 @@
-import core from "./core/build";
+import core from "../core/build";
 
 enum  STRUCT_LAYOUT { ALLOCATED, NTENSORS }
 const STRUCT_SIZE = Object.entries(STRUCT_LAYOUT).length / 2;

@@ -1,6 +1,6 @@
 import Shape from "./shape.ts";
 import Strides from "./strides.ts";
-import core from "./core/build/index.js";
+import core from "../core/build/index.js";
 import {tensor_to_string, ordinal_str, tensor_info_to_string} from "./to_string.ts";
 import {flatten, get_global_seed, get_strides_row_major, NDArray} from "./util.ts";
 import * as ops from "./raw_tensor_operations.ts";

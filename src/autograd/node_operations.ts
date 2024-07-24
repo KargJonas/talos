@@ -1,9 +1,9 @@
-import * as ops from "./base/raw_tensor_operations.ts";
-import { get_shape_dot, get_shape_matmul } from "./base/raw_tensor_operations.ts";
-import {RawTensor} from "./base/raw_tensor.ts";
-import Shape from "./base/shape.ts";
-import { get_global_seed } from "./base/util.ts";
-import Tensor from "./tensor.ts";
+import * as ops from "../raw_tensor/raw_tensor_operations.ts";
+import { get_shape_dot, get_shape_matmul } from "../raw_tensor/raw_tensor_operations.ts";
+import {RawTensor} from "../raw_tensor/raw_tensor.ts";
+import Shape from "../raw_tensor/shape.ts";
+import { get_global_seed } from "../raw_tensor/util.ts";
+import Tensor from "../tensor.ts";
 
 // This file contains all operations of the graph-node abstraction-level
 // These are essentially all operations of the tensor level plus their derivatives
@@ -373,7 +373,7 @@ export class MseLoss extends Tensor {
 
         // todo: add shape compat check
         this.value = RawTensor.scalar(0);
-        this.grad = RawTensor.like(parents[0].value).ones(); // todo: this should be set to 1 after at some point (maybe reintroduce init()?)
+        this.grad = RawTensor.like(parents[0].value).ones(); // todo: this should be reset to 1 at some point (maybe reintroduce init()?)
         this.interim = RawTensor.like(parents[0].value);
     }
 
@@ -394,15 +394,9 @@ export class MseLoss extends Tensor {
         if (!prediction.grad && !target.grad) return;
         ops.sub(prediction.value, target.value, this.interim);
 
-        if (prediction.grad) {
-            // gradient of MSE loss w.r.t. prediction: 2 * (prediction - target) / N       
-            ops.mul_acc(this.interim, 2 / prediction.value.nelem, prediction.grad);
-        }
-
-        // todo fix: no need to to this twice
-        if (target.grad) {
-            ops.mul_acc(this.interim, -2 / prediction.value.nelem, target.grad);
-        }
+        // gradient of MSE loss w.r.t. prediction: 2 * (prediction - target) / N       
+        if (prediction.grad) ops.mul_acc(this.interim, 2 / prediction.value.nelem, prediction.grad);
+        if (target.grad) ops.mul_acc(this.interim, -2 / prediction.value.nelem, target.grad);
     }
 }
 

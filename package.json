@@ -12,7 +12,7 @@
     "typescript": "^5.0.0"
   },
   "scripts": {
-    "dev": "bun --watch examples/dev.ts",
+    "dev": "bun --watch dev/dev.ts",
     "test": "bun test",
     "lint": "eslint . ; tsc",
     "build-ts": "bun build ./index.ts --outdir ./dist",

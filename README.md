@@ -5,7 +5,7 @@
 </p>
 
 ## A minimalistic, zero-deps tensor library with a NumPy-like API
-Talos is a recreational programming project that helps me understand how machine learning works on the lowest levels. The goal for this project is to build a library that provides the basic array features of NumPy (step 1) and to then graft an autograd system and whatever else is necessary for training a basic model, onto it (step 2). I am currently working on step 2.
+Talos is a recreational programming project that helps me understand how machine learning works on the lowest levels. The goal for this project is to build a library that provides the basic array features of NumPy (step 1) and to then graft an autograd system and whatever else is necessary for training a basic model, onto it (step 2). I am quite close to completing step 2 at this point.
 
 For a working SGD demo see **[examples/sgd.ts](examples/sgd.ts)**.
 

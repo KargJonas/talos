@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { RawTensor } from "../src/base/raw_tensor.ts";
-import Shape from "../src/base/shape.ts";
-import * as ops from "../src/base/raw_tensor_operations.ts";
-import { core_ready } from "../src/base/management.ts";
-import Strides from "../src/base/strides.ts";
+import { RawTensor } from "../src/raw_tensor/raw_tensor.ts";
+import Shape from "../src/raw_tensor/shape.ts";
+import * as ops from "../src/raw_tensor/raw_tensor_operations.ts";
+import { core_ready } from "../src/raw_tensor/management.ts";
+import Strides from "../src/raw_tensor/strides.ts";
 
 // todo:
 //  - potentially add tests with large identity-matrices (easy to validate without other libraries)

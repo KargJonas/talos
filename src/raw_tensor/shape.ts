@@ -121,6 +121,6 @@ export default class Shape extends UnifiedArray {
     // get shape of elements in an axis (n determines the level of nesting)
     get_axis_shape(n: number): number[] {
         if (n >= this.ndim) throw new Error(`Cannot get ${ordinal_str(n)} axis.`);
-        return [...this].slice(n - this.ndim); // todo fix. should work with .subarry
+        return [...this].slice(n - this.ndim);
     }
 }

@@ -1,6 +1,8 @@
 include .env
 include $(CORE_OP_NAME_DEFINITIONS)
 
+# NOTE: see .env for preprocessor/compiler/bundler configuration
+
 EERM		= [ccall, cwrap, getValue, setValue]
 
 # exported functions

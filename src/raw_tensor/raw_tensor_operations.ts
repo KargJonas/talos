@@ -1,5 +1,5 @@
 import { RawTensor } from "./raw_tensor.ts";
-import core from "./core/build";
+import core from "../core/build/index.js";
 import Shape from "./shape.ts";
 
 // types for high level operations

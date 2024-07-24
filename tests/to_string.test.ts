@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { RawTensor } from "../src/base/raw_tensor.ts";
-import { core_ready } from "../src/base/management.ts";
-import * as ops from "../src/base/raw_tensor_operations.ts";
+import { RawTensor } from "../src/raw_tensor/raw_tensor.ts";
+import { core_ready } from "../src/raw_tensor/management.ts";
+import * as ops from "../src/raw_tensor/raw_tensor_operations.ts";
 
 describe("to_string", async () => {
     await core_ready;

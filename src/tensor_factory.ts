@@ -1,7 +1,7 @@
-import { Parameter, Source } from "./node_operations.ts";
-import { RawTensor } from "./base/raw_tensor.ts";
-import Shape from "./base/shape.ts";
-import {NDArray, flatten} from "./base/util.ts";
+import { Parameter, Source } from "./autograd/node_operations.ts";
+import { RawTensor } from "./raw_tensor/raw_tensor.ts";
+import Shape from "./raw_tensor/shape.ts";
+import {NDArray, flatten} from "./raw_tensor/util.ts";
 import Tensor from "./tensor.ts";
 
 /**
@@ -30,8 +30,6 @@ export function tensor_producer(shape: Shape | number[], producer: () => (NDArra
 // export function tensor_scalar(value?: number): Parameter;
 // export function tensor_scalar(requires_grad?: boolean): Parameter;
 export function tensor_scalar(arg_1?: number | boolean, arg_2?: boolean): Parameter {
-    // todo fix requires_grad (see comment below)
-
     // only value provided
     if (arg_1 === undefined) {
         return new Parameter(RawTensor.scalar(), false);
@@ -52,8 +50,6 @@ export function tensor_scalar(arg_1?: number | boolean, arg_2?: boolean): Parame
 export function tensor(shape: number[], requiresGrad?: boolean): Parameter;
 export function tensor(shape: number[], data: number[], requiresGrad?: boolean): Parameter;
 export function tensor(shape: number[], arg_1?: number[] | boolean, arg_2?: boolean) {
-    // todo fix requires_grad (see comment below)
-
     // only shape provided
     if (arg_1 === undefined && arg_2 === undefined) {
         return new Parameter(RawTensor.create(shape), false);

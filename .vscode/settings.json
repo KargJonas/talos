@@ -18,6 +18,9 @@
         "binstep",
         "debroadcasting",
         "emscripten",
+        "invsqrt",
+        "matmul",
+        "nelem",
         "Relu"
     ],
     "todo-tree.tree.showCountsInTree": true,

@@ -1,5 +1,5 @@
 import { RawTensor, core_ready, set_rand_seed, mgmt } from "../index";
-import { mul_acc } from "../src/base/raw_tensor_operations.ts";
+import { mul_acc } from "../src/raw_tensor/raw_tensor_operations.ts";
 import { tensor, tensor_producer } from "../src/tensor_factory.ts";
 
 // if your runtime does not support top-level await,

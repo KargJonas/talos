@@ -1,9 +1,9 @@
-import { RawTensor } from "./base/raw_tensor.ts";
+import { RawTensor } from "./raw_tensor/raw_tensor.ts";
 import { tensor_scalar } from "./tensor_factory.ts";
-import * as graph_ops from "./node_operations.ts";
-import Graph from "./graph.ts";
+import * as graph_ops from "./autograd/node_operations.ts";
+import Graph from "./autograd/graph.ts";
 
-// NodeOption = any additional options/parameter that can be passed into a node
+// NodeOption = any additional option/parameter that can be passed into a node
 // (e.g. negative slope of leaky relu)
 type NodeOption = any;
 type OperationClass<T> = new (parents: Tensor[], ...params: NodeOption[]) => T;
@@ -183,6 +183,6 @@ export default abstract class Tensor {
  * todo:
  *   requires_grad in its current form wont work properly..
  *   even if requires_grad=true, we will still need to compute the grads for all
- *   nodes, but we dont need to store them. this is a bit difficult to realize
+ *   nodes, but we don't need to store them. this is a bit difficult to realize
  *   in the current setup...
  */

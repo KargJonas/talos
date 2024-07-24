@@ -1,4 +1,4 @@
-import core from "./core/build";
+import core from "../core/build";
 
 /**
  * "Memory location agnostic array."
