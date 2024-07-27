@@ -14,61 +14,55 @@ Talos uses C/WebAssembly to accelerate operations on tensors. All tensor data an
 Here is a bit of sample code that demonstrates some of the features.
 The full feature list is below.
 ```js
-import { core_ready, tensor } from "../index";
+import { core_ready, tensor } from "../dist";
 
 // if your runtime does not support top-level await,
 // you'll have to use core_ready.then(() => { ... }) instead
 await core_ready;
 
-//                 shape      data
-const t1 = tensor([2, 2, 3], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
-const t2 = tensor([3, 2],    [1, 2, 3, 4, 5, 6]);
-const t3 = tensor([3],       [-1, 2, 3]);
+// all of these functions create instances of the `Tensor` class.
+// the arrays represent the shapes of the tensors.
+// see `examples/create_and_init.ts` for more ways to create and initialize tensors
+const t1 = tensor([2, 2, 3]);
+const t2 = tensor([3, 2]);
+const t3 = tensor([3]);
 
-const t5 = tensor([2, 2]).uniform(1, 6);
-const t6 = tensor([2, 2]).normal(0, 3);
+// create a tensor from a nested array
+const t4 = tensor_from_array([[1, 2, 3], [4, 5, 6]]);
 
-for (const e of t1) {
-    e.T.add(t2).print();
-}
+// populate tensors with random data
+t1.uniform();
+t2.normal(0, 3);
+t3.xavier_normal(6);
 
-t1.pow(2).print();  // scalar op
-t1.pow(t1).print(); // pairwise op
-t1.pow(t3).print(); // broadcasting op
+// talos supports broadcasting by repeating values along axes
+// such that tensors of different rank may still be used together
+t1.pow(2);  // scalar op
+t1.pow(t1); // pairwise op
+t1.pow(t3); // broadcasting op
 
 // some basic ops
-t1.add(t3).mul(t3).sub(t3).div(t2.T).print();
+t1.add(t3);
+t1.sub(t3);
+t1.mul(t3);
+t1.div(t3);
 
-t1.matmul(t2).print();       // matrix multiplication
-t2.dot(t1).print();          // tensor dot product
+t1.matmul(t2);
+t2.dot(t1);
+t3.logistic();
 
-t4.matmul(t5, true).print(); // in-place matmul of square matrix
-t4.dot(t5, true).print();    // last parameter of op is always a bool indicating in-place op
+// transpositions of tensors are implemented through views
+// such that no additional data needs to be allocated
+t2.T.matmul(t2);
+t2.matmul(t2.transpose(1, 0)); // you can also use permutations for transposition
 
-t2.transpose().matmul(t2).print();
-t2.matmul(t2.transpose()).print();
+// talos is lazy, this means no actual computation will be performed,
+// unless you call .realize()
+const my_tensor = t1.add(t3).mul(t3).sub(4).T; // this tensor will contain only zeros (uninitialized)
+const my_realized_tensor = t1.add(t3).mul(t3).sub(4).T.realize(); // this will contain a result
 
-// in-place operations on views (this is something NumPy does not support)
-// maybe useful for some applications, also saves you one transpose if you
-// were going to to something like my_tensor.T.add(other_tensor).T
-t1.transpose(0, 2, 1).add(t2, true);
-t1.print();
-
-// manual creation of views
-const axis = 1;
-const offset_in_axis = 1;
-const my_view = t1.create_view(axis, offset_in_axis); // getting the second element in the second axis
-my_view.add(1, true); // modifying elements in my_view will modify the data of t1
-
-// deep copy of tensors
-const my_view_copy = my_view.clone();
-my_view_copy.add(1, true); // this in-place operation does not affect the data of t1
-
-// basic reduce operations
-console.log(t4.sum());
-console.log(t4.min());
-console.log(t4.max());
-console.log(t4.mean());
+my_tensor.print();
+my_realized_tensor.print();
 ```
 
 <p align="center">
@@ -97,7 +91,7 @@ console.log(t4.mean());
 
 ### How to build
 #### Prerequisites
-To build and run this project, you will need to install `emcc` (emscripten), `make` and a js runtime environment like `bun` or `nodejs`.
+To build and run this project, you will need to install `emcc` (emscripten), `make` and a js runtime environment. I like to use `bun` but you should be able to get this to work with `nodejs` too.
 
 ```bash
 # should work identically with node

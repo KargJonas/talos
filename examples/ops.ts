@@ -1,36 +1,49 @@
-import { core_ready, tensor } from "../dist";
+import { core_ready, tensor, tensor_from_array } from "../dist";
 
 // if your runtime does not support top-level await,
 // you'll have to use core_ready.then(() => { ... }) instead
 await core_ready;
 
-const t1 = tensor([2, 2, 3], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
-const t2 = tensor([3, 2],    [1, 2, 3, 4, 5, 6]);
-const t3 = tensor([3],       [-1, 2, 3]);
+// all of these functions create instances of the `Tensor` class.
+// the arrays represent the shapes of the tensors.
+// see `examples/create_and_init.ts` for more ways to create and initialize tensors
+const t1 = tensor([2, 2, 3]);
+const t2 = tensor([3, 2]);
+const t3 = tensor([3]);
 
+// create a tensor from a nested array
+const t4 = tensor_from_array([[1, 2, 3], [4, 5, 6]]);
+
+// populate tensors with random data
 t1.uniform();
-t2.uniform();
-t3.uniform();
+t2.normal(0, 3);
+t3.xavier_normal(6, 3);
 
-t1.pow(2).realize().print();  // scalar op
-t1.pow(t1).realize().print(); // pairwise op
-t1.pow(t3).realize().print(); // broadcasting op
+// talos supports broadcasting by repeating values along axes
+// such that tensors of different rank may still be used together
+t1.pow(2);  // scalar op
+t1.pow(t1); // pairwise op
+t1.pow(t3); // broadcasting op
 
 // some basic ops
-t1.add(t3).realize().print();
-t1.sub(t3).realize().print();
-t1.mul(t3).realize().print();
-t1.div(t3).realize().print();
+t1.add(t3);
+t1.sub(t3);
+t1.mul(t3);
+t1.div(t3);
 
-t1.matmul(t2).realize().print();
-t2.dot(t1).realize().print();
-t3.logistic().realize().print();
+t1.matmul(t2);
+t2.dot(t1);
+t3.logistic();
 
-t2.transpose().matmul(t2).realize().print();
-t2.matmul(t2.transpose()).realize().print();
+// transpositions of tensors are implemented through views
+// such that no additional data needs to be allocated
+t2.T.matmul(t2);
+t2.matmul(t2.transpose(1, 0)); // you can also use permutations for transposition
 
-// in-place operations on views (this is something NumPy does not support)
-// maybe useful for some applications, also saves you one transpose if you
-// were going to to something like my_tensor.T.add(other_tensor).T
-t1.transpose(0, 2, 1).add(t2);
-t1.print();
+// talos is lazy, this means no actual computation will be performed,
+// unless you call .realize()
+const my_tensor = t1.add(t3).mul(t3).sub(4).T; // this tensor will contain only zeros (uninitialized)
+const my_realized_tensor = t1.add(t3).mul(t3).sub(4).T.realize(); // this will contain a result
+
+my_tensor.print();
+my_realized_tensor.print();
