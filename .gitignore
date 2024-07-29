@@ -2,7 +2,10 @@
 
 # Emscripten build output
 dist/
+
+# prototyping/personal docs
 TODO.txt
+prototype.ts
 
 # Logs
 

@@ -1,4 +1,4 @@
-<mxfile host="Electron" modified="2024-07-29T10:06:22.086Z" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/24.2.5 Chrome/120.0.6099.109 Electron/28.1.0 Safari/537.36" etag="rLEvJX-lbNQxsLrnC7Sk" version="24.2.5" type="device">
+<mxfile host="Electron" modified="2024-07-29T10:05:55.207Z" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/24.2.5 Chrome/120.0.6099.109 Electron/28.1.0 Safari/537.36" etag="Ne_I4hn4CrPo54NNoG5V" version="24.2.5" type="device">
   <diagram name="Page-1" id="Fftt6esGzNZoUhW7dj1o">
     <mxGraphModel dx="1434" dy="2063" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
@@ -79,7 +79,7 @@
         <mxCell id="7CubaNInrMT3vl3HRSN6-26" value="" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
           <mxGeometry x="280" y="740" width="400" height="100" as="geometry" />
         </mxCell>
-        <mxCell id="7CubaNInrMT3vl3HRSN6-27" value="&lt;b&gt;WASM MEMORY&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="1" vertex="1">
+        <mxCell id="7CubaNInrMT3vl3HRSN6-27" value="WASM MEMORY" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="1" vertex="1">
           <mxGeometry x="335" y="775" width="120" height="30" as="geometry" />
         </mxCell>
         <mxCell id="7CubaNInrMT3vl3HRSN6-28" value="TENSOR 1" style="html=1;whiteSpace=wrap;" parent="1" vertex="1">
@@ -94,7 +94,7 @@
         <mxCell id="7CubaNInrMT3vl3HRSN6-37" value="&lt;b&gt;add_brc&lt;/b&gt; (ptr, ptr, ptr)" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
           <mxGeometry x="510" y="580" width="170" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="7CubaNInrMT3vl3HRSN6-39" value="&lt;b&gt;CORE INSTRUCTION SET /&lt;/b&gt;&lt;div&gt;&lt;b&gt;&amp;nbsp;EXPOSED CORE FUNCTIONS&lt;/b&gt;&lt;/div&gt;" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="1" vertex="1">
+        <mxCell id="7CubaNInrMT3vl3HRSN6-39" value="CORE INSTRUCTION SET /&lt;div&gt;&amp;nbsp;EXPOSED CORE FUNCTIONS&lt;/div&gt;" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="1" vertex="1">
           <mxGeometry x="300" y="590" width="190" height="30" as="geometry" />
         </mxCell>
         <mxCell id="7CubaNInrMT3vl3HRSN6-40" value="&lt;b&gt;sub_dbrc&amp;nbsp;&lt;/b&gt;(ptr, ptr, ptr)" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
@@ -106,7 +106,7 @@
         <mxCell id="7CubaNInrMT3vl3HRSN6-42" value="..." style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
           <mxGeometry x="510" y="670" width="170" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="7CubaNInrMT3vl3HRSN6-44" value="&lt;b&gt;HIGH LEVEL TENSOR OPS /&lt;/b&gt;&lt;div&gt;&lt;b&gt;tensor_ops.ts&lt;/b&gt;&lt;/div&gt;" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="1" vertex="1">
+        <mxCell id="7CubaNInrMT3vl3HRSN6-44" value="HIGH LEVEL TENSOR OPS /&lt;div&gt;tensor_ops.ts&lt;/div&gt;" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="1" vertex="1">
           <mxGeometry x="280" y="430" width="230" height="30" as="geometry" />
         </mxCell>
         <mxCell id="7CubaNInrMT3vl3HRSN6-45" value="&lt;b&gt;add&lt;/b&gt; (Tensor, Tensor, Tensor)" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
@@ -136,8 +136,8 @@
         <mxCell id="7CubaNInrMT3vl3HRSN6-54" value="TENSOR 3" style="html=1;whiteSpace=wrap;" parent="1" vertex="1">
           <mxGeometry x="510" y="790" width="170" height="25" as="geometry" />
         </mxCell>
-        <mxCell id="7CubaNInrMT3vl3HRSN6-55" value="&lt;b&gt;RawTensor Class&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="1" vertex="1">
-          <mxGeometry x="342.5" y="270" width="105" height="30" as="geometry" />
+        <mxCell id="7CubaNInrMT3vl3HRSN6-55" value="RawTensor Class" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="345" y="270" width="100" height="30" as="geometry" />
         </mxCell>
         <mxCell id="7CubaNInrMT3vl3HRSN6-88" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="7CubaNInrMT3vl3HRSN6-63" target="7CubaNInrMT3vl3HRSN6-20" edge="1">
           <mxGeometry relative="1" as="geometry">
@@ -162,8 +162,8 @@
         <mxCell id="7CubaNInrMT3vl3HRSN6-67" value="..." style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
           <mxGeometry x="510" y="200" width="170" height="20" as="geometry" />
         </mxCell>
-        <mxCell id="7CubaNInrMT3vl3HRSN6-70" value="&lt;b&gt;Tensor Class&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1" vertex="1">
-          <mxGeometry x="345" y="40" width="100" height="30" as="geometry" />
+        <mxCell id="7CubaNInrMT3vl3HRSN6-70" value="Tensor Class" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1" vertex="1">
+          <mxGeometry x="350" y="40" width="90" height="30" as="geometry" />
         </mxCell>
         <mxCell id="7CubaNInrMT3vl3HRSN6-71" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="7CubaNInrMT3vl3HRSN6-63" target="7CubaNInrMT3vl3HRSN6-63" edge="1">
           <mxGeometry relative="1" as="geometry">
@@ -172,7 +172,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="7CubaNInrMT3vl3HRSN6-80" value="&lt;b&gt;COMPUTATION GRAPH&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="1" vertex="1">
+        <mxCell id="7CubaNInrMT3vl3HRSN6-80" value="COMPUTATION GRAPH" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="1" vertex="1">
           <mxGeometry x="320" y="-170" width="150" height="30" as="geometry" />
         </mxCell>
         <mxCell id="7CubaNInrMT3vl3HRSN6-81" value="&lt;b&gt;forward &lt;/b&gt;()" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
