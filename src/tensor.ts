@@ -9,6 +9,9 @@ type NodeOption = any;
 type OperationClass<T> = new (parents: Tensor[], ...params: NodeOption[]) => T;
 
 export default abstract class Tensor {
+    private static id_counter: number = 0;
+    public id: number = Tensor.id_counter++;
+
     // state of the node
     abstract value: RawTensor;
     grad?: RawTensor = undefined;
@@ -111,7 +114,11 @@ export default abstract class Tensor {
     // Find all nodes that are directly or transitively connected to this node using DFS
     // i.e. find the set of all nodes in this graph
     private get_graph_nodes(node_set = new Set<Tensor>()) {
-        if (node_set.has(this)) return node_set; // cycle detected
+        if (node_set.has(this)) {
+            // cycle detected
+            throw new Error("Detected a cycle in the graph. Computation graphs must be acyclic.");
+            return node_set;
+        }
 
         node_set.add(this);
 
@@ -135,14 +142,12 @@ export default abstract class Tensor {
 
         const all_nodes: Tensor[] = [...this.get_graph_nodes()];
         const inputs: Tensor[] = [];
-        const outputs: Tensor[] = [];
 
         for (const node of all_nodes) {
-            if (node.children.length === 0) outputs.push(node);
             if (node.parents.length === 0) inputs.push(node);
         }
 
-        this.cached_graph = new Graph(inputs, outputs, all_nodes);
+        this.cached_graph = new Graph(inputs, this, all_nodes);
         return this.cached_graph;
     }
 

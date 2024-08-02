@@ -1,4 +1,10 @@
+import Tensor from "../tensor.ts";
 import {RawTensor} from "./raw_tensor.ts";
+
+const bold = "\x1b[1m";
+const reset = "\x1b[0m";
+const purple = "\x1b[35m";
+const grey = "\x1b[1;30m";
 
 // usability methods
 export function tensor_to_string(a: RawTensor, num_width = 5, space_before = 0) {
@@ -107,6 +113,41 @@ export function tensor_info_to_string(a: RawTensor) {
         `  size:    ${a.size} bytes\n` +
         `  offset:  ${a.offset}\n` +
         `  data:    [${data.join(", ")}${a.data.length > max_entries ? ", ..." : ""}]\n`);
+}
+
+// takes a tensor object and returns a readable string to represent it in the cli
+function get_tensor_name(tensor: Tensor, show_id: boolean) {
+    return (show_id ? `[${tensor.id}] ` : "")
+        + (`${tensor.constructor.name}`)
+        + (tensor.name ? ` ("${tensor.name}")` : "");
+}
+
+export function graph_to_string(
+    current_tensor: Tensor,
+    show_id: boolean, 
+    visited: Set<Tensor> = new Set(),
+    prefix: string = "",
+    is_last: boolean = true,
+    is_root: boolean = true,
+): string {
+    const identifier = get_tensor_name(current_tensor, show_id);
+
+    let result = is_root
+        ? `${bold}${purple}${identifier}${reset} ${grey}[Output]${reset}\n` 
+        : `${prefix}${bold}${is_last ? "└─ " : "├─ "}${identifier}${reset}\n`;
+
+    visited.add(current_tensor);
+
+    const new_prefix = prefix + `${bold}${is_last ? "   " : "│  "}${reset}`;
+    current_tensor.parents.forEach((parent, index) => {
+        const parent_is_last = index === current_tensor.parents.length - 1;
+        const parent_identifier = get_tensor_name(parent, show_id);
+        result += visited.has(parent)
+            ? `${new_prefix}${bold}${parent_is_last ? "└─ " : "├─ "}${parent_identifier} (already visited)${reset}\n`
+            : graph_to_string(parent, show_id, visited, new_prefix, parent_is_last, false);
+    });
+
+    return result;
 }
 
 export function ordinal_str(n: number): string {

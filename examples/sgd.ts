@@ -14,8 +14,8 @@ const weight = tensor([2, size], true).kaiming_normal(size * 2);
 const bias = tensor([size], true).kaiming_normal(size);
 const target = tensor([size]).uniform(0, 1);
 
-weight.print();
-bias.print();
+// weight.print();
+// bias.print();
 
 const a = RawTensor.create([size]);
 const input = tensor_producer([size], () => a.normal(3, 1));
@@ -27,6 +27,8 @@ const nn = weight.matmul(input).add(bias).set_name("add").leaky_relu(.05).mse_lo
 const graph = nn.graph;
 const learningRate = 3;
 
+graph.print();
+
 console.time();
 
 // training loop
@@ -35,7 +37,7 @@ for (let epoch = 0; epoch < 1000; epoch++) {
     graph.forward();
     graph.backward();    
 
-    console.log(`\x1b[35m[${mgmt.get_total_allocated()} Bytes]\x1b[0m Epoch ${epoch + 1}: Loss = ${graph.outputs[0].value.toString()}`);
+    console.log(`\x1b[35m[${mgmt.get_total_allocated()} Bytes]\x1b[0m Epoch ${epoch + 1}: Loss = ${graph.output.value.toString()}`);
     // graph.get_node("add")?.grad?.print(10);
 
     // update weights using SGD

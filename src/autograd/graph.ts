@@ -1,4 +1,5 @@
-import Tensor from "./tensor.ts";
+import { graph_to_string } from "../raw_tensor/to_string.ts";
+import Tensor from "../tensor.ts";
 
 /**
  * This is a basic implementation of the computation graph.
@@ -14,17 +15,19 @@ import Tensor from "./tensor.ts";
  */
 export default class Graph {
     inputs: Tensor[];
-    outputs: Tensor[];
+    output: Tensor;
     all_nodes: Tensor[];
 
     topological_ordering: Tensor[];
 
-    constructor(inputs: Tensor[], outputs: Tensor[], all_nodes: Tensor[]) {
+    constructor(inputs: Tensor[], output: Tensor, all_nodes: Tensor[]) {
         this.inputs = inputs;
-        this.outputs = outputs;
+        this.output = output;
         this.all_nodes = all_nodes;
         this.topological_ordering = this.find_topological_order();
     }
+
+    print = (show_id: boolean = false) => console.log(graph_to_string(this.output, show_id));
 
     // todo: this is where parallelization could come into play
     //       for parallelization, there are some optimization in the way we find the
@@ -78,9 +81,9 @@ export default class Graph {
     backward(): void {
         // TODO: Allow different initializations
         // Initialize the gradients of all ouputs to 1
-        for (const output of this.outputs) {
-            if (!output.grad) throw new Error("Found an output node without a gradient.");
-            output.grad.ones();
+        if (!this.output.grad) {
+            throw new Error("Output node has no gradient!");
+            this.output.grad.ones();
         }
 
         // Step backward through node execution order and update grads using backward functions
