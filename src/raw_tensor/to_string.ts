@@ -1,3 +1,4 @@
+import { Parameter } from "../autograd/node_operations.ts";
 import Tensor from "../tensor.ts";
 import {RawTensor} from "./raw_tensor.ts";
 
@@ -5,6 +6,7 @@ const bold = "\x1b[1m";
 const reset = "\x1b[0m";
 const purple = "\x1b[35m";
 const grey = "\x1b[1;30m";
+const orange = "\x1b[32m";
 
 // usability methods
 export function tensor_to_string(a: RawTensor, num_width = 5, space_before = 0) {
@@ -117,7 +119,9 @@ export function tensor_info_to_string(a: RawTensor) {
 
 // takes a tensor object and returns a readable string to represent it in the cli
 function get_tensor_name(tensor: Tensor, show_id: boolean) {
-    return (show_id ? `[${tensor.id}] ` : "")
+    const is_param = tensor instanceof Parameter;
+    return (is_param ? orange : "")
+        + (show_id ? `[${tensor.id}] ` : "")
         + (`${tensor.constructor.name}`)
         + (tensor.name ? ` ("${tensor.name}")` : "");
 }

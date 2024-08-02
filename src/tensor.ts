@@ -142,12 +142,14 @@ export default abstract class Tensor {
 
         const all_nodes: Tensor[] = [...this.get_graph_nodes()];
         const inputs: Tensor[] = [];
+        const parameters: graph_ops.Parameter[] = [];
 
         for (const node of all_nodes) {
             if (node.parents.length === 0) inputs.push(node);
+            if (node instanceof graph_ops.Parameter) parameters.push(node);
         }
 
-        this.cached_graph = new Graph(inputs, this, all_nodes);
+        this.cached_graph = new Graph(inputs, this, parameters, all_nodes);
         return this.cached_graph;
     }
 

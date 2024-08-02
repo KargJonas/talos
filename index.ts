@@ -5,6 +5,7 @@ export { RawTensor } from "./src/raw_tensor/raw_tensor.ts";
 export { set_rand_seed } from "./src/raw_tensor/util.ts";
 export * from "./src/tensor_factory.ts";
 export const mgmt = { get_total_allocated, get_ntensors };
+export * as optim from "./src/optimizer/optimizer.ts";
 
 import Tensor from "./src/tensor.ts";
 export { core, core_ready, Tensor };

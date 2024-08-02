@@ -11,6 +11,54 @@ For a working SGD demo see **[examples/sgd.ts](examples/sgd.ts)**.
 
 Talos uses C/WebAssembly to accelerate operations on tensors. All tensor data and metadata resides within WASM memory and and is accessed by JS only for validating operation parameters, printing and other things of that nature.
 
+### SGD Demo
+```ts
+import { RawTensor, core_ready, set_rand_seed, mgmt, optim, tensor, tensor_producer } from "../index";
+
+// if your runtime does not support top-level await,
+// you'll have to use core_ready.then(() => { ... }) instead
+await core_ready;
+set_rand_seed(Date.now());
+
+console.log("\nRunning SGD demo...\n");
+
+const size = 100;
+const weight = tensor([2, size], true).kaiming_normal(size * 2).set_name("weight");
+const bias = tensor([size], true).kaiming_normal(size).set_name("bias");
+const target = tensor([size]).uniform(0, 1);
+
+const a = RawTensor.create([size]);
+const input = tensor_producer([size], () => a.normal(3, 1));
+
+// define computation graph: mean((target - relu(Weight * input + Bias))^2)
+const nn = weight.matmul(input).add(bias).set_name("add").leaky_relu(.05).mse_loss(target);
+
+// finds an execution sequence for the operations involved in the previously defined graph
+const graph = nn.graph;
+const optimizer = new optim.sgd(graph, { lr: 20 });
+
+graph.print();
+console.time();
+
+for (let iteration = 0; iteration <= 1000; iteration++) {
+    graph.zero_grad();
+    graph.forward();
+    graph.backward();
+    optimizer.step();
+
+    if (iteration % 50 === 0) console.log(`\x1b[35m[${mgmt.get_total_allocated()} Bytes]\x1b[0m Iteration ${iteration}: Loss = ${graph.output.value.toString()}`);
+}
+
+console.write("\nTraining completed in: ");
+console.timeEnd();
+```
+
+#### SGD Demo Output
+<p align="center">
+  <img src="./misc/sgd_training.png" />
+</p>
+
+### A quick overview over some tensor operations
 Here is a bit of sample code that demonstrates some of the features.
 The full feature list is below.
 ```js
@@ -56,13 +104,19 @@ t3.logistic();
 t2.T.matmul(t2);
 t2.matmul(t2.transpose(1, 0)); // you can also use permutations for transposition
 
-// talos is lazy, this means no actual computation will be performed,
-// unless you call .realize()
+// As you use the chaining API, a computation graph is automatically constructed,
+// that can later be used for training.
 const my_tensor = t1.add(t3).mul(t3).sub(4).T; // this tensor will contain only zeros (uninitialized)
-const my_realized_tensor = t1.add(t3).mul(t3).sub(4).T.realize(); // this will contain a result
+
+// Talos is lazy, this means no actual computation will be performed
+// until you call .realize()
+const my_realized_tensor = my_tensor.realize(); // this will contain a result
 
 my_tensor.print();
 my_realized_tensor.print();
+
+// To print the computation graph of my_tensor (draws a nice tree)
+my_tensor.graph.print(true);
 ```
 
 <p align="center">

@@ -1,5 +1,6 @@
 import { graph_to_string } from "../raw_tensor/to_string.ts";
 import Tensor from "../tensor.ts";
+import { Parameter } from "./node_operations.ts";
 
 /**
  * This is a basic implementation of the computation graph.
@@ -16,13 +17,15 @@ import Tensor from "../tensor.ts";
 export default class Graph {
     inputs: Tensor[];
     output: Tensor;
+    parameters: Parameter[];
     all_nodes: Tensor[];
 
     topological_ordering: Tensor[];
 
-    constructor(inputs: Tensor[], output: Tensor, all_nodes: Tensor[]) {
+    constructor(inputs: Tensor[], output: Tensor, parameters: Parameter[], all_nodes: Tensor[]) {
         this.inputs = inputs;
         this.output = output;
+        this.parameters = parameters;
         this.all_nodes = all_nodes;
         this.topological_ordering = this.find_topological_order();
     }

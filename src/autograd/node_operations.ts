@@ -38,13 +38,25 @@ export class FwBwInterimOp extends FwBwOp {
     }
 }
 
-export class Parameter extends Tensor {
+// Constants don't have parents, never change and don't need gradients
+export class Constant extends Tensor {
     value: RawTensor;
 
-    constructor(value: RawTensor | number, requires_grad: boolean) {
+    constructor(value: RawTensor | number) {
         super([]);
         this.value = typeof value === "number" ? RawTensor.scalar(value) : value;
-        if (requires_grad) this.grad = RawTensor.like(this.value);
+    }
+}
+
+// Parameters don't have parents, can change and do require gradients
+export class Parameter extends Tensor {
+    value: RawTensor;
+    grad: RawTensor;
+
+    constructor(value: RawTensor | number) {
+        super([]);
+        this.value = typeof value === "number" ? RawTensor.scalar(value) : value;
+        this.grad = RawTensor.like(this.value);
     }
 }
 

@@ -2,7 +2,7 @@ import Graph from "../autograd/graph";
 import { mul_acc } from "../raw_tensor/raw_tensor_operations";
 import Tensor from "../tensor";
 
-
+type sgd_options = { lr: number };
 
 export class Optimizer {
     model: Graph;
@@ -10,13 +10,10 @@ export class Optimizer {
 
     constructor(model: Graph) {
         this.model = model;
-
-        
     }
 }
 
-type sgd_options = { lr: number };
-export class SGD extends Optimizer {
+export class sgd extends Optimizer {
     lr: number;
     
     constructor(model: Graph, { lr }: sgd_options) {
@@ -25,6 +22,8 @@ export class SGD extends Optimizer {
     }
 
     step() {
-        for ()
+        for (const param of this.model.parameters) {
+            mul_acc(param.grad, -this.lr, param.value);
+        }
     }
 }
