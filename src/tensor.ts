@@ -111,6 +111,12 @@ export default abstract class Tensor {
     mean = this.create_unary_op(graph_ops.Mean);
     mse_loss = this.create_binary_op(graph_ops.MseLoss);
 
+    // sequentially applies a list of layers by temporarily connecting the
+    // input node of each layer with the output of the previous layer
+    public sequential(layers: Layer[]) {
+        
+    }
+
     // Find all nodes that are directly or transitively connected to this node using DFS
     // i.e. find the set of all nodes in this graph
     private get_graph_nodes(node_set = new Set<Tensor>()) {
