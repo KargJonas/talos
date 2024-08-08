@@ -94,8 +94,8 @@ export class Input extends Tensor {
 
     // connects (the graph of) some input tensor with the graph that the input node is part of
     connect(input: Tensor) {
-        if (!input.shape.equals(this.value.shape)) throw new Error(`Input node of shape [${this.value.shape}] cannot handle input tensor of shape [${input.shape}].`);
-        if (input.grad && !input.grad.shape.equals(this.grad.shape)) throw new Error(`Input node with grad shape [${this.grad.shape}] cannot handle input tensor with grad shape [${input.grad.shape}].`);
+        // if (!input.shape.equals(this.value.shape)) throw new Error(`Input node of shape [${this.value.shape}] cannot handle input tensor of shape [${input.shape}].`);
+        // if (input.grad && !input.grad.shape.equals(this.grad.shape)) throw new Error(`Input node with grad shape [${this.grad.shape}] cannot handle input tensor with grad shape [${input.grad.shape}].`);
         
         this.parents = [input];
         this.a.add_child(this);

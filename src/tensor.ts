@@ -158,7 +158,10 @@ export default abstract class Tensor {
      * @returns A computation graph
      */
     get graph(): Graph {
-        if (this.cached_graph) return this.cached_graph;
+        // todo can't do it this primitively with dynamic graphs
+        // todo find a better solution or maybe don't expose this to the user
+        //      and only use it right before performing a forward pass/realize
+        // if (this.cached_graph) return this.cached_graph;
 
         const all_nodes: Tensor[] = [...this.get_graph_nodes()];
         const inputs: Tensor[] = [];
