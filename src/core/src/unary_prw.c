@@ -48,6 +48,7 @@ void NAME(struct tensor_t* _a, struct tensor_t* res, float param) {
     abs_prw:        fabs(a)
     sign_prw:       SIGN(a)
     negate_prw:     -a
+    identity_prw:   a
     reciprocal_prw: 1. / a
     relu_prw:       a < 0 ? 0 : a
     leaky_relu_prw: a < 0 ? param * a : a
@@ -72,6 +73,7 @@ void NAME(struct tensor_t* _a, struct tensor_t* res, float param) {
     df_sqrt_prw:          .5 / sqrt(a)
     df_abs_prw:           SIGN(a)
     df_negate_prw:        -1
+    df_identity_prw:      1
     df_reciprocal_prw:    -1. / pow(a, 2.)
     df_relu_prw:          a < 0. ? 0. : 1.
     df_leaky_relu_prw:    a < 0 ? param : 1

@@ -169,7 +169,9 @@ export class RawTensor {
         const ptr = core._create_tensor(shape.length, nelem);
         const new_tensor = new RawTensor(ptr);
     
-        if (data !== undefined) new_tensor.data.set(data);
+        if (data === undefined) new_tensor.zeros();
+        else new_tensor.data.set(data);
+
         new_tensor.shape.set(shape);
         new_tensor.strides.set(get_strides_row_major(_shape));
     

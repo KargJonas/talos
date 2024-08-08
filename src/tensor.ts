@@ -17,8 +17,8 @@ export default abstract class Tensor {
     grad?: RawTensor = undefined;
 
     // metadata
-    readonly parents: Tensor[];
-    readonly children: Tensor[];
+    protected parents: Tensor[];
+    protected children: Tensor[];
 
     private cached_graph: Graph | undefined;
     name?: string;
@@ -31,6 +31,7 @@ export default abstract class Tensor {
     }
 
     get rank()  { return this.value.rank; }
+    get shape() { return this.value.shape; }
     get nelem() { return this.value.nelem; }
     get size()  { return this.value.size; }
     get rows()  { return this.value.get_axis_size(this.rank - 2); }
@@ -38,6 +39,16 @@ export default abstract class Tensor {
     get item()  { return this.value.item; }
     get T() { return this.transpose(); }
     get_axis_size = (axis_index: number) => this.value.get_axis_size(axis_index);
+
+    get a() {
+        if (!this.parents[0]) throw new Error("Can't access parent \"a\" as it does not exist on this node.");
+        return this.parents[0];
+    }
+
+    get b() {
+        if (!this.parents[1]) throw new Error("Can't access parent \"b\" as it does not exist on this node.");
+        return this.parents[1];
+    }
 
     fw() {} // forward
     bw() {} // backward
@@ -111,10 +122,13 @@ export default abstract class Tensor {
     mean = this.create_unary_op(graph_ops.Mean);
     mse_loss = this.create_binary_op(graph_ops.MseLoss);
 
+    add_child    = (child: Tensor) => this.children.push(child);
+    remove_child = (child: Tensor) => this.children = this.children.filter(_child => _child != child);
+
     // sequentially applies a list of layers by temporarily connecting the
     // input node of each layer with the output of the previous layer
     public sequential(layers: Layer[]) {
-        
+
     }
 
     // Find all nodes that are directly or transitively connected to this node using DFS

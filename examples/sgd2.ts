@@ -1,4 +1,4 @@
-import { RawTensor, core_ready, set_rand_seed, mgmt, optim, tensor, tensor_producer } from "../index";
+import { core_ready, mgmt, optim, set_rand_seed, tensor, tensor_input } from "../index";
 
 // if your runtime does not support top-level await,
 // you'll have to use core_ready.then(() => { ... }) instead
@@ -13,8 +13,9 @@ const weight = tensor([size_1, size_0], true).kaiming_normal(size_0 * size_1).se
 const bias = tensor([size_0], true).kaiming_normal(size_0).set_name("bias");
 const target = tensor([size_0]).uniform(0, 1);
 
-const a = RawTensor.create([size_0]);
-const input = tensor_producer([size_0], () => a.normal(3, 1));
+const a = tensor([size_0]);
+const input = tensor_input([size_0]);
+input.connect(a);
 
 // define computation graph: mean((target - relu(Weight * input + Bias))^2)
 const nn = weight.matmul(input).add(bias).set_name("add").leaky_relu(.05).mse_loss(target);
@@ -27,6 +28,8 @@ graph.print({ show_shape: true });
 console.time();
 
 for (let iteration = 0; iteration <= 1000; iteration++) {
+    a.normal(3, 1);
+
     graph.zero_grad();
     graph.forward();
     graph.backward();

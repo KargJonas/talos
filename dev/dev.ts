@@ -87,6 +87,20 @@ try {
     // samples = Tensor.randint(batch_size, high=X_train.shape[0])
     // loss = model(X_train[samples]).sparse_categorical_crossentropy(Y_train[samples]).backward()
 
+
+    // ### on an init() method and when to allocate memory
+    // as you can see, memory is allocated as soon as the constructor of each node is called. this means that something like
+    // input.add(other).mul(another);
+    // will immediately allocate memory (but won't perform computation).
+    // im currently undecided wether i should move this to a dedicated alloc() or init() method (and maybe add a dealloc() method) because for allocation, we need the shape of the tensors.
+    // if i want to implement something like this:
+    // const my_model = create_source_node().add(other).mul(another);
+    // my_model(my_data);
+    // then i need to consider that the data passed into my_model could have different shapes between passes.
+    // if i want to support that, i need to allocate the tensors only when i get data (when i do a second pass with differently shaped data, then i can sort of cache this, because i can store the shape of the previous data and only reallocate if the shape has changed, but thats beside the point).
+    // (an alternative to all this would be to pass a shape into create_source_node() and allocate the tensors using that.)
+
+
     // should maybe return a tensor provider that randomly selects
     // slices of the dataset tensor
     const shuffled = dataset.shuffle(0);

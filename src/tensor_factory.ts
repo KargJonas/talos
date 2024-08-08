@@ -1,4 +1,4 @@
-import { Constant, Parameter, Source } from "./autograd/node_operations.ts";
+import { Constant, Input, Parameter, Source } from "./autograd/node_operations.ts";
 import { RawTensor } from "./raw_tensor/raw_tensor.ts";
 import Shape from "./raw_tensor/shape.ts";
 import {NDArray, flatten} from "./raw_tensor/util.ts";
@@ -26,10 +26,14 @@ export function tensor_producer(shape: Shape | number[], producer: () => (NDArra
     });
 }
 
+export function tensor_input(shape: Shape | number []): Input {
+    return new Input(shape);
+}
+
 // export function tensor_scalar(): Parameter;
 // export function tensor_scalar(value?: number): Parameter;
 // export function tensor_scalar(requires_grad?: boolean): Parameter;
-export function tensor_scalar(arg_1?: number | boolean, arg_2?: boolean): Parameter {
+export function tensor_scalar(arg_1?: number | boolean, arg_2?: boolean): Parameter | Constant {
     // only value provided
     if (arg_1 === undefined) {
         return new Constant(RawTensor.scalar());
@@ -45,13 +49,13 @@ export function tensor_scalar(arg_1?: number | boolean, arg_2?: boolean): Parame
         return new Constant(RawTensor.scalar(arg_1));
     }
 
-    throw new Error("Cant create scalar tensor with the provided arguments.");
+    throw new Error("Can't create scalar tensor with the provided arguments.");
 }
 
 // Overload for shape and requires_grad
-export function tensor(shape: number[], is_parameter?: boolean): Parameter;
-export function tensor(shape: number[], data: number[], is_parameter?: boolean): Parameter;
-export function tensor(shape: number[], arg_1?: number[] | boolean, arg_2?: boolean) {
+export function tensor(shape: number[], is_parameter?: boolean): Parameter | Constant;
+export function tensor(shape: number[], data: number[], is_parameter?: boolean): Parameter | Constant;
+export function tensor(shape: number[], arg_1?: number[] | boolean, arg_2?: boolean): Parameter | Constant {
     // only shape provided
     if (arg_1 === undefined && arg_2 === undefined) {
         return new Constant(RawTensor.create(shape));
@@ -69,10 +73,10 @@ export function tensor(shape: number[], arg_1?: number[] | boolean, arg_2?: bool
         return new Constant(RawTensor.create(shape, arg_1));
     }
 
-    throw new Error("Cant create tensor with the provided arguments.");
+    throw new Error("Can't create tensor with the provided arguments.");
 }
 
-export function tensor_from_array(_data: NDArray, is_parameter: boolean = true): Parameter {
+export function tensor_from_array(_data: NDArray, is_parameter: boolean = true): Parameter | Constant {
     const [shape, data] = flatten(_data);
     return tensor(shape, data, is_parameter);
 }
