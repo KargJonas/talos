@@ -1,9 +1,11 @@
-import { core_ready, mgmt, optim, set_rand_seed, tensor, tensor_input } from "../index";
+import { core_ready, mgmt, optim, tensor, tensor_input } from "../index";
 
 // if your runtime does not support top-level await,
 // you'll have to use core_ready.then(() => { ... }) instead
 await core_ready;
-set_rand_seed(Date.now());
+
+// no nondeterminism such that results can be compared to examples/sgd.ts
+// set_rand_seed(Date.now());
 
 console.log("\nRunning SGD demo...\n");
 
@@ -15,6 +17,12 @@ const target = tensor([size_0]).uniform(0, 1);
 
 const a = tensor([size_0]);
 const input = tensor_input([size_0]);
+
+// Connects the tensor `a` to the input node.
+// Graph connections can be made at any point in time.
+// This is significant because previously you had to define a single
+// big graph which limited the flexibility a lot.
+// A demonstration of the old system can be found in examples/sgd.ts
 input.connect(a);
 
 // define computation graph: mean((target - relu(Weight * input + Bias))^2)
@@ -27,7 +35,7 @@ const optimizer = new optim.sgd(graph, { lr: .05  });
 graph.print({ show_shape: true });
 console.time();
 
-for (let iteration = 0; iteration <= 10; iteration++) {
+for (let iteration = 0; iteration <= 1000; iteration++) {
     a.normal(3, 1);
 
     graph.zero_grad();

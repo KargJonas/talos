@@ -1,14 +1,16 @@
-import { RawTensor, core_ready, set_rand_seed, mgmt, optim, tensor, tensor_producer } from "../index";
+import { RawTensor, core_ready, mgmt, optim, tensor, tensor_producer } from "../index";
 
 // if your runtime does not support top-level await,
 // you'll have to use core_ready.then(() => { ... }) instead
 await core_ready;
-set_rand_seed(Date.now());
+
+// no nondeterminism such that results can be compared to examples/sgd2.ts
+// set_rand_seed(Date.now());
 
 console.log("\nRunning SGD demo...\n");
 
-const size_0 = 3;
-const size_1 = 3;
+const size_0 = 50;
+const size_1 = 50;
 const weight = tensor([size_1, size_0], true).kaiming_normal(size_0 * size_1).set_name("weight");
 const bias = tensor([size_0], true).kaiming_normal(size_0).set_name("bias");
 const target = tensor([size_0]).uniform(0, 1);
