@@ -26,7 +26,7 @@ export default function directory_transform(
         rimraf.sync(outDir);
     }
 
-    fs.mkdirSync(outDir);
+    fs.mkdirSync(outDir, { recursive: true });
 
     // Reading all of the items in the input directory.
     const items = fs.readdirSync(inDir);

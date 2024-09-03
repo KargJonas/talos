@@ -1,6 +1,7 @@
 import { RawTensor } from "./raw_tensor.ts";
 import core from "../core/build/index.js";
 import Shape from "./shape.ts";
+import { binary_error, unary_error } from "./to_string.ts";
 
 // types for high level operations
 export type UnaryOp = (src: RawTensor, dest?: RawTensor, param?: number) => RawTensor;
@@ -8,9 +9,9 @@ export type BinaryOp<OtherType> = (src_a: RawTensor, src_b: OtherType, dest?: Ra
 export type DropoutOp = (src: RawTensor, dest?: RawTensor, p?: number, seed?: number) => RawTensor;
 
 // types of core functions
-type CoreUnaryOp   =  (src_ptr: number, dest_ptr: number, param?: number) => void;
+type CoreUnaryOp   = (src_ptr: number, dest_ptr: number, param?: number) => void;
 type CoreBinaryOp  = (src_a_ptr: number, src_b_ptr_or_imm: number, dest_ptr: number) => void;
-type CoreDropoutOp =  (src_ptr: number, dest_ptr: number, p: number, seed: number) => void;
+type CoreDropoutOp = (src_ptr: number, dest_ptr: number, p: number, seed: number) => void;
 
 // binary operations (dest = a <OP> b)
 export const add    = create_binary_op("add");
@@ -39,6 +40,7 @@ export const leaky_relu = create_unary_op("leaky_relu");
 export const binstep    = create_unary_op("binstep");
 export const logistic   = create_unary_op("logistic");
 export const negate     = create_unary_op("negate");
+export const identity   = create_unary_op("identity");
 export const sin        = create_unary_op("sin");
 export const cos        = create_unary_op("cos");
 export const tan        = create_unary_op("tan");
@@ -65,6 +67,7 @@ export const leaky_relu_acc = create_unary_op("leaky_relu", true);
 export const binstep_acc    = create_unary_op("binstep", true);
 export const logistic_acc   = create_unary_op("logistic", true);
 export const negate_acc     = create_unary_op("negate", true);
+export const identity_acc   = create_unary_op("identity", true);
 export const sin_acc        = create_unary_op("sin", true);
 export const cos_acc        = create_unary_op("cos", true);
 export const tan_acc        = create_unary_op("tan", true);
@@ -90,6 +93,7 @@ export const reciprocal_acc = create_unary_op("reciprocal", true);
 export const df_relu       = create_unary_op("df_relu");
 export const df_leaky_relu = create_unary_op("df_leaky_relu");
 export const df_negate     = create_unary_op("df_negate");
+export const df_identity   = create_unary_op("df_identity");
 export const df_sin        = create_unary_op("df_sin");
 export const df_cos        = create_unary_op("df_cos");
 export const df_tan        = create_unary_op("df_tan");
@@ -179,7 +183,7 @@ function create_matmul_op(opcode: string, accumulative = false):  BinaryOp<RawTe
         const result = dest || RawTensor.create(result_shape);
     
         if (dest && !dest.shape.equals(result_shape))
-            throw new Error(`Cannot perform matmul. Result tensor [${result_shape}] has different shape than destination tensor [${dest.shape}].`);
+            throw new Error(binary_error(`${opcode}${postfix}`, src_a, src_b, dest, result_shape));
     
         // todo: decide if data should be passed into op from Tensor.forward()
         //   or if we can just pass in the data like here
@@ -204,7 +208,7 @@ function create_dot_op(opcode: string, accumulative = false):  BinaryOp<RawTenso
         const result = dest || RawTensor.create(result_shape);
     
         if (dest && !dest.shape.equals(result_shape))
-            throw new Error(`Cannot compute dot product. Result tensor [${result_shape}] has different shape than destination tensor [${dest.shape}].`);
+            throw new Error(binary_error(`${opcode}${postfix}`, a, b, dest, result_shape));
     
         core_fn(
             a.ptr,
@@ -224,7 +228,7 @@ function create_dropout_op(opcode: string, accumulative = false): DropoutOp {
         const result = dest || RawTensor.create(src.shape);
     
         if (dest && !dest.shape.equals(src.shape))
-            throw new Error(`Cannot compute dropout. Destination tensor [${dest.shape}] has different shape than source tensor [${src.shape}].`);
+            throw new Error(unary_error(`${opcode}${postfix}`, src, dest, src.shape));
     
         core_fn(src.ptr, result.ptr, p, seed);
         return result;

@@ -1,10 +1,10 @@
-import { RawTensor, core_ready, mgmt, optim, tensor, tensor_producer } from "../index";
+import { core_ready, mgmt, optim, tensor, tensor_input } from "../index";
 
 // if your runtime does not support top-level await,
 // you'll have to use core_ready.then(() => { ... }) instead
 await core_ready;
 
-// no nondeterminism such that results can be compared to examples/sgd2.ts
+// no nondeterminism such that results can be compared to examples/sgd.ts
 // set_rand_seed(Date.now());
 
 console.log("\nRunning SGD demo...\n");
@@ -15,8 +15,15 @@ const weight = tensor([size_1, size_0], true).kaiming_normal(size_0 * size_1).se
 const bias = tensor([size_0], true).kaiming_normal(size_0).set_name("bias");
 const target = tensor([size_0]).uniform(0, 1);
 
-const a = RawTensor.create([size_0]);
-const input = tensor_producer([size_0], () => a.normal(3, 1));
+const a = tensor([size_0]);
+const input = tensor_input([size_0]);
+
+// Connects the tensor `a` to the input node.
+// Graph connections can be made at any point in time.
+// This is significant because previously you had to define a single
+// big graph which limited the flexibility a lot.
+// A demonstration of the old system can be found in examples/sgd.ts
+input.connect(a);
 
 // define computation graph: mean((target - relu(Weight * input + Bias))^2)
 const nn = weight.matmul(input).add(bias).set_name("add").leaky_relu(.05).mse_loss(target);
@@ -29,6 +36,8 @@ graph.print({ show_shape: true });
 console.time();
 
 for (let iteration = 0; iteration <= 1000; iteration++) {
+    a.normal(3, 1);
+
     graph.zero_grad();
     graph.forward();
     graph.backward();

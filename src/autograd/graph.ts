@@ -1,4 +1,4 @@
-import { graph_to_string } from "../raw_tensor/to_string.ts";
+import { graph_to_string, gts_options } from "../raw_tensor/to_string.ts";
 import Tensor from "../tensor.ts";
 import { Parameter } from "./node_operations.ts";
 
@@ -30,7 +30,7 @@ export default class Graph {
         this.topological_ordering = this.find_topological_order();
     }
 
-    print = (show_id: boolean = false) => console.log(graph_to_string(this.output, show_id));
+    print = (options?: Partial<gts_options>) => console.log(graph_to_string(this.output, options));
 
     // todo: this is where parallelization could come into play
     //       for parallelization, there are some optimization in the way we find the
