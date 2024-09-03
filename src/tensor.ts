@@ -16,19 +16,15 @@ export default abstract class Tensor {
     abstract value: RawTensor;
     grad?: RawTensor = undefined;
 
+<<<<<<< Updated upstream
     // metadata
     protected parents: Tensor[];
     protected children: Tensor[];
 
+=======
+>>>>>>> Stashed changes
     private cached_graph: Graph | undefined;
     name?: string;
-
-    protected constructor(parents: Tensor[]) {
-        this.parents = parents;
-        this.children = [];
-
-        // value is initialized in extending classes
-    }
 
     get rank()  { return this.value.rank; }
     get shape() { return this.value.shape; }

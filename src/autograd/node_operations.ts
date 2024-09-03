@@ -122,6 +122,57 @@ export class Input extends Tensor {
     }
 }
 
+interface Node {
+    parents: Node[];
+    tensor?: Tensor; // real tensors are only allocated at init()
+    fw(): void;
+    bw(): void;
+}
+
+class UnaryNode implements Node {
+    parents: Node[] = [];
+    tensor?: Tensor;
+
+    // constructor(parents: Node[]) {
+    //     if (parents.length !== 1) throw new Error("Unary nodes must have exactly one parent.");
+    //     this.parents = parents;
+    // }
+
+    get a(): Tensor { return this.parents[0].tensor!; }
+    set a(new_a: Tensor) { this.parents[0].tensor = new_a; }
+    check_a() { if (!this.a) throw new Error("Tried  access parent \"a\" before init() was called."); }
+    fw() { throw new Error(`Tried to call ${this.constructor}.fw() before init() was called.`); }
+    bw() { throw new Error(`Tried to call ${this.constructor}.bw() before init() was called.`); }
+}
+
+class BinaryNode extends UnaryNode {
+    get b(): Tensor { return this.parents[1].tensor!; }
+    set b(new_b: Tensor) { this.parents[1].tensor = new_b; }
+    check_b() { if (!this.b) throw new Error("Tried to access parent \"b\" before init()."); }
+}
+
+export class Add extends BinaryNode {
+    constructor(parents: Node[]) { super(parents); }
+
+    init() {
+        const value = RawTensor.create(this.a.value.shape.broadcast(this.b.value.shape));
+        const grad = RawTensor.create(value.shape);
+        const concrete: Tensor = new class extends Tensor {
+            value: RawTensor = value;
+            grad: RawTensor = grad;
+        };
+
+        this.fw = () => ops.add(this.a.value, this.b.value, concrete.value);
+        this.bw = () => {
+            // d/da (a+b) = 1
+            if (this.a.grad) ops.add(concrete.grad!, this.a.grad, this.a.grad); // parents[0].grad = 1 * this.grad
+    
+            // d/db (a+b) = 1
+            if (this.b.grad) ops.add(concrete.grad!, this.b.grad, this.b.grad); // parents[0].grad = 1 * this.grad
+        };
+    }
+}
+
 export class Add extends Tensor {
     value: RawTensor;
     grad: RawTensor;
